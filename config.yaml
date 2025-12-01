@@ -284,29 +284,35 @@ Wazuh:
       uri: data.uri
       z: data.z
     Linux:
-      CommandLine: linux.auditd.comm
-      CurrentDirectory: linux.auditd.cwd
-      DestinationHostname: linux.auditd.dest_host
-      DestinationIp: linux.auditd.dest_ip
-      DestinationPort: linux.auditd.dest_port
-      Image: linux.auditd.exe
-      Initiated: linux.auditd.initiated
-      LogonId: linux.auditd.ses
-      ParentCommandLine: linux.auditd.parent_comm
-      ParentImage: linux.auditd.parent_exe
-      TargetFilename: linux.auditd.name
-      User: linux.auditd.uid
-      a0: linux.auditd.a0
-      a1: linux.auditd.a1
-      a2: linux.auditd.a2
-      a3: linux.auditd.a3
-      comm: linux.auditd.comm
-      exe: linux.auditd.exe
-      key: linux.auditd.key
-      name: linux.auditd.name
-      proctitle: linux.auditd.proctitle
-      syscall: linux.auditd.syscall
-      type: linux.auditd.type
+      CommandLine: audit.command
+      CurrentDirectory: audit.cwd
+      DestinationHostname: audit.dest_host
+      DestinationIp: audit.dest_ip
+      DestinationPort: audit.dest_port
+      Image: audit.exe
+      Initiated: audit.initiated
+      LogonId: audit.ses
+      ParentCommandLine: audit.parent_comm
+      ParentImage: audit.parent_exe
+      TargetFilename: audit.directory.name
+      User: audit.uid
+      a0: audit.execve.a0
+      a1: audit.execve.a1
+      a2: audit.execve.a2
+      a3: audit.execve.a3
+      a4: audit.execve.a4
+      a5: audit.execve.a5
+      a6: audit.execve.a6
+      a7: audit.execve.a7
+      comm: audit.command
+      exe: audit.exe
+      key: audit.key
+      name: audit.directory.name
+      nametype: audit.directory.nametype
+      proctitle: audit.proctitle
+      syscall: audit.syscall
+      type: audit.type
+      unit: audit.unit
     Azure:
       ActivityDetails: azure.properties.activityDetails
       ActivityDisplayName: azure.properties.activityDisplayName
