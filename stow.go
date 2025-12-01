@@ -189,6 +189,19 @@ type Field struct {
 	Value  string `xml:",chardata"`
 }
 
+// IPField represents srcip or dstip elements with optional negation
+type IPField struct {
+	Negate string `xml:"negate,attr,omitempty"`
+	Value  string `xml:",chardata"`
+}
+
+// RuleFields contains all field types that can be extracted from Sigma rules
+type RuleFields struct {
+	Fields []Field
+	SrcIps []IPField
+	DstIps []IPField
+}
+
 // per rule xml
 type WazuhRule struct {
 	XMLName xml.Name `xml:"rule"`
@@ -207,12 +220,14 @@ type WazuhRule struct {
 	Mitre            struct {
 		IDs []string `xml:"id,omitempty"`
 	} `xml:"mitre,omitempty"`
-	Description string   `xml:"description"`
-	Options     []string `xml:"options,omitempty"`
-	Groups      string   `xml:"group,omitempty"`
-	IfSid       string   `xml:"if_sid,omitempty"`
-	IfGroup     string   `xml:"if_group,omitempty"`
-	Fields      []Field  `xml:"field"`
+	Description string    `xml:"description"`
+	Options     []string  `xml:"options,omitempty"`
+	Groups      string    `xml:"group,omitempty"`
+	IfSid       string    `xml:"if_sid,omitempty"`
+	IfGroup     string    `xml:"if_group,omitempty"`
+	SrcIps      []IPField `xml:"srcip,omitempty"`
+	DstIps      []IPField `xml:"dstip,omitempty"`
+	Fields      []Field   `xml:"field"`
 }
 
 type Stack []int
@@ -402,7 +417,7 @@ func GetFieldValues(value any, fieldName string, c *Config) []string {
 }
 
 // processDetectionField extracts and processes a single field from a Sigma detection.
-func processDetectionField(selectionKey string, key string, value any, sigma *SigmaRule, c *Config, fields *[]Field, selectionNegations map[string]bool) {
+func processDetectionField(selectionKey string, key string, value any, sigma *SigmaRule, c *Config, fields *[]Field, srcIps *[]IPField, dstIps *[]IPField, selectionNegations map[string]bool) {
 	LogIt(INFO, fmt.Sprintf("processDetectionField key: %s, value: %v", key, value), nil, c.Info, c.Debug)
 	// Handle modifiers in the key
 	parts := strings.Split(key, "|")
@@ -423,6 +438,7 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 	var values []string
 	isRegex := false
 	isB64 := false
+	isCIDR := false
 	startsWith := false
 	endsWith := false
 
@@ -445,8 +461,63 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 				isB64 = true
 			case "windash":
 				value = HandleWindash(value)
+			case "cidr":
+				isCIDR = true
 			}
 		}
+	}
+
+	// Handle CIDR modifier for IP fields
+	if isCIDR {
+		values = GetFieldValues(value, fieldName, c)
+
+		// Determine if this is a source or destination IP field
+		lowerFieldName := strings.ToLower(fieldName)
+		isSrcIP := strings.Contains(lowerFieldName, "sourceip") ||
+				   strings.Contains(lowerFieldName, "src_ip") ||
+				   strings.Contains(lowerFieldName, "srcip") ||
+				   strings.Contains(lowerFieldName, "clientip") ||
+				   strings.Contains(lowerFieldName, "clientaddress") ||
+				   lowerFieldName == "c-ip"
+		isDstIP := strings.Contains(lowerFieldName, "destinationip") ||
+				   strings.Contains(lowerFieldName, "dst_ip") ||
+				   strings.Contains(lowerFieldName, "dstip") ||
+				   strings.Contains(lowerFieldName, "destination")
+
+		// If not clearly source or destination, treat as generic IP (use as srcip)
+		isIP := strings.Contains(lowerFieldName, "ipaddress") ||
+				strings.Contains(lowerFieldName, "ip_address") ||
+				lowerFieldName == "ipaddress" ||
+				strings.Contains(lowerFieldName, "address") && strings.Contains(lowerFieldName, "ip")
+
+		// Create IP fields with CIDR notation
+		negate := ""
+		if selectionNegations[selectionKey] {
+			negate = "yes"
+		}
+
+		for _, v := range values {
+			ipField := IPField{
+				Negate: negate,
+				Value:  v,
+			}
+
+			if isSrcIP {
+				*srcIps = append(*srcIps, ipField)
+				LogIt(INFO, fmt.Sprintf("Added srcip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+			} else if isDstIP {
+				*dstIps = append(*dstIps, ipField)
+				LogIt(INFO, fmt.Sprintf("Added dstip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+			} else if isIP {
+				// Generic IP field - default to srcip
+				*srcIps = append(*srcIps, ipField)
+				LogIt(INFO, fmt.Sprintf("Added srcip CIDR field (generic IP): %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+			} else {
+				// If we can't determine IP direction, log a warning and skip
+				LogIt(WARN, fmt.Sprintf("CIDR modifier used on non-IP field: %s", fieldName), nil, c.Info, c.Debug)
+			}
+		}
+		return // Early return for CIDR fields
 	}
 
 	values = GetFieldValues(value, fieldName, c)
@@ -513,13 +584,16 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 	}
 }
 
-func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionNegations map[string]bool) []Field {
+func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionNegations map[string]bool) RuleFields {
 	LogIt(INFO, fmt.Sprintf("GetFields detection: %v", detection), nil, c.Info, c.Debug)
 	var fields []Field
+	var srcIps []IPField
+	var dstIps []IPField
+
 	for selectionKey, selectionVal := range detection {
 		if selectionMap, ok := selectionVal.(map[string]any); ok {
 			for key, value := range selectionMap {
-				processDetectionField(selectionKey, key, value, sigma, c, &fields, selectionNegations)
+				processDetectionField(selectionKey, key, value, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 			}
 		} else if selectionList, ok := selectionVal.([]any); ok {
 			// Handle list of strings
@@ -530,31 +604,35 @@ func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionN
 				}
 			}
 			if len(stringList) == len(selectionList) {
-				processDetectionField(selectionKey, "", stringList, sigma, c, &fields, selectionNegations)
+				processDetectionField(selectionKey, "", stringList, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 				continue
 			}
 
 			for _, item := range selectionList {
 				if itemMap, ok := item.(map[string]any); ok {
 					for key, value := range itemMap {
-						processDetectionField(selectionKey, key, value, sigma, c, &fields, selectionNegations)
+						processDetectionField(selectionKey, key, value, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 					}
 				}
 			}
 		} else if value, ok := selectionVal.(string); ok {
-			processDetectionField(selectionKey, "", value, sigma, c, &fields, selectionNegations)
+			processDetectionField(selectionKey, "", value, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 		}
 	}
-	LogIt(INFO, fmt.Sprintf("GetFields fields: %v", fields), nil, c.Info, c.Debug)
-	return fields
+	LogIt(INFO, fmt.Sprintf("GetFields fields: %v, srcIps: %v, dstIps: %v", fields, srcIps, dstIps), nil, c.Info, c.Debug)
+	return RuleFields{
+		Fields: fields,
+		SrcIps: srcIps,
+		DstIps: dstIps,
+	}
 }
 
 func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 	var rule WazuhRule
 
-	fields := GetFields(detections, sigma, c, selectionNegations)
-	if len(fields) == 0 {
+	ruleFields := GetFields(detections, sigma, c, selectionNegations)
+	if len(ruleFields.Fields) == 0 && len(ruleFields.SrcIps) == 0 && len(ruleFields.DstIps) == 0 {
 		LogIt(WARN, "No fields found for rule: "+sigma.ID+" URL: "+url, nil, c.Info, c.Debug)
 		return WazuhRule{}
 	}
@@ -581,7 +659,9 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 		rule.IfSid = value
 	}
 
-	rule.Fields = fields
+	rule.Fields = ruleFields.Fields
+	rule.SrcIps = ruleFields.SrcIps
+	rule.DstIps = ruleFields.DstIps
 
 	return rule
 }
@@ -1008,12 +1088,8 @@ func ReadYamlFile(path string, c *Config) {
 		c.TrackSkips.RulesSkipped++
 		return
 	}
-	if strings.Contains(detectionString, "|cidr:") {
-		LogIt(INFO, "Skip Sigma rule cidr: "+sigmaRule.ID, nil, c.Info, c.Debug)
-		c.TrackSkips.Cidr++
-		c.TrackSkips.RulesSkipped++
-		return
-	}
+	// CIDR modifier is now supported, no need to skip
+	// Removed skip check for |cidr: modifier
 
 	detections := GetTopLevelLogicCondition(sigmaRule, c)
 	condition, ok := detections["condition"].(string)
