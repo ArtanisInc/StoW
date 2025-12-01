@@ -1068,7 +1068,9 @@ func WriteWazuhXmlRules(c *Config) {
 			LogIt(ERROR, "", err, c.Info, c.Debug)
 		}
 
-		file.Close()
+		if err := file.Close(); err != nil {
+			LogIt(ERROR, fmt.Sprintf("Failed to close file %s", filename), err, c.Info, c.Debug)
+		}
 		fmt.Printf("Created %s with %d rules\n", filename, len(xmlRules.Rules))
 	}
 }
