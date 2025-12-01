@@ -707,7 +707,9 @@ func parse(tokens []Token) [][]string {
 				postfix = append(postfix, stack[len(stack)-1])
 				stack = stack[:len(stack)-1]
 			}
-			stack = stack[:len(stack)-1] // Pop LPAREN
+			if len(stack) > 0 {
+				stack = stack[:len(stack)-1] // Pop LPAREN
+			}
 		default: // Operator
 			for len(stack) > 0 && stack[len(stack)-1].Type != "LPAREN" && precedence[token.Value] <= precedence[stack[len(stack)-1].Value] {
 				postfix = append(postfix, stack[len(stack)-1])
