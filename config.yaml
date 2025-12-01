@@ -27,7 +27,9 @@ Sigma:
   ConvertProducts:
     - windows
     - windows_defender
-    - zeek
+    - linux
+    - azure
+    - m365
   # skip stuff (list)
   SkipProducts:
   SkipServices:
@@ -281,3 +283,68 @@ Wazuh:
       status_code: data.status_code
       uri: data.uri
       z: data.z
+    Linux:
+      CommandLine: linux.auditd.comm
+      CurrentDirectory: linux.auditd.cwd
+      DestinationHostname: linux.auditd.dest_host
+      DestinationIp: linux.auditd.dest_ip
+      DestinationPort: linux.auditd.dest_port
+      Image: linux.auditd.exe
+      Initiated: linux.auditd.initiated
+      LogonId: linux.auditd.ses
+      ParentCommandLine: linux.auditd.parent_comm
+      ParentImage: linux.auditd.parent_exe
+      TargetFilename: linux.auditd.name
+      User: linux.auditd.uid
+      a0: linux.auditd.a0
+      a1: linux.auditd.a1
+      a2: linux.auditd.a2
+      a3: linux.auditd.a3
+      comm: linux.auditd.comm
+      exe: linux.auditd.exe
+      key: linux.auditd.key
+      name: linux.auditd.name
+      proctitle: linux.auditd.proctitle
+      syscall: linux.auditd.syscall
+      type: linux.auditd.type
+    Azure:
+      ActivityDetails: azure.properties.activityDetails
+      ActivityDisplayName: azure.properties.activityDisplayName
+      AppId: azure.properties.appId
+      AuthenticationRequirement: azure.properties.authenticationRequirement
+      Category: azure.category
+      CategoryValue: azure.categoryValue
+      ClientApp: azure.properties.clientApp
+      Count: azure.count
+      HomeTenantId: azure.properties.homeTenantId
+      Initiatedby: azure.properties.initiatedBy
+      LoggedByService: azure.properties.loggedByService
+      NetworkLocationDetails: azure.properties.networkLocationDetails
+      Operation: azure.operationName
+      OperationName: azure.operationName
+      OperationNameValue: azure.operationNameValue
+      ResourceDisplayName: azure.properties.resourceDisplayName
+      ResourceProviderValue: azure.resourceProviderValue
+      ResultDescription: azure.properties.resultDescription
+      ResultType: azure.properties.resultType
+      Resultdescription: azure.properties.resultDescription
+      RiskState: azure.properties.riskState
+      Status: azure.status
+      Username: azure.properties.userPrincipalName
+      Workload: azure.properties.workload
+      eventName: azure.operationName
+      properties.message: azure.properties.message
+      userPrincipalName: azure.properties.userPrincipalName
+    M365:
+      ApplicationId: m365.ApplicationId
+      ClientIP: m365.ClientIP
+      ObjectId: m365.ObjectId
+      Operation: m365.Operation
+      OrganizationId: m365.OrganizationId
+      RequestType: m365.RequestType
+      ResultStatus: m365.ResultStatus
+      UserId: m365.UserId
+      Workload: m365.Workload
+      eventName: m365.Operation
+      eventSource: m365.RecordType
+      status: m365.ResultStatus
