@@ -59,7 +59,7 @@ type Config struct {
 			ProductServiceToWazuhId    map[string]string `yaml:"ProductServiceToWazuhId"`
 		} `yaml:"SidGrpMaps"`
 		FieldMaps map[string]map[string]string `yaml:"FieldMaps"`
-		XmlRules  WazuhGroup
+		XmlRules  map[string]*WazuhGroup
 	} `yaml:"Wazuh"`
 	// OR logic can force the creation of multiple Wazuh rules
 	// Because of this we need to track Sigma to Wazuh rule ids between runs
@@ -955,7 +955,18 @@ func ProcessDnfSets(passingSets [][]string, detections map[string]any, sigmaRule
 		for _, detection := range detectionSets {
 			rule := BuildRule(sigmaRule, url, c, detection, selectionNegations)
 			if rule.ID != "" {
-				c.Wazuh.XmlRules.Rules = append(c.Wazuh.XmlRules.Rules, rule)
+				// Determine which product this rule belongs to
+				product := strings.ToLower(sigmaRule.LogSource.Product)
+				if product == "" {
+					product = "unknown"
+				}
+				// Initialize the product group if it doesn't exist
+				if c.Wazuh.XmlRules[product] == nil {
+					c.Wazuh.XmlRules[product] = &WazuhGroup{
+						Name: product + ",",
+					}
+				}
+				c.Wazuh.XmlRules[product].Rules = append(c.Wazuh.XmlRules[product].Rules, rule)
 			}
 		}
 	}
@@ -1021,16 +1032,44 @@ func ReadYamlFile(path string, c *Config) {
 
 func WriteWazuhXmlRules(c *Config) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
-	// Create an XML encoder that writes to the file
-	enc := xml.NewEncoder(&c.Wazuh.WriteRules)
-	enc.Indent("", "  ")
 
-	// Encode the rule struct to XML
-	if err := enc.Encode(c.Wazuh.XmlRules); err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
-	}
-	if _, err := c.Wazuh.WriteRules.WriteString("\n"); err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
+	// Iterate through each product and write separate XML files
+	for product, xmlRules := range c.Wazuh.XmlRules {
+		if len(xmlRules.Rules) == 0 {
+			continue // Skip empty rule sets
+		}
+
+		// Create filename based on product
+		filename := fmt.Sprintf("sigma_%s.xml", product)
+
+		// Create the file
+		file, err := os.Create(filename)
+		if err != nil {
+			LogIt(ERROR, fmt.Sprintf("Failed to create file %s", filename), err, c.Info, c.Debug)
+			continue
+		}
+
+		// Add XML header comment
+		xmlRules.Header = xml.Comment(`
+	Author: Brian Kellogg
+	Sigma: https://github.com/SigmaHQ/sigma
+	Wazuh: https://wazuh.com
+	All Sigma rules licensed under DRL: https://github.com/SigmaHQ/Detection-Rule-License `)
+
+		// Create an XML encoder
+		enc := xml.NewEncoder(file)
+		enc.Indent("", "  ")
+
+		// Encode the rule struct to XML
+		if err := enc.Encode(xmlRules); err != nil {
+			LogIt(ERROR, fmt.Sprintf("Failed to encode rules for %s", product), err, c.Info, c.Debug)
+		}
+		if _, err := file.WriteString("\n"); err != nil {
+			LogIt(ERROR, "", err, c.Info, c.Debug)
+		}
+
+		file.Close()
+		fmt.Printf("Created %s with %d rules\n", filename, len(xmlRules.Rules))
 	}
 }
 
@@ -1066,6 +1105,14 @@ func WalkSigmaRules(c *Config) []string {
 func PrintStats(c *Config, sigmaRuleIds []string) {
 	convertedSigmaRules := len(c.Ids.SigmaToWazuh)
 
+	// Count total Wazuh rules across all products
+	totalWazuhRules := 0
+	for product, xmlRules := range c.Wazuh.XmlRules {
+		ruleCount := len(xmlRules.Rules)
+		totalWazuhRules += ruleCount
+		fmt.Printf("Product %s: %d Wazuh rules\n", product, ruleCount)
+	}
+
 	fmt.Printf("\n\n***************************************************************************\n")
 	fmt.Printf(" Number of Sigma Experimental rules skipped: %d\n", c.TrackSkips.ExperimentalSkips)
 	fmt.Printf("    Number of Sigma TIMEFRAME rules skipped: %d\n", c.TrackSkips.TimeframeSkips)
@@ -1079,7 +1126,7 @@ func PrintStats(c *Config, sigmaRuleIds []string) {
 	fmt.Printf("                  Total Sigma rules skipped: %d\n", c.TrackSkips.RulesSkipped)
 	fmt.Printf("                Total Sigma rules converted: %d\n", convertedSigmaRules)
 	fmt.Printf("---------------------------------------------------------------------------\n")
-	fmt.Printf("                  Total Wazuh rules created: %d\n", len(c.Wazuh.XmlRules.Rules))
+	fmt.Printf("                  Total Wazuh rules created: %d\n", totalWazuhRules)
 	fmt.Printf("---------------------------------------------------------------------------\n")
 	fmt.Printf("                          Total Sigma rules: %d\n", len(sigmaRuleIds))
 	if len(sigmaRuleIds) > 0 {
@@ -1093,14 +1140,8 @@ func main() {
 	c.Info, c.Debug = getArgs(os.Args, c)
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
-	// Convert rules
-	file, err := os.Create(c.Wazuh.RulesFile)
-	if err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
-		return
-	}
-	c.Wazuh.WriteRules = *file
-	defer file.Close()
+	// Initialize the XmlRules map for multiple products
+	c.Wazuh.XmlRules = make(map[string]*WazuhGroup)
 
 	// Check if Sigma rules directory is valid
 	sigmaRulesPathInfo, err := os.Stat(c.Sigma.RulesRoot)
@@ -1119,13 +1160,7 @@ func main() {
 
 	sigmaRuleIds := WalkSigmaRules(c)
 
-	// build our xml rule file and write it
-	c.Wazuh.XmlRules.Name = "sigma,"
-	c.Wazuh.XmlRules.Header = xml.Comment(`
-	Author: Brian Kellogg
-	Sigma: https://github.com/SigmaHQ/sigma
-	Wazuh: https://wazuh.com
-	All Sigma rules licensed under DRL: https://github.com/SigmaHQ/Detection-Rule-License `)
+	// Write XML rule files (one per product)
 	WriteWazuhXmlRules(c)
 
 	// Convert map to json
