@@ -688,6 +688,32 @@ func extractValuesFromRegex(regexPattern string) []string {
 	return values
 }
 
+// filterMitreTags filters and formats MITRE ATT&CK tags from Sigma rules
+// Removes tactic-only tags and keeps only technique IDs in proper format
+// Input:  ["attack.credential-access", "attack.t1003.001", "attack.persistence", "attack.t1190"]
+// Output: ["T1003.001", "T1190"]
+func filterMitreTags(tags []string) []string {
+	var filtered []string
+
+	for _, tag := range tags {
+		// Remove "attack." prefix if present
+		tag = strings.TrimPrefix(tag, "attack.")
+
+		// Check if this is a technique ID (starts with 't' followed by digits)
+		// Technique format: t1234 or t1234.567
+		if len(tag) > 1 && strings.HasPrefix(strings.ToLower(tag), "t") {
+			// Check if second character is a digit
+			if len(tag) > 1 && tag[1] >= '0' && tag[1] <= '9' {
+				// Convert to uppercase format (T1003.001)
+				filtered = append(filtered, strings.ToUpper(tag))
+			}
+		}
+		// Skip tactic-only tags (credential-access, persistence, etc.)
+	}
+
+	return filtered
+}
+
 func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 	var rule WazuhRule
@@ -754,7 +780,7 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 	rule.Modified = xml.Comment("   Modified: " + strings.Replace(sigma.Modified, "--", "-", -1))
 	rule.Status = xml.Comment("     Status: " + strings.Replace(sigma.Status, "--", "-", -1))
 	rule.SigmaID = xml.Comment("   Sigma ID: " + strings.Replace(sigma.ID, "--", "-", -1))
-	rule.Mitre.IDs = sigma.Tags
+	rule.Mitre.IDs = filterMitreTags(sigma.Tags)
 	rule.Options = GetOptions(sigma, c)
 	rule.Groups = GetGroups(sigma, c)
 	ifType, value := GetIfGrpSid(sigma, c)
