@@ -43,6 +43,10 @@ Wazuh:
   RuleIdStart: 900000
   # file to track Wazuh rule id to Sigma rule ID use
   RuleIdFile: ./rule_ids.json
+  # Maximum number of rules per XML file (split large files into multiple parts)
+  # Set to 0 to disable splitting
+  # Recommended: 500-1000 rules per file for optimal performance
+  MaxRulesPerFile: 800
   # Convert Sigma rule levels to Wazuh levels
   Levels:
     informational: 5

@@ -35,10 +35,11 @@ type Config struct {
 		SkipServices      []string `yaml:"SkipServices"`
 	} `yaml:"Sigma"`
 	Wazuh struct {
-		RulesFile   string `yaml:"RulesFile"`
-		RuleIdFile  string `yaml:"RuleIdFile"`
-		RuleIdStart int    `yaml:"RuleIdStart"`
-		WriteRules  os.File
+		RulesFile       string `yaml:"RulesFile"`
+		RuleIdFile      string `yaml:"RuleIdFile"`
+		RuleIdStart     int    `yaml:"RuleIdStart"`
+		MaxRulesPerFile int    `yaml:"MaxRulesPerFile"`
+		WriteRules      os.File
 		Levels      struct {
 			Informational int `yaml:"informational"`
 			Low           int `yaml:"low"`
@@ -1220,40 +1221,85 @@ func WriteWazuhXmlRules(c *Config) {
 			continue // Skip empty rule sets
 		}
 
-		// Create filename based on product
-		filename := fmt.Sprintf("sigma_%s.xml", product)
+		totalRules := len(xmlRules.Rules)
+		maxRulesPerFile := c.Wazuh.MaxRulesPerFile
 
-		// Create the file
-		file, err := os.Create(filename)
-		if err != nil {
-			LogIt(ERROR, fmt.Sprintf("Failed to create file %s", filename), err, c.Info, c.Debug)
-			continue
+		// Check if we need to split the file
+		if maxRulesPerFile > 0 && totalRules > maxRulesPerFile {
+			// Calculate number of parts needed
+			numParts := (totalRules + maxRulesPerFile - 1) / maxRulesPerFile
+
+			fmt.Printf("Splitting %s: %d rules into %d files (%d rules per file)\n",
+				product, totalRules, numParts, maxRulesPerFile)
+
+			// Split rules into multiple files
+			for part := 0; part < numParts; part++ {
+				startIdx := part * maxRulesPerFile
+				endIdx := startIdx + maxRulesPerFile
+				if endIdx > totalRules {
+					endIdx = totalRules
+				}
+
+				// Create a new WazuhGroup for this part
+				partRules := &WazuhGroup{
+					Rules: xmlRules.Rules[startIdx:endIdx],
+				}
+
+				// Create filename with part number
+				filename := fmt.Sprintf("sigma_%s_part%d.xml", product, part+1)
+
+				// Write the part file
+				if err := writeXmlFile(filename, partRules, c); err != nil {
+					LogIt(ERROR, fmt.Sprintf("Failed to write %s", filename), err, c.Info, c.Debug)
+					continue
+				}
+
+				fmt.Printf("  Created %s with %d rules\n", filename, len(partRules.Rules))
+			}
+		} else {
+			// Write single file (no splitting needed)
+			filename := fmt.Sprintf("sigma_%s.xml", product)
+
+			if err := writeXmlFile(filename, xmlRules, c); err != nil {
+				LogIt(ERROR, fmt.Sprintf("Failed to write %s", filename), err, c.Info, c.Debug)
+				continue
+			}
+
+			fmt.Printf("Created %s with %d rules\n", filename, len(xmlRules.Rules))
 		}
+	}
+}
 
-		// Add XML header comment
-		xmlRules.Header = xml.Comment(`
+// writeXmlFile writes a WazuhGroup to an XML file
+func writeXmlFile(filename string, xmlRules *WazuhGroup, c *Config) error {
+	// Create the file
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Add XML header comment
+	xmlRules.Header = xml.Comment(`
 	Author: Brian Kellogg
 	Sigma: https://github.com/SigmaHQ/sigma
 	Wazuh: https://wazuh.com
 	All Sigma rules licensed under DRL: https://github.com/SigmaHQ/Detection-Rule-License `)
 
-		// Create an XML encoder
-		enc := xml.NewEncoder(file)
-		enc.Indent("", "  ")
+	// Create an XML encoder
+	enc := xml.NewEncoder(file)
+	enc.Indent("", "  ")
 
-		// Encode the rule struct to XML
-		if err := enc.Encode(xmlRules); err != nil {
-			LogIt(ERROR, fmt.Sprintf("Failed to encode rules for %s", product), err, c.Info, c.Debug)
-		}
-		if _, err := file.WriteString("\n"); err != nil {
-			LogIt(ERROR, "", err, c.Info, c.Debug)
-		}
-
-		if err := file.Close(); err != nil {
-			LogIt(ERROR, fmt.Sprintf("Failed to close file %s", filename), err, c.Info, c.Debug)
-		}
-		fmt.Printf("Created %s with %d rules\n", filename, len(xmlRules.Rules))
+	// Encode the rule struct to XML
+	if err := enc.Encode(xmlRules); err != nil {
+		return err
 	}
+
+	if _, err := file.WriteString("\n"); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func WriteCDBLists(c *Config) {
@@ -1397,14 +1443,20 @@ func WriteDeploymentInstructions(c *Config) {
 	scriptFile.WriteString("echo \"   See WAZUH_CDB_CONFIG.txt for the configuration\"\n")
 	scriptFile.WriteString("echo \"\"\n")
 	scriptFile.WriteString("echo \"2. Add the Sigma rule files to ossec.conf:\"\n")
-	scriptFile.WriteString("echo \"   <rules>\"\n")
+	scriptFile.WriteString("echo \"   <ruleset>\"\n")
 
-	// Add include statements for each product
-	for product := range c.Wazuh.XmlRules {
-		scriptFile.WriteString(fmt.Sprintf("echo \"     <include>sigma_%s.xml</include>\"\n", strings.ToLower(product)))
+	// Find all generated sigma XML files (including part files)
+	xmlFiles, err := filepath.Glob("sigma_*.xml")
+	if err != nil {
+		LogIt(ERROR, "Failed to find generated XML files", err, c.Info, c.Debug)
+	} else {
+		// Sort for consistent output
+		for _, xmlFile := range xmlFiles {
+			scriptFile.WriteString(fmt.Sprintf("echo \"     <include>%s</include>\"\n", xmlFile))
+		}
 	}
 
-	scriptFile.WriteString("echo \"   </rules>\"\n")
+	scriptFile.WriteString("echo \"   </ruleset>\"\n")
 	scriptFile.WriteString("echo \"\"\n")
 	scriptFile.WriteString("echo \"3. Restart Wazuh manager:\"\n")
 	scriptFile.WriteString("echo \"   systemctl restart wazuh-manager\"\n")
