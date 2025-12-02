@@ -77,6 +77,7 @@ type Config struct {
 		HardSkipped       int
 		RulesSkipped      int
 		ErrorCount        int
+		FieldTooLong      int
 	}
 }
 
@@ -635,6 +636,17 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 	if len(ruleFields.Fields) == 0 && len(ruleFields.SrcIps) == 0 && len(ruleFields.DstIps) == 0 {
 		LogIt(WARN, "No fields found for rule: "+sigma.ID+" URL: "+url, nil, c.Info, c.Debug)
 		return WazuhRule{}
+	}
+
+	// Check for field values that exceed Wazuh's limits (max ~4096 characters)
+	const maxFieldLength = 4096
+	for _, field := range ruleFields.Fields {
+		if len(field.Value) > maxFieldLength {
+			LogIt(WARN, fmt.Sprintf("Rule %s has field value exceeding Wazuh limit (%d > %d chars). Skipping rule.", sigma.ID, len(field.Value), maxFieldLength), nil, c.Info, c.Debug)
+			c.TrackSkips.FieldTooLong++
+			c.TrackSkips.RulesSkipped++
+			return WazuhRule{}
+		}
 	}
 
 	rule.ID = TrackIdMaps(sigma.ID, c)
@@ -1199,6 +1211,7 @@ func PrintStats(c *Config, sigmaRuleIds []string) {
 	fmt.Printf("         Number of Sigma CIDR rules skipped: %d\n", c.TrackSkips.Cidr)
 	fmt.Printf("         Number of Sigma NEAR rules skipped: %d\n", c.TrackSkips.NearSkips)
 	fmt.Printf("       Number of Sigma CONFIG rules skipped: %d\n", c.TrackSkips.HardSkipped)
+	fmt.Printf("   Number of Sigma FIELD TOO LONG skipped: %d\n", c.TrackSkips.FieldTooLong)
 	fmt.Printf("        Number of Sigma ERROR rules skipped: %d\n", c.TrackSkips.ErrorCount)
 	fmt.Printf("---------------------------------------------------------------------------\n")
 	fmt.Printf("                  Total Sigma rules skipped: %d\n", c.TrackSkips.RulesSkipped)
