@@ -78,7 +78,9 @@ type Config struct {
 		RulesSkipped      int
 		ErrorCount        int
 		FieldTooLong      int
+		ConvertedToCDB    int
 	}
+	CDBLists map[string][]string // map[listName]values
 }
 
 func (c *Config) getSigmaRules(path string, f os.FileInfo, err error) error {
@@ -196,11 +198,20 @@ type IPField struct {
 	Value  string `xml:",chardata"`
 }
 
+// ListField represents a list lookup field
+type ListField struct {
+	Field  string `xml:"field,attr"`
+	Lookup string `xml:"lookup,attr"`
+	Negate string `xml:"negate,attr,omitempty"`
+	Value  string `xml:",chardata"` // Path to CDB list file
+}
+
 // RuleFields contains all field types that can be extracted from Sigma rules
 type RuleFields struct {
-	Fields []Field
-	SrcIps []IPField
-	DstIps []IPField
+	Fields    []Field
+	SrcIps    []IPField
+	DstIps    []IPField
+	ListFields []ListField
 }
 
 // per rule xml
@@ -221,14 +232,15 @@ type WazuhRule struct {
 	Mitre            struct {
 		IDs []string `xml:"id,omitempty"`
 	} `xml:"mitre,omitempty"`
-	Description string    `xml:"description"`
-	Options     []string  `xml:"options,omitempty"`
-	Groups      string    `xml:"group,omitempty"`
-	IfSid       string    `xml:"if_sid,omitempty"`
-	IfGroup     string    `xml:"if_group,omitempty"`
-	SrcIps      []IPField `xml:"srcip,omitempty"`
-	DstIps      []IPField `xml:"dstip,omitempty"`
-	Fields      []Field   `xml:"field"`
+	Description string      `xml:"description"`
+	Options     []string    `xml:"options,omitempty"`
+	Groups      string      `xml:"group,omitempty"`
+	IfSid       string      `xml:"if_sid,omitempty"`
+	IfGroup     string      `xml:"if_group,omitempty"`
+	SrcIps      []IPField   `xml:"srcip,omitempty"`
+	DstIps      []IPField   `xml:"dstip,omitempty"`
+	Lists       []ListField `xml:"list,omitempty"`
+	Fields      []Field     `xml:"field"`
 }
 
 type Stack []int
@@ -628,6 +640,53 @@ func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionN
 	}
 }
 
+// sanitizeFieldName removes special characters from field names for use in filenames
+func sanitizeFieldName(fieldName string) string {
+	// Replace dots and other special characters with underscores
+	fieldName = strings.ReplaceAll(fieldName, ".", "_")
+	fieldName = strings.ReplaceAll(fieldName, "/", "_")
+	fieldName = strings.ReplaceAll(fieldName, "\\", "_")
+	fieldName = strings.ReplaceAll(fieldName, " ", "_")
+	return fieldName
+}
+
+// extractValuesFromRegex extracts individual values from an OR regex pattern
+// Pattern format: (?i)(?:value1|value2|value3)
+func extractValuesFromRegex(regexPattern string) []string {
+	var values []string
+
+	// Remove case-insensitive flag: (?i)
+	regexPattern = strings.Replace(regexPattern, "(?i)", "", 1)
+
+	// Remove non-capturing group: (?:...)
+	regexPattern = strings.TrimPrefix(regexPattern, "(?:")
+	regexPattern = strings.TrimSuffix(regexPattern, ")")
+
+	// Handle escaped pipes (not separators)
+	// Replace escaped pipes temporarily
+	regexPattern = strings.ReplaceAll(regexPattern, "\\|", "<<<PIPE>>>")
+
+	// Split by unescaped pipes
+	parts := strings.Split(regexPattern, "|")
+
+	for _, part := range parts {
+		// Restore escaped pipes
+		part = strings.ReplaceAll(part, "<<<PIPE>>>", "|")
+		part = strings.TrimSpace(part)
+
+		// Remove regex escaping for CDB list (keep the raw value)
+		// This is safe for CDB lists as they use exact matching
+		part = strings.ReplaceAll(part, "\\.", ".")
+		part = strings.ReplaceAll(part, "\\\\", "\\")
+
+		if part != "" {
+			values = append(values, part)
+		}
+	}
+
+	return values
+}
+
 func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 	var rule WazuhRule
@@ -639,15 +698,48 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 	}
 
 	// Check for field values that exceed Wazuh's limits (max ~4096 characters)
+	// Convert them to CDB lists instead of skipping
 	const maxFieldLength = 4096
-	for _, field := range ruleFields.Fields {
+	var finalFields []Field
+	var listFields []ListField
+
+	for i, field := range ruleFields.Fields {
 		if len(field.Value) > maxFieldLength {
-			LogIt(WARN, fmt.Sprintf("Rule %s has field value exceeding Wazuh limit (%d > %d chars). Skipping rule.", sigma.ID, len(field.Value), maxFieldLength), nil, c.Info, c.Debug)
-			c.TrackSkips.FieldTooLong++
-			c.TrackSkips.RulesSkipped++
-			return WazuhRule{}
+			// Extract values from the regex pattern
+			values := extractValuesFromRegex(field.Value)
+
+			if len(values) == 0 {
+				LogIt(WARN, fmt.Sprintf("Rule %s has field value exceeding limit but couldn't extract values. Skipping rule.", sigma.ID), nil, c.Info, c.Debug)
+				c.TrackSkips.FieldTooLong++
+				c.TrackSkips.RulesSkipped++
+				return WazuhRule{}
+			}
+
+			// Create a CDB list name using Sigma ID
+			listName := fmt.Sprintf("sigma_%s_%d_%s", strings.ReplaceAll(sigma.ID, "-", ""), i, sanitizeFieldName(field.Name))
+
+			// Store the values for later CDB generation
+			c.CDBLists[listName] = values
+
+			// Create a list field instead of regular field
+			listField := ListField{
+				Field:  field.Name,
+				Lookup: "match_key",
+				Negate: field.Negate,
+				Value:  fmt.Sprintf("etc/lists/%s", listName),
+			}
+			listFields = append(listFields, listField)
+
+			LogIt(INFO, fmt.Sprintf("Rule %s field '%s' converted to CDB list with %d values (%d chars → CDB)", sigma.ID, field.Name, len(values), len(field.Value)), nil, c.Info, c.Debug)
+			c.TrackSkips.ConvertedToCDB++
+		} else {
+			finalFields = append(finalFields, field)
 		}
 	}
+
+	// Update ruleFields with the processed fields
+	ruleFields.Fields = finalFields
+	ruleFields.ListFields = listFields
 
 	rule.ID = TrackIdMaps(sigma.ID, c)
 	rule.Level = strconv.Itoa(GetLevel(sigma.Level, c))
@@ -674,6 +766,7 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 	rule.Fields = ruleFields.Fields
 	rule.SrcIps = ruleFields.SrcIps
 	rule.DstIps = ruleFields.DstIps
+	rule.Lists = ruleFields.ListFields
 
 	return rule
 }
@@ -1163,6 +1256,50 @@ func WriteWazuhXmlRules(c *Config) {
 	}
 }
 
+func WriteCDBLists(c *Config) {
+	LogIt(DEBUG, "", nil, c.Info, c.Debug)
+
+	if len(c.CDBLists) == 0 {
+		return
+	}
+
+	// Create lists directory if it doesn't exist
+	listsDir := "lists"
+	if err := os.MkdirAll(listsDir, 0755); err != nil {
+		LogIt(ERROR, fmt.Sprintf("Failed to create lists directory: %s", listsDir), err, c.Info, c.Debug)
+		return
+	}
+
+	// Write each CDB list file
+	for listName, values := range c.CDBLists {
+		filename := filepath.Join(listsDir, listName)
+
+		// Create the list file
+		file, err := os.Create(filename)
+		if err != nil {
+			LogIt(ERROR, fmt.Sprintf("Failed to create CDB list file: %s", filename), err, c.Info, c.Debug)
+			continue
+		}
+
+		// Write each value to the file
+		// CDB list format: key:value
+		// For match_key lookup, we just need the key
+		for _, value := range values {
+			_, err := file.WriteString(value + ":1\n")
+			if err != nil {
+				LogIt(ERROR, fmt.Sprintf("Failed to write to CDB list file: %s", filename), err, c.Info, c.Debug)
+				break
+			}
+		}
+
+		if err := file.Close(); err != nil {
+			LogIt(ERROR, fmt.Sprintf("Failed to close CDB list file: %s", filename), err, c.Info, c.Debug)
+		}
+
+		fmt.Printf("Created CDB list %s with %d entries\n", filename, len(values))
+	}
+}
+
 func WalkSigmaRules(c *Config) []string {
 	var sigmaRuleIds []string
 	err := filepath.Walk(c.Sigma.RulesRoot, func(path string, f os.FileInfo, err error) error {
@@ -1212,6 +1349,7 @@ func PrintStats(c *Config, sigmaRuleIds []string) {
 	fmt.Printf("         Number of Sigma NEAR rules skipped: %d\n", c.TrackSkips.NearSkips)
 	fmt.Printf("       Number of Sigma CONFIG rules skipped: %d\n", c.TrackSkips.HardSkipped)
 	fmt.Printf("   Number of Sigma FIELD TOO LONG skipped: %d\n", c.TrackSkips.FieldTooLong)
+	fmt.Printf("Number of Sigma rules CONVERTED TO CDB: %d\n", c.TrackSkips.ConvertedToCDB)
 	fmt.Printf("        Number of Sigma ERROR rules skipped: %d\n", c.TrackSkips.ErrorCount)
 	fmt.Printf("---------------------------------------------------------------------------\n")
 	fmt.Printf("                  Total Sigma rules skipped: %d\n", c.TrackSkips.RulesSkipped)
@@ -1234,6 +1372,9 @@ func main() {
 	// Initialize the XmlRules map for multiple products
 	c.Wazuh.XmlRules = make(map[string]*WazuhGroup)
 
+	// Initialize the CDB Lists map
+	c.CDBLists = make(map[string][]string)
+
 	// Check if Sigma rules directory is valid
 	sigmaRulesPathInfo, err := os.Stat(c.Sigma.RulesRoot)
 	if err != nil {
@@ -1253,6 +1394,9 @@ func main() {
 
 	// Write XML rule files (one per product)
 	WriteWazuhXmlRules(c)
+
+	// Write CDB list files
+	WriteCDBLists(c)
 
 	// Convert map to json
 	jsonData, err := json.Marshal(c.Ids.SigmaToWazuh)
