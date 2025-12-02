@@ -28,3 +28,5 @@ go.work
 *.txt
 *.json
 lists/
+deploy_cdb_lists.sh
+WAZUH_CDB_CONFIG.txt
