@@ -27,3 +27,4 @@ go.work
 *.csv
 *.txt
 *.json
+lists/
