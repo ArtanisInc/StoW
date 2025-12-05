@@ -5,14 +5,14 @@ Sigma:
   # root of the Sigma rules URL
   BaseUrl: https://github.com/SigmaHQ/sigma/tree/master/rules
   # Sigma rules location
-  RulesRoot: ./sigma/rules
+  RulesRoot: ../sigma/rules
   # Convert only rules with status, comment out status' you don't want converted
   RuleStatus:
     - stable
     - test
-    - experimental
-    - deprecated
-    - unsupported
+  #  - experimental
+  #  - deprecated
+  #  - unsupported
   # Sigma rule IDs to never try and convert (list)
   SkipIds:
   # Ignore all "convert only's" and convert all rules (yes|no), overides all other convert_only's
@@ -39,7 +39,7 @@ Wazuh:
   # where to start rule ID numbering
   # if you change this variable and want existing rules renumbered,
   #   then delete the file specified by rule_id_file before the next run
-  RuleIdStart: 900000
+  RuleIdStart: 200000
   # file to track Wazuh rule id to Sigma rule ID use
   RuleIdFile: ./rule_ids.json
   # Maximum number of rules per XML file (split large files into multiple parts)
@@ -51,7 +51,7 @@ Wazuh:
     informational: 5
     low: 7
     medium: 10
-    high: 13
+    high: 12
     critical: 15
   # Wazuh rule settings
   Options:
