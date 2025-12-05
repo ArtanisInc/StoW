@@ -5,7 +5,7 @@ Sigma:
   # root of the Sigma rules URL
   BaseUrl: https://github.com/SigmaHQ/sigma/tree/master/rules
   # Sigma rules location
-  RulesRoot: ../sigma/rules
+  RulesRoot: ./sigma/rules
   # Convert only rules with status, comment out status' you don't want converted
   RuleStatus:
     - stable
@@ -26,7 +26,6 @@ Sigma:
   # Convert only Sigma rules targeting these explicit products (list)
   ConvertProducts:
     - windows
-    - windows_defender
     - linux
     - azure
     - m365
@@ -82,7 +81,6 @@ Wazuh:
     ProductServiceToWazuhId:
       windows: 18100, 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
       windefend: 60005
-      Microsoft Windows Defender: 60005
       sysmon: 184665, 185000, 185001, 185002, 185003, 185004, 185005, 185006, 185007, 185008, 185009, 185010, 185011, 185012, 185013, 184666, 184667, 184676, 184677, 184678, 184686, 184687, 184696, 184697, 184698, 184706, 184707, 184716, 184717, 184726, 184727, 184736, 184737, 184746, 184747, 184766, 184767, 184776
   ######################################################
   # Sigma to Wazuh field name mappings

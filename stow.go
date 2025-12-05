@@ -230,7 +230,7 @@ type WazuhRule struct {
 	Modified         xml.Comment `xml:",comment"`
 	Status           xml.Comment `xml:",comment"`
 	SigmaID          xml.Comment `xml:",comment"`
-	Mitre            struct {
+	Mitre            *struct {
 		IDs []string `xml:"id,omitempty"`
 	} `xml:"mitre,omitempty"`
 	Description string      `xml:"description"`
@@ -780,7 +780,12 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 	rule.Modified = xml.Comment("   Modified: " + strings.Replace(sigma.Modified, "--", "-", -1))
 	rule.Status = xml.Comment("     Status: " + strings.Replace(sigma.Status, "--", "-", -1))
 	rule.SigmaID = xml.Comment("   Sigma ID: " + strings.Replace(sigma.ID, "--", "-", -1))
-	rule.Mitre.IDs = filterMitreTags(sigma.Tags)
+	filteredMitreTags := filterMitreTags(sigma.Tags)
+	if len(filteredMitreTags) > 0 {
+		rule.Mitre = &struct {
+			IDs []string `xml:"id,omitempty"`
+		}{IDs: filteredMitreTags}
+	}
 	rule.Options = GetOptions(sigma, c)
 	rule.Groups = GetGroups(sigma, c)
 	ifType, value := GetIfGrpSid(sigma, c)
