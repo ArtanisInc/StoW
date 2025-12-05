@@ -45,7 +45,7 @@ Wazuh:
   # Maximum number of rules per XML file (split large files into multiple parts)
   # Set to 0 to disable splitting
   # Recommended: 500-1000 rules per file for optimal performance
-  MaxRulesPerFile: 800
+  MaxRulesPerFile: 500
   # Product-specific rule ID starting points (10000 IDs per product range)
   ProductRuleIdStart:
     windows: 200000
