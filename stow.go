@@ -519,12 +519,160 @@ func GetFieldValues(value any, fieldName string, c *Config) []string {
 	return values
 }
 
+// fieldModifiers holds the parsed modifiers from a Sigma field key
+type fieldModifiers struct {
+	isRegex    bool
+	isB64      bool
+	isCIDR     bool
+	startsWith bool
+	endsWith   bool
+	hasAll     bool
+}
+
+// parseFieldModifiers extracts and parses modifiers from a field key (e.g., "field|contains|base64")
+func parseFieldModifiers(parts []string, value any) (fieldModifiers, any) {
+	mods := fieldModifiers{}
+
+	if len(parts) <= 1 {
+		return mods, value
+	}
+
+	for _, modifier := range parts[1:] {
+		switch strings.ToLower(modifier) {
+		case "contains":
+			// Default behavior, no special handling needed
+		case "startswith":
+			mods.startsWith = true
+		case "endswith":
+			mods.endsWith = true
+		case "all":
+			mods.hasAll = true
+		case "re":
+			mods.isRegex = true
+		case "base64offset", "base64":
+			mods.isB64 = true
+		case "windash":
+			value = HandleWindash(value)
+		case "cidr":
+			mods.isCIDR = true
+		}
+	}
+
+	return mods, value
+}
+
+// ipFieldType represents the type of IP field
+type ipFieldType int
+
+const (
+	ipFieldUnknown ipFieldType = iota
+	ipFieldSource
+	ipFieldDestination
+	ipFieldGeneric
+)
+
+// determineIPFieldType identifies whether a field is a source, destination, or generic IP field
+func determineIPFieldType(fieldName string) ipFieldType {
+	lowerFieldName := strings.ToLower(fieldName)
+
+	// Check for source IP patterns
+	if strings.Contains(lowerFieldName, "sourceip") ||
+		strings.Contains(lowerFieldName, "src_ip") ||
+		strings.Contains(lowerFieldName, "srcip") ||
+		strings.Contains(lowerFieldName, "clientip") ||
+		strings.Contains(lowerFieldName, "clientaddress") ||
+		lowerFieldName == "c-ip" {
+		return ipFieldSource
+	}
+
+	// Check for destination IP patterns
+	if strings.Contains(lowerFieldName, "destinationip") ||
+		strings.Contains(lowerFieldName, "dst_ip") ||
+		strings.Contains(lowerFieldName, "dstip") ||
+		strings.Contains(lowerFieldName, "destination") {
+		return ipFieldDestination
+	}
+
+	// Check for generic IP patterns
+	if strings.Contains(lowerFieldName, "ipaddress") ||
+		strings.Contains(lowerFieldName, "ip_address") ||
+		lowerFieldName == "ipaddress" ||
+		(strings.Contains(lowerFieldName, "address") && strings.Contains(lowerFieldName, "ip")) {
+		return ipFieldGeneric
+	}
+
+	return ipFieldUnknown
+}
+
+// handleCIDRField processes CIDR notation IP fields and adds them to the appropriate IP field list
+func handleCIDRField(fieldName string, values []string, selectionKey string, selectionNegations map[string]bool, srcIps *[]IPField, dstIps *[]IPField, c *Config) {
+	ipType := determineIPFieldType(fieldName)
+
+	negate := ""
+	if selectionNegations[selectionKey] {
+		negate = "yes"
+	}
+
+	for _, v := range values {
+		ipField := IPField{
+			Negate: negate,
+			Value:  v,
+		}
+
+		switch ipType {
+		case ipFieldSource:
+			*srcIps = append(*srcIps, ipField)
+			LogIt(INFO, fmt.Sprintf("Added srcip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+		case ipFieldDestination:
+			*dstIps = append(*dstIps, ipField)
+			LogIt(INFO, fmt.Sprintf("Added dstip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+		case ipFieldGeneric:
+			// Generic IP field - default to srcip
+			*srcIps = append(*srcIps, ipField)
+			LogIt(INFO, fmt.Sprintf("Added srcip CIDR field (generic IP): %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+		default:
+			// If we can't determine IP direction, log a warning and skip
+			LogIt(WARN, fmt.Sprintf("CIDR modifier used on non-IP field: %s", fieldName), nil, c.Info, c.Debug)
+		}
+	}
+}
+
+// buildFieldValue constructs a regex pattern value based on the input value and modifiers
+func buildFieldValue(v string, mods fieldModifiers) string {
+	if mods.isB64 {
+		return HandleB64Offsets(v)
+	}
+
+	if mods.isRegex {
+		return v
+	}
+
+	// Build regex pattern with anchors if needed
+	pattern := regexp.QuoteMeta(v)
+
+	if mods.startsWith || mods.endsWith {
+		prefix := ""
+		suffix := ""
+		if mods.startsWith {
+			prefix = "^"
+		}
+		if mods.endsWith {
+			suffix = "$"
+		}
+		return "(?i)" + prefix + pattern + suffix
+	}
+
+	return "(?i)" + pattern
+}
+
 // processDetectionField extracts and processes a single field from a Sigma detection.
 func processDetectionField(selectionKey string, key string, value any, sigma *SigmaRule, c *Config, fields *[]Field, srcIps *[]IPField, dstIps *[]IPField, selectionNegations map[string]bool) {
 	LogIt(INFO, fmt.Sprintf("processDetectionField key: %s, value: %v", key, value), nil, c.Info, c.Debug)
-	// Handle modifiers in the key
+
+	// Parse field name and modifiers
 	parts := strings.Split(key, "|")
 	fieldName := parts[0]
+	mods, value := parseFieldModifiers(parts, value)
 
 	wazuhField := GetWazuhField(fieldName, sigma, c)
 
@@ -538,153 +686,56 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 		field.Negate = "yes"
 	}
 
-	var values []string
-	isRegex := false
-	isB64 := false
-	isCIDR := false
-	startsWith := false
-	endsWith := false
-
-	if len(parts) > 1 {
-		for _, modifier := range parts[1:] {
-			switch strings.ToLower(modifier) {
-			case "contains":
-				// Default behavior, no special handling needed
-			case "startswith":
-				startsWith = true
-			case "endswith":
-				endsWith = true
-			case "all":
-				// Will be handled later
-			case "re":
-				isRegex = true
-			case "base64offset":
-				isB64 = true
-			case "base64":
-				isB64 = true
-			case "windash":
-				value = HandleWindash(value)
-			case "cidr":
-				isCIDR = true
-			}
-		}
-	}
-
 	// Handle CIDR modifier for IP fields
-	if isCIDR {
-		values = GetFieldValues(value, fieldName, c)
-
-		// Determine if this is a source or destination IP field
-		lowerFieldName := strings.ToLower(fieldName)
-		isSrcIP := strings.Contains(lowerFieldName, "sourceip") ||
-				   strings.Contains(lowerFieldName, "src_ip") ||
-				   strings.Contains(lowerFieldName, "srcip") ||
-				   strings.Contains(lowerFieldName, "clientip") ||
-				   strings.Contains(lowerFieldName, "clientaddress") ||
-				   lowerFieldName == "c-ip"
-		isDstIP := strings.Contains(lowerFieldName, "destinationip") ||
-				   strings.Contains(lowerFieldName, "dst_ip") ||
-				   strings.Contains(lowerFieldName, "dstip") ||
-				   strings.Contains(lowerFieldName, "destination")
-
-		// If not clearly source or destination, treat as generic IP (use as srcip)
-		isIP := strings.Contains(lowerFieldName, "ipaddress") ||
-				strings.Contains(lowerFieldName, "ip_address") ||
-				lowerFieldName == "ipaddress" ||
-				strings.Contains(lowerFieldName, "address") && strings.Contains(lowerFieldName, "ip")
-
-		// Create IP fields with CIDR notation
-		negate := ""
-		if selectionNegations[selectionKey] {
-			negate = "yes"
-		}
-
-		for _, v := range values {
-			ipField := IPField{
-				Negate: negate,
-				Value:  v,
-			}
-
-			if isSrcIP {
-				*srcIps = append(*srcIps, ipField)
-				LogIt(INFO, fmt.Sprintf("Added srcip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
-			} else if isDstIP {
-				*dstIps = append(*dstIps, ipField)
-				LogIt(INFO, fmt.Sprintf("Added dstip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
-			} else if isIP {
-				// Generic IP field - default to srcip
-				*srcIps = append(*srcIps, ipField)
-				LogIt(INFO, fmt.Sprintf("Added srcip CIDR field (generic IP): %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
-			} else {
-				// If we can't determine IP direction, log a warning and skip
-				LogIt(WARN, fmt.Sprintf("CIDR modifier used on non-IP field: %s", fieldName), nil, c.Info, c.Debug)
-			}
-		}
-		return // Early return for CIDR fields
+	if mods.isCIDR {
+		values := GetFieldValues(value, fieldName, c)
+		handleCIDRField(fieldName, values, selectionKey, selectionNegations, srcIps, dstIps, c)
+		return
 	}
 
-	values = GetFieldValues(value, fieldName, c)
+	values := GetFieldValues(value, fieldName, c)
 
-	var fieldValues []string
-	if slices.Contains(parts, "all") {
+	// Handle 'all' modifier - create separate field for each value
+	if mods.hasAll {
 		for _, v := range values {
 			newField := field
-			if isB64 {
-				newField.Value = HandleB64Offsets(v)
-			} else if isRegex {
-				newField.Value = v
-			} else if startsWith || endsWith {
-				prefix := ""
-				suffix := ""
-				if startsWith {
-					prefix = "^"
-				}
-				if endsWith {
-					suffix = "$"
-				}
-				newField.Value = "(?i)" + prefix + regexp.QuoteMeta(v) + suffix
-			} else {
-				newField.Value = "(?i)" + regexp.QuoteMeta(v)
-			}
-			*fields = append(*fields, newField) // Append to the passed slice pointer
+			newField.Value = buildFieldValue(v, mods)
+			*fields = append(*fields, newField)
 			LogIt(INFO, fmt.Sprintf("processDetectionField appended field: %v", newField), nil, c.Info, c.Debug)
 		}
-		return // Return from helper function
+		return
 	}
 
+	// Build combined field value (OR logic)
+	var fieldValues []string
 	for _, v := range values {
-		if isB64 {
-			fieldValues = append(fieldValues, HandleB64Offsets(v))
-		} else if isRegex {
-			fieldValues = append(fieldValues, v)
-		} else {
-			fieldValues = append(fieldValues, regexp.QuoteMeta(v))
-		}
+		fieldValues = append(fieldValues, buildFieldValue(v, mods))
 	}
 
 	if len(fieldValues) == 0 {
 		LogIt(DEBUG, fmt.Sprintf("No processed fieldValues for field '%s'", fieldName), nil, c.Info, c.Debug)
+		return
 	}
 
-	if len(fieldValues) > 0 {
-		if isRegex {
-			field.Value = strings.Join(fieldValues, "|")
-		} else {
-			value := strings.Join(fieldValues, "|")
-			if len(fieldValues) > 1 {
-				value = "(?:" + value + ")"
-			}
-			if startsWith {
-				value = "^" + value
-			}
-			if endsWith {
-				value = value + "$"
-			}
-			field.Value = "(?i)" + value
+	// Construct final field value
+	if mods.isRegex {
+		field.Value = strings.Join(fieldValues, "|")
+	} else {
+		combinedValue := strings.Join(fieldValues, "|")
+		if len(fieldValues) > 1 {
+			combinedValue = "(?:" + combinedValue + ")"
 		}
-		*fields = append(*fields, field) // Append to the passed slice pointer
-		LogIt(INFO, fmt.Sprintf("processDetectionField appended field: %v", field), nil, c.Info, c.Debug)
+		if mods.startsWith {
+			combinedValue = "^" + combinedValue
+		}
+		if mods.endsWith {
+			combinedValue = combinedValue + "$"
+		}
+		field.Value = combinedValue
 	}
+
+	*fields = append(*fields, field)
+	LogIt(INFO, fmt.Sprintf("processDetectionField appended field: %v", field), nil, c.Info, c.Debug)
 }
 
 func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionNegations map[string]bool) RuleFields {
@@ -803,65 +854,59 @@ func filterMitreTags(tags []string) []string {
 	return filtered
 }
 
-func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
-	LogIt(DEBUG, "", nil, c.Info, c.Debug)
-	var rule WazuhRule
-
-	ruleFields := GetFields(detections, sigma, c, selectionNegations)
-	if len(ruleFields.Fields) == 0 && len(ruleFields.SrcIps) == 0 && len(ruleFields.DstIps) == 0 {
-		LogIt(WARN, "No fields found for rule: "+sigma.ID+" URL: "+url, nil, c.Info, c.Debug)
-		return WazuhRule{}
-	}
-
-	// Check for field values that exceed Wazuh's limits (max ~4096 characters)
-	// Convert them to CDB lists instead of skipping
+// processOversizedFields checks for fields exceeding Wazuh's size limits and converts them to CDB lists
+// Returns the processed fields and list fields, or an error if processing fails
+func processOversizedFields(ruleFields RuleFields, sigmaID string, c *Config) ([]Field, []ListField, error) {
 	const maxFieldLength = 4096
 	var finalFields []Field
 	var listFields []ListField
 
 	for i, field := range ruleFields.Fields {
-		if len(field.Value) > maxFieldLength {
-			// Extract values from the regex pattern
-			values := extractValuesFromRegex(field.Value)
-
-			if len(values) == 0 {
-				LogIt(WARN, fmt.Sprintf("Rule %s has field value exceeding limit but couldn't extract values. Skipping rule.", sigma.ID), nil, c.Info, c.Debug)
-				c.TrackSkips.FieldTooLong++
-				c.TrackSkips.RulesSkipped++
-				return WazuhRule{}
-			}
-
-			// Create a CDB list name using Sigma ID
-			listName := fmt.Sprintf("sigma_%s_%d_%s", strings.ReplaceAll(sigma.ID, "-", ""), i, sanitizeFieldName(field.Name))
-
-			// Store the values for later CDB generation
-			c.CDBLists[listName] = values
-
-			// Create a list field instead of regular field
-			listField := ListField{
-				Field:  field.Name,
-				Lookup: "match_key",
-				Negate: field.Negate,
-				Value:  fmt.Sprintf("etc/lists/%s", listName),
-			}
-			listFields = append(listFields, listField)
-
-			LogIt(INFO, fmt.Sprintf("Rule %s field '%s' converted to CDB list with %d values (%d chars → CDB)", sigma.ID, field.Name, len(values), len(field.Value)), nil, c.Info, c.Debug)
-			c.TrackSkips.ConvertedToCDB++
-		} else {
+		if len(field.Value) <= maxFieldLength {
 			finalFields = append(finalFields, field)
+			continue
 		}
+
+		// Field exceeds limit - convert to CDB list
+		values := extractValuesFromRegex(field.Value)
+
+		if len(values) == 0 {
+			LogIt(WARN, fmt.Sprintf("Rule %s has field value exceeding limit but couldn't extract values. Skipping rule.", sigmaID), nil, c.Info, c.Debug)
+			c.TrackSkips.FieldTooLong++
+			c.TrackSkips.RulesSkipped++
+			return nil, nil, fmt.Errorf("field value too long and cannot be extracted")
+		}
+
+		// Create a CDB list name using Sigma ID
+		listName := fmt.Sprintf("sigma_%s_%d_%s", strings.ReplaceAll(sigmaID, "-", ""), i, sanitizeFieldName(field.Name))
+
+		// Store the values for later CDB generation
+		c.CDBLists[listName] = values
+
+		// Create a list field instead of regular field
+		listField := ListField{
+			Field:  field.Name,
+			Lookup: "match_key",
+			Negate: field.Negate,
+			Value:  fmt.Sprintf("etc/lists/%s", listName),
+		}
+		listFields = append(listFields, listField)
+
+		LogIt(INFO, fmt.Sprintf("Rule %s field '%s' converted to CDB list with %d values (%d chars → CDB)", sigmaID, field.Name, len(values), len(field.Value)), nil, c.Info, c.Debug)
+		c.TrackSkips.ConvertedToCDB++
 	}
 
-	// Update ruleFields with the processed fields
-	ruleFields.Fields = finalFields
-	ruleFields.ListFields = listFields
+	return finalFields, listFields, nil
+}
 
+// populateRuleMetadata fills in the Wazuh rule metadata from Sigma rule data
+func populateRuleMetadata(rule *WazuhRule, sigma *SigmaRule, url string, product string, c *Config) {
 	rule.ID = TrackIdMaps(sigma.ID, product, c)
 	rule.Level = strconv.Itoa(GetLevel(sigma.Level, c))
 	rule.Description = sigma.Title
 	rule.Info.Type = "link"
 	rule.Info.Value = url
+
 	// Sanitize fields for safe XML comment usage
 	rule.Author = xml.Comment("     Author: " + sanitizeXMLComment(sigma.Author))
 	rule.SigmaDescription = xml.Comment("Description: " + sanitizeXMLComment(sigma.Description))
@@ -869,21 +914,53 @@ func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detectio
 	rule.Modified = xml.Comment("   Modified: " + sanitizeXMLComment(sigma.Modified))
 	rule.Status = xml.Comment("     Status: " + sanitizeXMLComment(sigma.Status))
 	rule.SigmaID = xml.Comment("   Sigma ID: " + sanitizeXMLComment(sigma.ID))
+
+	// Add MITRE ATT&CK tags if present
 	filteredMitreTags := filterMitreTags(sigma.Tags)
 	if len(filteredMitreTags) > 0 {
 		rule.Mitre = &struct {
 			IDs []string `xml:"id,omitempty"`
 		}{IDs: filteredMitreTags}
 	}
+
+	// Set rule options and groups
 	rule.Options = GetOptions(sigma, c)
 	rule.Groups = GetGroups(sigma, c)
+
+	// Set if_sid or if_group dependencies
 	ifType, value := GetIfGrpSid(sigma, c)
 	if ifType == "grp" {
 		rule.IfGroup = value
 	} else {
 		rule.IfSid = value
 	}
+}
 
+// BuildRule constructs a Wazuh rule from a Sigma rule detection
+func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
+	LogIt(DEBUG, "", nil, c.Info, c.Debug)
+
+	ruleFields := GetFields(detections, sigma, c, selectionNegations)
+	if len(ruleFields.Fields) == 0 && len(ruleFields.SrcIps) == 0 && len(ruleFields.DstIps) == 0 {
+		LogIt(WARN, "No fields found for rule: "+sigma.ID+" URL: "+url, nil, c.Info, c.Debug)
+		return WazuhRule{}
+	}
+
+	// Process oversized fields, converting to CDB lists if needed
+	finalFields, listFields, err := processOversizedFields(ruleFields, sigma.ID, c)
+	if err != nil {
+		return WazuhRule{}
+	}
+
+	// Update ruleFields with the processed fields
+	ruleFields.Fields = finalFields
+	ruleFields.ListFields = listFields
+
+	// Build the Wazuh rule
+	var rule WazuhRule
+	populateRuleMetadata(&rule, sigma, url, product, c)
+
+	// Assign detection fields
 	rule.Fields = ruleFields.Fields
 	rule.SrcIps = ruleFields.SrcIps
 	rule.DstIps = ruleFields.DstIps
@@ -1184,98 +1261,119 @@ func PreprocessCondition(condition string, detections map[string]any, c *Config)
 	return condition
 }
 
+// filterBooleanPlaceholders removes __TRUE__ and __FALSE__ placeholders from a DNF set
+// Returns the filtered set and whether the set should be skipped (if it contains __FALSE__)
+func filterBooleanPlaceholders(set []string) ([]string, bool) {
+	var filtered []string
+
+	for _, item := range set {
+		if item == "__FALSE__" {
+			return nil, true // Skip this entire AND group
+		}
+		if item != "__TRUE__" {
+			filtered = append(filtered, item)
+		}
+	}
+
+	return filtered, false
+}
+
+// expandDetectionSets expands detection selections into multiple detection sets
+// Handles list-of-maps (OR logic requiring separate rules) and simple value lists
+func expandDetectionSets(selections []string, detections map[string]any) ([]map[string]any, map[string]bool) {
+	detectionSets := []map[string]any{{}}
+	selectionNegations := make(map[string]bool)
+
+	for _, item := range selections {
+		// Parse negation
+		currentNegate := false
+		if strings.HasPrefix(item, "not ") {
+			item = strings.TrimPrefix(item, "not ")
+			currentNegate = true
+		}
+		selectionNegations[item] = currentNegate
+
+		val, isList := detections[item].([]any)
+		if !isList {
+			// Single selection - add to all detection sets
+			for _, dSet := range detectionSets {
+				dSet[item] = detections[item]
+			}
+			continue
+		}
+
+		// Check if this is a list of maps (OR condition) or list of values
+		isListOfMaps := len(val) > 0
+		if isListOfMaps {
+			if _, ok := val[0].(map[string]any); !ok {
+				isListOfMaps = false
+			}
+		}
+
+		if isListOfMaps {
+			// Cartesian product: create separate detection set for each map
+			var newDetectionSets []map[string]any
+			for _, dSet := range detectionSets {
+				for _, listItem := range val {
+					newDSet := make(map[string]any)
+					for k, v := range dSet {
+						newDSet[k] = v
+					}
+					newDSet[item] = listItem
+					newDetectionSets = append(newDetectionSets, newDSet)
+				}
+			}
+			detectionSets = newDetectionSets
+		} else {
+			// List of values - add to all detection sets as-is (will create regex OR)
+			for _, dSet := range detectionSets {
+				dSet[item] = detections[item]
+			}
+		}
+	}
+
+	return detectionSets, selectionNegations
+}
+
+// buildAndStoreRules creates Wazuh rules from detection sets and stores them by product
+func buildAndStoreRules(detectionSets []map[string]any, selectionNegations map[string]bool, sigmaRule *SigmaRule, url string, c *Config) {
+	// Determine which product this rule belongs to
+	product := strings.ToLower(sigmaRule.LogSource.Product)
+	if product == "" {
+		product = "unknown"
+	}
+
+	for _, detection := range detectionSets {
+		rule := BuildRule(sigmaRule, url, product, c, detection, selectionNegations)
+		if rule.ID == "" {
+			continue
+		}
+
+		// Initialize the product group if it doesn't exist
+		if c.Wazuh.XmlRules[product] == nil {
+			c.Wazuh.XmlRules[product] = &WazuhGroup{
+				Name: product + ",",
+			}
+		}
+		c.Wazuh.XmlRules[product].Rules = append(c.Wazuh.XmlRules[product].Rules, rule)
+	}
+}
+
+// ProcessDnfSets converts DNF (Disjunctive Normal Form) sets into Wazuh rules
+// Each DNF set represents an AND group of selections that forms one or more Wazuh rules
 func ProcessDnfSets(passingSets [][]string, detections map[string]any, sigmaRule *SigmaRule, url string, c *Config) {
-	for _, set := range passingSets { // Each 'set' is an AND group of selection names
-		isFalse := false
-		var newSet []string
-		for _, item := range set {
-			if item == "__FALSE__" {
-				isFalse = true
-				break
-			}
-			if item != "__TRUE__" {
-				newSet = append(newSet, item)
-			}
+	for _, set := range passingSets {
+		// Filter out boolean placeholders and check if set should be skipped
+		filteredSet, shouldSkip := filterBooleanPlaceholders(set)
+		if shouldSkip {
+			continue
 		}
 
-		if isFalse {
-			continue // This whole AND group is false
-		}
+		// Expand selections into detection sets (handles list-of-maps cartesian products)
+		detectionSets, selectionNegations := expandDetectionSets(filteredSet, detections)
 
-		// Each 'set' from the DNF represents a potential Wazuh rule (a conjunction of conditions).
-		// However, a selection within that set can be a list of maps, which is an OR that requires
-		// expanding into multiple rules.
-		// detectionSets will hold all the possible detection maps after expanding any lists of maps.
-		detectionSets := []map[string]any{{}}
-		selectionNegations := make(map[string]bool)
-
-		for _, item := range newSet {
-			currentNegate := false
-			if strings.HasPrefix(item, "not ") {
-				item = strings.TrimPrefix(item, "not ")
-				currentNegate = true
-			}
-			selectionNegations[item] = currentNegate
-
-			if val, isList := detections[item].([]any); isList {
-				isListOfMaps := false
-				if len(val) > 0 {
-					// Check if the first element is a map to determine the type of list
-					if _, ok := val[0].(map[string]any); ok {
-						isListOfMaps = true
-					}
-				}
-
-				if isListOfMaps {
-					// This selection is a list of maps. This is an OR condition between the map items.
-					// We need to create a new Wazuh rule for each map in the list.
-					// We do this by creating a cartesian product of the existing detectionSets
-					// and the new list of maps.
-					var newDetectionSets []map[string]any
-					for _, dSet := range detectionSets {
-						for _, listItem := range val {
-							newDSet := make(map[string]any)
-							for k, v := range dSet {
-								newDSet[k] = v
-							}
-							newDSet[item] = listItem
-							newDetectionSets = append(newDetectionSets, newDSet)
-						}
-					}
-					detectionSets = newDetectionSets
-				} else {
-					// This is a list of values (strings/ints). Treat it as a single selection
-					// that will be handled by processDetectionField to create a regex OR.
-					for _, dSet := range detectionSets {
-						dSet[item] = detections[item]
-					}
-				}
-			} else {
-				// This is a single selection, not a list. Add it to all detection sets.
-				for _, dSet := range detectionSets {
-					dSet[item] = detections[item]
-				}
-			}
-		}
-
-		// Determine which product this rule belongs to
-		product := strings.ToLower(sigmaRule.LogSource.Product)
-		if product == "" {
-			product = "unknown"
-		}
-
-		for _, detection := range detectionSets {
-			rule := BuildRule(sigmaRule, url, product, c, detection, selectionNegations)
-			if rule.ID != "" {
-				// Initialize the product group if it doesn't exist
-				if c.Wazuh.XmlRules[product] == nil {
-					c.Wazuh.XmlRules[product] = &WazuhGroup{
-						Name: product + ",",
-					}
-				}
-				c.Wazuh.XmlRules[product].Rules = append(c.Wazuh.XmlRules[product].Rules, rule)
-			}
-		}
+		// Build and store Wazuh rules for each detection set
+		buildAndStoreRules(detectionSets, selectionNegations, sigmaRule, url, c)
 	}
 }
 
