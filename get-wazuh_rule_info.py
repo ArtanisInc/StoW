@@ -38,7 +38,7 @@ class WazuhRules(object):
         for f in self.rule_files:
             temp = self.load_wazuh_rule(f)
             if temp:
-                rules.append(self.load_wazuh_rule(f))
+                rules.append(temp)
         return rules
 
 
