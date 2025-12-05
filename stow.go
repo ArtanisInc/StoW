@@ -35,11 +35,12 @@ type Config struct {
 		SkipServices      []string `yaml:"SkipServices"`
 	} `yaml:"Sigma"`
 	Wazuh struct {
-		RulesFile       string `yaml:"RulesFile"`
-		RuleIdFile      string `yaml:"RuleIdFile"`
-		RuleIdStart     int    `yaml:"RuleIdStart"`
-		MaxRulesPerFile int    `yaml:"MaxRulesPerFile"`
-		WriteRules      os.File
+		RulesFile          string         `yaml:"RulesFile"`
+		RuleIdFile         string         `yaml:"RuleIdFile"`
+		RuleIdStart        int            `yaml:"RuleIdStart"`
+		MaxRulesPerFile    int            `yaml:"MaxRulesPerFile"`
+		ProductRuleIdStart map[string]int `yaml:"ProductRuleIdStart"`
+		WriteRules         os.File
 		Levels      struct {
 			Informational int `yaml:"informational"`
 			Low           int `yaml:"low"`
@@ -304,8 +305,15 @@ func AddToMapStrToInts(c *Config, sigmaId string, wazuhId int) {
 	c.Ids.SigmaToWazuh[sigmaId] = append(c.Ids.SigmaToWazuh[sigmaId], wazuhId)
 }
 
-func TrackIdMaps(sigmaId string, c *Config) string {
+func TrackIdMaps(sigmaId string, product string, c *Config) string {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
+
+	// Get the starting ID for this product, fallback to default RuleIdStart if not configured
+	startId, ok := c.Wazuh.ProductRuleIdStart[product]
+	if !ok {
+		startId = c.Wazuh.RuleIdStart
+	}
+
 	// has this Sigma rule been converted previously, reuse its Wazuh rule IDs
 	if ids, ok := c.Ids.SigmaToWazuh[sigmaId]; ok {
 		for _, id := range ids {
@@ -315,14 +323,17 @@ func TrackIdMaps(sigmaId string, c *Config) string {
 			}
 		}
 	}
-	// new Sigma rule, find an unused Wazuh rule ID
-	for slices.Contains(c.Ids.PreviousUsed, c.Wazuh.RuleIdStart) ||
-		slices.Contains(c.Ids.CurrentUsed, c.Wazuh.RuleIdStart) {
-		c.Wazuh.RuleIdStart++
+
+	// new Sigma rule, find an unused Wazuh rule ID starting from product-specific ID
+	currentId := startId
+	for slices.Contains(c.Ids.PreviousUsed, currentId) ||
+		slices.Contains(c.Ids.CurrentUsed, currentId) {
+		currentId++
 	}
-	AddToMapStrToInts(c, sigmaId, c.Wazuh.RuleIdStart)
-	c.Ids.CurrentUsed = append(c.Ids.CurrentUsed, c.Wazuh.RuleIdStart)
-	return strconv.Itoa(c.Wazuh.RuleIdStart)
+
+	AddToMapStrToInts(c, sigmaId, currentId)
+	c.Ids.CurrentUsed = append(c.Ids.CurrentUsed, currentId)
+	return strconv.Itoa(currentId)
 }
 
 func GetLevel(sigmaLevel string, c *Config) int {
@@ -714,7 +725,7 @@ func filterMitreTags(tags []string) []string {
 	return filtered
 }
 
-func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
+func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 	var rule WazuhRule
 
@@ -768,7 +779,7 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 	ruleFields.Fields = finalFields
 	ruleFields.ListFields = listFields
 
-	rule.ID = TrackIdMaps(sigma.ID, c)
+	rule.ID = TrackIdMaps(sigma.ID, product, c)
 	rule.Level = strconv.Itoa(GetLevel(sigma.Level, c))
 	rule.Description = sigma.Title
 	rule.Info.Type = "link"
@@ -1169,14 +1180,15 @@ func ProcessDnfSets(passingSets [][]string, detections map[string]any, sigmaRule
 			}
 		}
 
+		// Determine which product this rule belongs to
+		product := strings.ToLower(sigmaRule.LogSource.Product)
+		if product == "" {
+			product = "unknown"
+		}
+
 		for _, detection := range detectionSets {
-			rule := BuildRule(sigmaRule, url, c, detection, selectionNegations)
+			rule := BuildRule(sigmaRule, url, product, c, detection, selectionNegations)
 			if rule.ID != "" {
-				// Determine which product this rule belongs to
-				product := strings.ToLower(sigmaRule.LogSource.Product)
-				if product == "" {
-					product = "unknown"
-				}
 				// Initialize the product group if it doesn't exist
 				if c.Wazuh.XmlRules[product] == nil {
 					c.Wazuh.XmlRules[product] = &WazuhGroup{
@@ -1252,6 +1264,12 @@ func WriteWazuhXmlRules(c *Config) {
 			continue // Skip empty rule sets
 		}
 
+		// Get the starting ID for this product, fallback to default RuleIdStart if not configured
+		startId, ok := c.Wazuh.ProductRuleIdStart[product]
+		if !ok {
+			startId = c.Wazuh.RuleIdStart
+		}
+
 		totalRules := len(xmlRules.Rules)
 		maxRulesPerFile := c.Wazuh.MaxRulesPerFile
 
@@ -1276,8 +1294,8 @@ func WriteWazuhXmlRules(c *Config) {
 					Rules: xmlRules.Rules[startIdx:endIdx],
 				}
 
-				// Create filename with part number
-				filename := fmt.Sprintf("sigma_%s_part%d.xml", product, part+1)
+				// Create filename with part number and ID prefix
+				filename := fmt.Sprintf("%d-sigma_%s_part%d.xml", startId, product, part+1)
 
 				// Write the part file
 				if err := writeXmlFile(filename, partRules, c); err != nil {
@@ -1288,8 +1306,8 @@ func WriteWazuhXmlRules(c *Config) {
 				fmt.Printf("  Created %s with %d rules\n", filename, len(partRules.Rules))
 			}
 		} else {
-			// Write single file (no splitting needed)
-			filename := fmt.Sprintf("sigma_%s.xml", product)
+			// Write single file (no splitting needed) with ID prefix
+			filename := fmt.Sprintf("%d-sigma_%s.xml", startId, product)
 
 			if err := writeXmlFile(filename, xmlRules, c); err != nil {
 				LogIt(ERROR, fmt.Sprintf("Failed to write %s", filename), err, c.Info, c.Debug)

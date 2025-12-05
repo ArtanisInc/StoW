@@ -46,6 +46,12 @@ Wazuh:
   # Set to 0 to disable splitting
   # Recommended: 500-1000 rules per file for optimal performance
   MaxRulesPerFile: 800
+  # Product-specific rule ID starting points (10000 IDs per product range)
+  ProductRuleIdStart:
+    windows: 200000
+    linux: 210000
+    azure: 220000
+    m365: 230000
   # Convert Sigma rule levels to Wazuh levels
   Levels:
     informational: 5
