@@ -8,6 +8,7 @@
 *.so
 *.dylib
 StoW
+stow
 
 # Test binary, built with `go test -c`
 *.test
@@ -26,3 +27,10 @@ go.work
 *.csv
 *.txt
 *.json
+lists/
+deploy_cdb_lists.sh
+WAZUH_CDB_CONFIG.txt
+
+# Test files
+sigma/
+sigma_core.zip

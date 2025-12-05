@@ -35,10 +35,11 @@ type Config struct {
 		SkipServices      []string `yaml:"SkipServices"`
 	} `yaml:"Sigma"`
 	Wazuh struct {
-		RulesFile   string `yaml:"RulesFile"`
-		RuleIdFile  string `yaml:"RuleIdFile"`
-		RuleIdStart int    `yaml:"RuleIdStart"`
-		WriteRules  os.File
+		RulesFile       string `yaml:"RulesFile"`
+		RuleIdFile      string `yaml:"RuleIdFile"`
+		RuleIdStart     int    `yaml:"RuleIdStart"`
+		MaxRulesPerFile int    `yaml:"MaxRulesPerFile"`
+		WriteRules      os.File
 		Levels      struct {
 			Informational int `yaml:"informational"`
 			Low           int `yaml:"low"`
@@ -59,7 +60,7 @@ type Config struct {
 			ProductServiceToWazuhId    map[string]string `yaml:"ProductServiceToWazuhId"`
 		} `yaml:"SidGrpMaps"`
 		FieldMaps map[string]map[string]string `yaml:"FieldMaps"`
-		XmlRules  WazuhGroup
+		XmlRules  map[string]*WazuhGroup
 	} `yaml:"Wazuh"`
 	// OR logic can force the creation of multiple Wazuh rules
 	// Because of this we need to track Sigma to Wazuh rule ids between runs
@@ -77,7 +78,10 @@ type Config struct {
 		HardSkipped       int
 		RulesSkipped      int
 		ErrorCount        int
+		FieldTooLong      int
+		ConvertedToCDB    int
 	}
+	CDBLists map[string][]string // map[listName]values
 }
 
 func (c *Config) getSigmaRules(path string, f os.FileInfo, err error) error {
@@ -189,6 +193,28 @@ type Field struct {
 	Value  string `xml:",chardata"`
 }
 
+// IPField represents srcip or dstip elements with optional negation
+type IPField struct {
+	Negate string `xml:"negate,attr,omitempty"`
+	Value  string `xml:",chardata"`
+}
+
+// ListField represents a list lookup field
+type ListField struct {
+	Field  string `xml:"field,attr"`
+	Lookup string `xml:"lookup,attr"`
+	Negate string `xml:"negate,attr,omitempty"`
+	Value  string `xml:",chardata"` // Path to CDB list file
+}
+
+// RuleFields contains all field types that can be extracted from Sigma rules
+type RuleFields struct {
+	Fields    []Field
+	SrcIps    []IPField
+	DstIps    []IPField
+	ListFields []ListField
+}
+
 // per rule xml
 type WazuhRule struct {
 	XMLName xml.Name `xml:"rule"`
@@ -204,15 +230,18 @@ type WazuhRule struct {
 	Modified         xml.Comment `xml:",comment"`
 	Status           xml.Comment `xml:",comment"`
 	SigmaID          xml.Comment `xml:",comment"`
-	Mitre            struct {
+	Mitre            *struct {
 		IDs []string `xml:"id,omitempty"`
 	} `xml:"mitre,omitempty"`
-	Description string   `xml:"description"`
-	Options     []string `xml:"options,omitempty"`
-	Groups      string   `xml:"group,omitempty"`
-	IfSid       string   `xml:"if_sid,omitempty"`
-	IfGroup     string   `xml:"if_group,omitempty"`
-	Fields      []Field  `xml:"field"`
+	Description string      `xml:"description"`
+	Options     []string    `xml:"options,omitempty"`
+	Groups      string      `xml:"group,omitempty"`
+	IfSid       string      `xml:"if_sid,omitempty"`
+	IfGroup     string      `xml:"if_group,omitempty"`
+	SrcIps      []IPField   `xml:"srcip,omitempty"`
+	DstIps      []IPField   `xml:"dstip,omitempty"`
+	Lists       []ListField `xml:"list,omitempty"`
+	Fields      []Field     `xml:"field"`
 }
 
 type Stack []int
@@ -402,7 +431,7 @@ func GetFieldValues(value any, fieldName string, c *Config) []string {
 }
 
 // processDetectionField extracts and processes a single field from a Sigma detection.
-func processDetectionField(selectionKey string, key string, value any, sigma *SigmaRule, c *Config, fields *[]Field, selectionNegations map[string]bool) {
+func processDetectionField(selectionKey string, key string, value any, sigma *SigmaRule, c *Config, fields *[]Field, srcIps *[]IPField, dstIps *[]IPField, selectionNegations map[string]bool) {
 	LogIt(INFO, fmt.Sprintf("processDetectionField key: %s, value: %v", key, value), nil, c.Info, c.Debug)
 	// Handle modifiers in the key
 	parts := strings.Split(key, "|")
@@ -423,6 +452,7 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 	var values []string
 	isRegex := false
 	isB64 := false
+	isCIDR := false
 	startsWith := false
 	endsWith := false
 
@@ -445,8 +475,63 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 				isB64 = true
 			case "windash":
 				value = HandleWindash(value)
+			case "cidr":
+				isCIDR = true
 			}
 		}
+	}
+
+	// Handle CIDR modifier for IP fields
+	if isCIDR {
+		values = GetFieldValues(value, fieldName, c)
+
+		// Determine if this is a source or destination IP field
+		lowerFieldName := strings.ToLower(fieldName)
+		isSrcIP := strings.Contains(lowerFieldName, "sourceip") ||
+				   strings.Contains(lowerFieldName, "src_ip") ||
+				   strings.Contains(lowerFieldName, "srcip") ||
+				   strings.Contains(lowerFieldName, "clientip") ||
+				   strings.Contains(lowerFieldName, "clientaddress") ||
+				   lowerFieldName == "c-ip"
+		isDstIP := strings.Contains(lowerFieldName, "destinationip") ||
+				   strings.Contains(lowerFieldName, "dst_ip") ||
+				   strings.Contains(lowerFieldName, "dstip") ||
+				   strings.Contains(lowerFieldName, "destination")
+
+		// If not clearly source or destination, treat as generic IP (use as srcip)
+		isIP := strings.Contains(lowerFieldName, "ipaddress") ||
+				strings.Contains(lowerFieldName, "ip_address") ||
+				lowerFieldName == "ipaddress" ||
+				strings.Contains(lowerFieldName, "address") && strings.Contains(lowerFieldName, "ip")
+
+		// Create IP fields with CIDR notation
+		negate := ""
+		if selectionNegations[selectionKey] {
+			negate = "yes"
+		}
+
+		for _, v := range values {
+			ipField := IPField{
+				Negate: negate,
+				Value:  v,
+			}
+
+			if isSrcIP {
+				*srcIps = append(*srcIps, ipField)
+				LogIt(INFO, fmt.Sprintf("Added srcip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+			} else if isDstIP {
+				*dstIps = append(*dstIps, ipField)
+				LogIt(INFO, fmt.Sprintf("Added dstip CIDR field: %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+			} else if isIP {
+				// Generic IP field - default to srcip
+				*srcIps = append(*srcIps, ipField)
+				LogIt(INFO, fmt.Sprintf("Added srcip CIDR field (generic IP): %s (negate=%s)", v, negate), nil, c.Info, c.Debug)
+			} else {
+				// If we can't determine IP direction, log a warning and skip
+				LogIt(WARN, fmt.Sprintf("CIDR modifier used on non-IP field: %s", fieldName), nil, c.Info, c.Debug)
+			}
+		}
+		return // Early return for CIDR fields
 	}
 
 	values = GetFieldValues(value, fieldName, c)
@@ -513,13 +598,16 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 	}
 }
 
-func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionNegations map[string]bool) []Field {
+func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionNegations map[string]bool) RuleFields {
 	LogIt(INFO, fmt.Sprintf("GetFields detection: %v", detection), nil, c.Info, c.Debug)
 	var fields []Field
+	var srcIps []IPField
+	var dstIps []IPField
+
 	for selectionKey, selectionVal := range detection {
 		if selectionMap, ok := selectionVal.(map[string]any); ok {
 			for key, value := range selectionMap {
-				processDetectionField(selectionKey, key, value, sigma, c, &fields, selectionNegations)
+				processDetectionField(selectionKey, key, value, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 			}
 		} else if selectionList, ok := selectionVal.([]any); ok {
 			// Handle list of strings
@@ -530,34 +618,155 @@ func GetFields(detection map[string]any, sigma *SigmaRule, c *Config, selectionN
 				}
 			}
 			if len(stringList) == len(selectionList) {
-				processDetectionField(selectionKey, "", stringList, sigma, c, &fields, selectionNegations)
+				processDetectionField(selectionKey, "", stringList, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 				continue
 			}
 
 			for _, item := range selectionList {
 				if itemMap, ok := item.(map[string]any); ok {
 					for key, value := range itemMap {
-						processDetectionField(selectionKey, key, value, sigma, c, &fields, selectionNegations)
+						processDetectionField(selectionKey, key, value, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 					}
 				}
 			}
 		} else if value, ok := selectionVal.(string); ok {
-			processDetectionField(selectionKey, "", value, sigma, c, &fields, selectionNegations)
+			processDetectionField(selectionKey, "", value, sigma, c, &fields, &srcIps, &dstIps, selectionNegations)
 		}
 	}
-	LogIt(INFO, fmt.Sprintf("GetFields fields: %v", fields), nil, c.Info, c.Debug)
-	return fields
+	LogIt(INFO, fmt.Sprintf("GetFields fields: %v, srcIps: %v, dstIps: %v", fields, srcIps, dstIps), nil, c.Info, c.Debug)
+	return RuleFields{
+		Fields: fields,
+		SrcIps: srcIps,
+		DstIps: dstIps,
+	}
+}
+
+// sanitizeFieldName removes special characters from field names for use in filenames
+func sanitizeFieldName(fieldName string) string {
+	// Replace dots and other special characters with underscores
+	fieldName = strings.ReplaceAll(fieldName, ".", "_")
+	fieldName = strings.ReplaceAll(fieldName, "/", "_")
+	fieldName = strings.ReplaceAll(fieldName, "\\", "_")
+	fieldName = strings.ReplaceAll(fieldName, " ", "_")
+	return fieldName
+}
+
+// extractValuesFromRegex extracts individual values from an OR regex pattern
+// Pattern format: (?i)(?:value1|value2|value3)
+func extractValuesFromRegex(regexPattern string) []string {
+	var values []string
+
+	// Remove case-insensitive flag: (?i)
+	regexPattern = strings.Replace(regexPattern, "(?i)", "", 1)
+
+	// Remove non-capturing group: (?:...)
+	regexPattern = strings.TrimPrefix(regexPattern, "(?:")
+	regexPattern = strings.TrimSuffix(regexPattern, ")")
+
+	// Handle escaped pipes (not separators)
+	// Replace escaped pipes temporarily
+	regexPattern = strings.ReplaceAll(regexPattern, "\\|", "<<<PIPE>>>")
+
+	// Split by unescaped pipes
+	parts := strings.Split(regexPattern, "|")
+
+	for _, part := range parts {
+		// Restore escaped pipes
+		part = strings.ReplaceAll(part, "<<<PIPE>>>", "|")
+		part = strings.TrimSpace(part)
+
+		// Remove regex escaping for CDB list (keep the raw value)
+		// This is safe for CDB lists as they use exact matching
+		part = strings.ReplaceAll(part, "\\.", ".")
+		part = strings.ReplaceAll(part, "\\\\", "\\")
+
+		if part != "" {
+			values = append(values, part)
+		}
+	}
+
+	return values
+}
+
+// filterMitreTags filters and formats MITRE ATT&CK tags from Sigma rules
+// Removes tactic-only tags and keeps only technique IDs in proper format
+// Input:  ["attack.credential-access", "attack.t1003.001", "attack.persistence", "attack.t1190"]
+// Output: ["T1003.001", "T1190"]
+func filterMitreTags(tags []string) []string {
+	var filtered []string
+
+	for _, tag := range tags {
+		// Remove "attack." prefix if present
+		tag = strings.TrimPrefix(tag, "attack.")
+
+		// Check if this is a technique ID (starts with 't' followed by digits)
+		// Technique format: t1234 or t1234.567
+		if len(tag) > 1 && strings.HasPrefix(strings.ToLower(tag), "t") {
+			// Check if second character is a digit
+			if len(tag) > 1 && tag[1] >= '0' && tag[1] <= '9' {
+				// Convert to uppercase format (T1003.001)
+				filtered = append(filtered, strings.ToUpper(tag))
+			}
+		}
+		// Skip tactic-only tags (credential-access, persistence, etc.)
+	}
+
+	return filtered
 }
 
 func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 	var rule WazuhRule
 
-	fields := GetFields(detections, sigma, c, selectionNegations)
-	if len(fields) == 0 {
+	ruleFields := GetFields(detections, sigma, c, selectionNegations)
+	if len(ruleFields.Fields) == 0 && len(ruleFields.SrcIps) == 0 && len(ruleFields.DstIps) == 0 {
 		LogIt(WARN, "No fields found for rule: "+sigma.ID+" URL: "+url, nil, c.Info, c.Debug)
 		return WazuhRule{}
 	}
+
+	// Check for field values that exceed Wazuh's limits (max ~4096 characters)
+	// Convert them to CDB lists instead of skipping
+	const maxFieldLength = 4096
+	var finalFields []Field
+	var listFields []ListField
+
+	for i, field := range ruleFields.Fields {
+		if len(field.Value) > maxFieldLength {
+			// Extract values from the regex pattern
+			values := extractValuesFromRegex(field.Value)
+
+			if len(values) == 0 {
+				LogIt(WARN, fmt.Sprintf("Rule %s has field value exceeding limit but couldn't extract values. Skipping rule.", sigma.ID), nil, c.Info, c.Debug)
+				c.TrackSkips.FieldTooLong++
+				c.TrackSkips.RulesSkipped++
+				return WazuhRule{}
+			}
+
+			// Create a CDB list name using Sigma ID
+			listName := fmt.Sprintf("sigma_%s_%d_%s", strings.ReplaceAll(sigma.ID, "-", ""), i, sanitizeFieldName(field.Name))
+
+			// Store the values for later CDB generation
+			c.CDBLists[listName] = values
+
+			// Create a list field instead of regular field
+			listField := ListField{
+				Field:  field.Name,
+				Lookup: "match_key",
+				Negate: field.Negate,
+				Value:  fmt.Sprintf("etc/lists/%s", listName),
+			}
+			listFields = append(listFields, listField)
+
+			LogIt(INFO, fmt.Sprintf("Rule %s field '%s' converted to CDB list with %d values (%d chars → CDB)", sigma.ID, field.Name, len(values), len(field.Value)), nil, c.Info, c.Debug)
+			c.TrackSkips.ConvertedToCDB++
+		} else {
+			finalFields = append(finalFields, field)
+		}
+	}
+
+	// Update ruleFields with the processed fields
+	ruleFields.Fields = finalFields
+	ruleFields.ListFields = listFields
 
 	rule.ID = TrackIdMaps(sigma.ID, c)
 	rule.Level = strconv.Itoa(GetLevel(sigma.Level, c))
@@ -571,7 +780,12 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 	rule.Modified = xml.Comment("   Modified: " + strings.Replace(sigma.Modified, "--", "-", -1))
 	rule.Status = xml.Comment("     Status: " + strings.Replace(sigma.Status, "--", "-", -1))
 	rule.SigmaID = xml.Comment("   Sigma ID: " + strings.Replace(sigma.ID, "--", "-", -1))
-	rule.Mitre.IDs = sigma.Tags
+	filteredMitreTags := filterMitreTags(sigma.Tags)
+	if len(filteredMitreTags) > 0 {
+		rule.Mitre = &struct {
+			IDs []string `xml:"id,omitempty"`
+		}{IDs: filteredMitreTags}
+	}
 	rule.Options = GetOptions(sigma, c)
 	rule.Groups = GetGroups(sigma, c)
 	ifType, value := GetIfGrpSid(sigma, c)
@@ -581,7 +795,10 @@ func BuildRule(sigma *SigmaRule, url string, c *Config, detections map[string]an
 		rule.IfSid = value
 	}
 
-	rule.Fields = fields
+	rule.Fields = ruleFields.Fields
+	rule.SrcIps = ruleFields.SrcIps
+	rule.DstIps = ruleFields.DstIps
+	rule.Lists = ruleFields.ListFields
 
 	return rule
 }
@@ -707,7 +924,9 @@ func parse(tokens []Token) [][]string {
 				postfix = append(postfix, stack[len(stack)-1])
 				stack = stack[:len(stack)-1]
 			}
-			stack = stack[:len(stack)-1] // Pop LPAREN
+			if len(stack) > 0 {
+				stack = stack[:len(stack)-1] // Pop LPAREN
+			}
 		default: // Operator
 			for len(stack) > 0 && stack[len(stack)-1].Type != "LPAREN" && precedence[token.Value] <= precedence[stack[len(stack)-1].Value] {
 				postfix = append(postfix, stack[len(stack)-1])
@@ -953,7 +1172,18 @@ func ProcessDnfSets(passingSets [][]string, detections map[string]any, sigmaRule
 		for _, detection := range detectionSets {
 			rule := BuildRule(sigmaRule, url, c, detection, selectionNegations)
 			if rule.ID != "" {
-				c.Wazuh.XmlRules.Rules = append(c.Wazuh.XmlRules.Rules, rule)
+				// Determine which product this rule belongs to
+				product := strings.ToLower(sigmaRule.LogSource.Product)
+				if product == "" {
+					product = "unknown"
+				}
+				// Initialize the product group if it doesn't exist
+				if c.Wazuh.XmlRules[product] == nil {
+					c.Wazuh.XmlRules[product] = &WazuhGroup{
+						Name: product + ",",
+					}
+				}
+				c.Wazuh.XmlRules[product].Rules = append(c.Wazuh.XmlRules[product].Rules, rule)
 			}
 		}
 	}
@@ -995,12 +1225,8 @@ func ReadYamlFile(path string, c *Config) {
 		c.TrackSkips.RulesSkipped++
 		return
 	}
-	if strings.Contains(detectionString, "|cidr:") {
-		LogIt(INFO, "Skip Sigma rule cidr: "+sigmaRule.ID, nil, c.Info, c.Debug)
-		c.TrackSkips.Cidr++
-		c.TrackSkips.RulesSkipped++
-		return
-	}
+	// CIDR modifier is now supported, no need to skip
+	// Removed skip check for |cidr: modifier
 
 	detections := GetTopLevelLogicCondition(sigmaRule, c)
 	condition, ok := detections["condition"].(string)
@@ -1019,17 +1245,290 @@ func ReadYamlFile(path string, c *Config) {
 
 func WriteWazuhXmlRules(c *Config) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
-	// Create an XML encoder that writes to the file
-	enc := xml.NewEncoder(&c.Wazuh.WriteRules)
+
+	// Iterate through each product and write separate XML files
+	for product, xmlRules := range c.Wazuh.XmlRules {
+		if len(xmlRules.Rules) == 0 {
+			continue // Skip empty rule sets
+		}
+
+		totalRules := len(xmlRules.Rules)
+		maxRulesPerFile := c.Wazuh.MaxRulesPerFile
+
+		// Check if we need to split the file
+		if maxRulesPerFile > 0 && totalRules > maxRulesPerFile {
+			// Calculate number of parts needed
+			numParts := (totalRules + maxRulesPerFile - 1) / maxRulesPerFile
+
+			fmt.Printf("Splitting %s: %d rules into %d files (%d rules per file)\n",
+				product, totalRules, numParts, maxRulesPerFile)
+
+			// Split rules into multiple files
+			for part := 0; part < numParts; part++ {
+				startIdx := part * maxRulesPerFile
+				endIdx := startIdx + maxRulesPerFile
+				if endIdx > totalRules {
+					endIdx = totalRules
+				}
+
+				// Create a new WazuhGroup for this part
+				partRules := &WazuhGroup{
+					Rules: xmlRules.Rules[startIdx:endIdx],
+				}
+
+				// Create filename with part number
+				filename := fmt.Sprintf("sigma_%s_part%d.xml", product, part+1)
+
+				// Write the part file
+				if err := writeXmlFile(filename, partRules, c); err != nil {
+					LogIt(ERROR, fmt.Sprintf("Failed to write %s", filename), err, c.Info, c.Debug)
+					continue
+				}
+
+				fmt.Printf("  Created %s with %d rules\n", filename, len(partRules.Rules))
+			}
+		} else {
+			// Write single file (no splitting needed)
+			filename := fmt.Sprintf("sigma_%s.xml", product)
+
+			if err := writeXmlFile(filename, xmlRules, c); err != nil {
+				LogIt(ERROR, fmt.Sprintf("Failed to write %s", filename), err, c.Info, c.Debug)
+				continue
+			}
+
+			fmt.Printf("Created %s with %d rules\n", filename, len(xmlRules.Rules))
+		}
+	}
+}
+
+// writeXmlFile writes a WazuhGroup to an XML file
+func writeXmlFile(filename string, xmlRules *WazuhGroup, c *Config) error {
+	// Create the file
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Add XML header comment
+	xmlRules.Header = xml.Comment(`
+	Author: Brian Kellogg
+	Sigma: https://github.com/SigmaHQ/sigma
+	Wazuh: https://wazuh.com
+	All Sigma rules licensed under DRL: https://github.com/SigmaHQ/Detection-Rule-License `)
+
+	// Create an XML encoder
+	enc := xml.NewEncoder(file)
 	enc.Indent("", "  ")
 
 	// Encode the rule struct to XML
-	if err := enc.Encode(c.Wazuh.XmlRules); err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
+	if err := enc.Encode(xmlRules); err != nil {
+		return err
 	}
-	if _, err := c.Wazuh.WriteRules.WriteString("\n"); err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
+
+	if _, err := file.WriteString("\n"); err != nil {
+		return err
 	}
+
+	return nil
+}
+
+func WriteCDBLists(c *Config) {
+	LogIt(DEBUG, "", nil, c.Info, c.Debug)
+
+	if len(c.CDBLists) == 0 {
+		return
+	}
+
+	// Create lists directory if it doesn't exist
+	listsDir := "lists"
+	if err := os.MkdirAll(listsDir, 0755); err != nil {
+		LogIt(ERROR, fmt.Sprintf("Failed to create lists directory: %s", listsDir), err, c.Info, c.Debug)
+		return
+	}
+
+	totalEntries := 0
+	// Write each CDB list file
+	for listName, values := range c.CDBLists {
+		filename := filepath.Join(listsDir, listName)
+
+		// Create the list file
+		file, err := os.Create(filename)
+		if err != nil {
+			LogIt(ERROR, fmt.Sprintf("Failed to create CDB list file: %s", filename), err, c.Info, c.Debug)
+			continue
+		}
+
+		// Write each value to the file
+		// CDB list format: key:value
+		// For match_key lookup, we just need the key
+		for _, value := range values {
+			_, err := file.WriteString(value + ":1\n")
+			if err != nil {
+				LogIt(ERROR, fmt.Sprintf("Failed to write to CDB list file: %s", filename), err, c.Info, c.Debug)
+				break
+			}
+		}
+
+		if err := file.Close(); err != nil {
+			LogIt(ERROR, fmt.Sprintf("Failed to close CDB list file: %s", filename), err, c.Info, c.Debug)
+		}
+
+		totalEntries += len(values)
+		fmt.Printf("Created CDB list %s with %d entries\n", filename, len(values))
+	}
+
+	if totalEntries > 0 {
+		fmt.Printf("\nTotal CDB lists: %d with %d total entries\n", len(c.CDBLists), totalEntries)
+	}
+}
+
+func WriteDeploymentInstructions(c *Config) {
+	LogIt(DEBUG, "", nil, c.Info, c.Debug)
+
+	if len(c.CDBLists) == 0 {
+		return
+	}
+
+	// Generate ossec.conf snippet
+	ossecConfFile := "WAZUH_CDB_CONFIG.txt"
+	file, err := os.Create(ossecConfFile)
+	if err != nil {
+		LogIt(ERROR, fmt.Sprintf("Failed to create ossec.conf snippet file: %s", ossecConfFile), err, c.Info, c.Debug)
+		return
+	}
+	defer file.Close()
+
+	file.WriteString("# ============================================================\n")
+	file.WriteString("# Wazuh CDB Lists Configuration\n")
+	file.WriteString("# Add these lines to /var/ossec/etc/ossec.conf in <ruleset>\n")
+	file.WriteString("# ============================================================\n\n")
+	file.WriteString("<ruleset>\n")
+	file.WriteString("  <!-- Your existing rules configuration -->\n")
+	file.WriteString("  <!-- ... -->\n\n")
+	file.WriteString("  <!-- Sigma-generated CDB Lists -->\n")
+
+	// Sort list names for consistent output
+	listNames := make([]string, 0, len(c.CDBLists))
+	for listName := range c.CDBLists {
+		listNames = append(listNames, listName)
+	}
+
+	for _, listName := range listNames {
+		file.WriteString(fmt.Sprintf("  <list>etc/lists/%s</list>\n", listName))
+	}
+
+	file.WriteString("</ruleset>\n")
+
+	// Generate deployment script
+	deployScript := "deploy_cdb_lists.sh"
+	scriptFile, err := os.Create(deployScript)
+	if err != nil {
+		LogIt(ERROR, fmt.Sprintf("Failed to create deployment script: %s", deployScript), err, c.Info, c.Debug)
+		return
+	}
+	defer scriptFile.Close()
+
+	scriptFile.WriteString("#!/bin/bash\n")
+	scriptFile.WriteString("# Wazuh CDB Lists Deployment Script\n")
+	scriptFile.WriteString("# Generated by StoW (Sigma to Wazuh Converter)\n\n")
+	scriptFile.WriteString("set -e  # Exit on error\n\n")
+	scriptFile.WriteString("WAZUH_SERVER=\"${1:-localhost}\"\n")
+	scriptFile.WriteString("WAZUH_USER=\"${2:-root}\"\n\n")
+	scriptFile.WriteString("echo \"=======================================\"\n")
+	scriptFile.WriteString("echo \"Wazuh CDB Lists Deployment\"\\n")
+	scriptFile.WriteString("echo \"=======================================\"\n")
+	scriptFile.WriteString("echo \"Target server: $WAZUH_SERVER\"\n")
+	scriptFile.WriteString("echo \"User: $WAZUH_USER\"\n")
+	scriptFile.WriteString("echo \"\"\n\n")
+	scriptFile.WriteString("# Step 1: Copy CDB list files\n")
+	scriptFile.WriteString("echo \"[1/4] Copying CDB list files...\"\n")
+	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
+	scriptFile.WriteString("  cp -v lists/* /var/ossec/etc/lists/\n")
+	scriptFile.WriteString("else\n")
+	scriptFile.WriteString("  scp -r lists/* $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/lists/\n")
+	scriptFile.WriteString("fi\n\n")
+	scriptFile.WriteString("# Step 2: Copy XML rule files\n")
+	scriptFile.WriteString("echo \"[2/4] Copying Sigma rule files...\"\n")
+	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
+	scriptFile.WriteString("  cp -v sigma_*.xml /var/ossec/etc/rules/\n")
+	scriptFile.WriteString("else\n")
+	scriptFile.WriteString("  scp sigma_*.xml $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/rules/\n")
+	scriptFile.WriteString("fi\n\n")
+	scriptFile.WriteString("# Step 3: Set permissions\n")
+	scriptFile.WriteString("echo \"[3/4] Setting permissions...\"\n")
+	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
+	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/lists/sigma_*\n")
+	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/rules/sigma_*.xml\n")
+	scriptFile.WriteString("  chmod 640 /var/ossec/etc/lists/sigma_*\n")
+	scriptFile.WriteString("  chmod 640 /var/ossec/etc/rules/sigma_*.xml\n")
+	scriptFile.WriteString("else\n")
+	scriptFile.WriteString("  ssh $WAZUH_USER@$WAZUH_SERVER \"chown wazuh:wazuh /var/ossec/etc/lists/sigma_* && chown wazuh:wazuh /var/ossec/etc/rules/sigma_*.xml && chmod 640 /var/ossec/etc/lists/sigma_* && chmod 640 /var/ossec/etc/rules/sigma_*.xml\"\n")
+	scriptFile.WriteString("fi\n\n")
+	scriptFile.WriteString("echo \"[4/4] CDB lists will be compiled automatically on Wazuh restart\"\n")
+	scriptFile.WriteString("echo \"\"\n")
+	scriptFile.WriteString("echo \"=======================================\"\n")
+	scriptFile.WriteString("echo \"IMPORTANT: Manual Steps Required\"\n")
+	scriptFile.WriteString("echo \"=======================================\"\n")
+	scriptFile.WriteString("echo \"1. Edit /var/ossec/etc/ossec.conf and add the <list> entries\"\n")
+	scriptFile.WriteString("echo \"   See WAZUH_CDB_CONFIG.txt for the configuration\"\n")
+	scriptFile.WriteString("echo \"\"\n")
+	scriptFile.WriteString("echo \"2. Add the Sigma rule files to ossec.conf:\"\n")
+	scriptFile.WriteString("echo \"   <ruleset>\"\n")
+
+	// Find all generated sigma XML files (including part files)
+	xmlFiles, err := filepath.Glob("sigma_*.xml")
+	if err != nil {
+		LogIt(ERROR, "Failed to find generated XML files", err, c.Info, c.Debug)
+	} else {
+		// Sort for consistent output
+		for _, xmlFile := range xmlFiles {
+			scriptFile.WriteString(fmt.Sprintf("echo \"     <include>%s</include>\"\n", xmlFile))
+		}
+	}
+
+	scriptFile.WriteString("echo \"   </ruleset>\"\n")
+	scriptFile.WriteString("echo \"\"\n")
+	scriptFile.WriteString("echo \"3. Restart Wazuh manager:\"\n")
+	scriptFile.WriteString("echo \"   systemctl restart wazuh-manager\"\n")
+	scriptFile.WriteString("echo \"\"\n")
+	scriptFile.WriteString("echo \"   OR remotely:\"\n")
+	scriptFile.WriteString("echo \"   ssh $WAZUH_USER@$WAZUH_SERVER 'systemctl restart wazuh-manager'\"\n")
+	scriptFile.WriteString("echo \"\"\n")
+	scriptFile.WriteString("echo \"=======================================\"\n")
+	scriptFile.WriteString("echo \"Deployment files ready!\"\n")
+	scriptFile.WriteString("echo \"=======================================\"\n")
+
+	// Make script executable
+	os.Chmod(deployScript, 0755)
+
+	fmt.Printf("\n")
+	fmt.Printf("==============================================================================\n")
+	fmt.Printf("CDB LISTS DEPLOYMENT INSTRUCTIONS\n")
+	fmt.Printf("==============================================================================\n")
+	fmt.Printf("\n")
+	fmt.Printf("✓ Created %d CDB list files in lists/ directory\n", len(c.CDBLists))
+	fmt.Printf("✓ Created deployment script: %s\n", deployScript)
+	fmt.Printf("✓ Created ossec.conf configuration: %s\n", ossecConfFile)
+	fmt.Printf("\n")
+	fmt.Printf("DEPLOYMENT STEPS:\n")
+	fmt.Printf("\n")
+	fmt.Printf("1. Run the deployment script:\n")
+	fmt.Printf("   Local:  sudo ./%s localhost\n", deployScript)
+	fmt.Printf("   Remote: ./%s <wazuh-server-ip> <user>\n", deployScript)
+	fmt.Printf("\n")
+	fmt.Printf("2. Add CDB list declarations to /var/ossec/etc/ossec.conf:\n")
+	fmt.Printf("   See %s for the exact configuration\n", ossecConfFile)
+	fmt.Printf("\n")
+	fmt.Printf("3. Restart Wazuh manager:\n")
+	fmt.Printf("   sudo systemctl restart wazuh-manager\n")
+	fmt.Printf("\n")
+	fmt.Printf("NOTES:\n")
+	fmt.Printf("• Modern Wazuh (v3.11.0+) compiles CDB lists automatically on startup\n")
+	fmt.Printf("• No need to run wazuh-makelists manually\n")
+	fmt.Printf("• CDB lists provide O(1) lookup time for large datasets\n")
+	fmt.Printf("\n")
+	fmt.Printf("==============================================================================\n")
 }
 
 func WalkSigmaRules(c *Config) []string {
@@ -1064,6 +1563,14 @@ func WalkSigmaRules(c *Config) []string {
 func PrintStats(c *Config, sigmaRuleIds []string) {
 	convertedSigmaRules := len(c.Ids.SigmaToWazuh)
 
+	// Count total Wazuh rules across all products
+	totalWazuhRules := 0
+	for product, xmlRules := range c.Wazuh.XmlRules {
+		ruleCount := len(xmlRules.Rules)
+		totalWazuhRules += ruleCount
+		fmt.Printf("Product %s: %d Wazuh rules\n", product, ruleCount)
+	}
+
 	fmt.Printf("\n\n***************************************************************************\n")
 	fmt.Printf(" Number of Sigma Experimental rules skipped: %d\n", c.TrackSkips.ExperimentalSkips)
 	fmt.Printf("    Number of Sigma TIMEFRAME rules skipped: %d\n", c.TrackSkips.TimeframeSkips)
@@ -1072,12 +1579,14 @@ func PrintStats(c *Config, sigmaRuleIds []string) {
 	fmt.Printf("         Number of Sigma CIDR rules skipped: %d\n", c.TrackSkips.Cidr)
 	fmt.Printf("         Number of Sigma NEAR rules skipped: %d\n", c.TrackSkips.NearSkips)
 	fmt.Printf("       Number of Sigma CONFIG rules skipped: %d\n", c.TrackSkips.HardSkipped)
+	fmt.Printf("   Number of Sigma FIELD TOO LONG skipped: %d\n", c.TrackSkips.FieldTooLong)
+	fmt.Printf("Number of Sigma rules CONVERTED TO CDB: %d\n", c.TrackSkips.ConvertedToCDB)
 	fmt.Printf("        Number of Sigma ERROR rules skipped: %d\n", c.TrackSkips.ErrorCount)
 	fmt.Printf("---------------------------------------------------------------------------\n")
 	fmt.Printf("                  Total Sigma rules skipped: %d\n", c.TrackSkips.RulesSkipped)
 	fmt.Printf("                Total Sigma rules converted: %d\n", convertedSigmaRules)
 	fmt.Printf("---------------------------------------------------------------------------\n")
-	fmt.Printf("                  Total Wazuh rules created: %d\n", len(c.Wazuh.XmlRules.Rules))
+	fmt.Printf("                  Total Wazuh rules created: %d\n", totalWazuhRules)
 	fmt.Printf("---------------------------------------------------------------------------\n")
 	fmt.Printf("                          Total Sigma rules: %d\n", len(sigmaRuleIds))
 	if len(sigmaRuleIds) > 0 {
@@ -1091,14 +1600,11 @@ func main() {
 	c.Info, c.Debug = getArgs(os.Args, c)
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
-	// Convert rules
-	file, err := os.Create(c.Wazuh.RulesFile)
-	if err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
-		return
-	}
-	c.Wazuh.WriteRules = *file
-	defer file.Close()
+	// Initialize the XmlRules map for multiple products
+	c.Wazuh.XmlRules = make(map[string]*WazuhGroup)
+
+	// Initialize the CDB Lists map
+	c.CDBLists = make(map[string][]string)
 
 	// Check if Sigma rules directory is valid
 	sigmaRulesPathInfo, err := os.Stat(c.Sigma.RulesRoot)
@@ -1117,14 +1623,14 @@ func main() {
 
 	sigmaRuleIds := WalkSigmaRules(c)
 
-	// build our xml rule file and write it
-	c.Wazuh.XmlRules.Name = "sigma,"
-	c.Wazuh.XmlRules.Header = xml.Comment(`
-	Author: Brian Kellogg
-	Sigma: https://github.com/SigmaHQ/sigma
-	Wazuh: https://wazuh.com
-	All Sigma rules licensed under DRL: https://github.com/SigmaHQ/Detection-Rule-License `)
+	// Write XML rule files (one per product)
 	WriteWazuhXmlRules(c)
+
+	// Write CDB list files
+	WriteCDBLists(c)
+
+	// Write deployment instructions and helper scripts
+	WriteDeploymentInstructions(c)
 
 	// Convert map to json
 	jsonData, err := json.Marshal(c.Ids.SigmaToWazuh)
