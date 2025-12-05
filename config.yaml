@@ -104,7 +104,7 @@ Wazuh:
       ApplicationPath: win.eventdata.applicationPath
       AttributeLDAPDisplayName: win.eventdata.attributeLDAPDisplayName
       AttributeValue: win.eventdata.attributeValue
-      AuditPolicyChanges: win.evendata.auditPolicyChanges
+      AuditPolicyChanges: win.eventdata.auditPolicyChanges
       AuditSourceName: win.eventdata.auditSourceName
       AuthenticationPackage: win.eventdata.authenticationPackageName
       AuthenticationPackageName: win.eventdata.authenticationPackageName
@@ -137,7 +137,7 @@ Wazuh:
       FailureCode: win.eventdata.failureCode
       FileName: win.eventdata.fileName
       FileVersion: win.eventdata.fileVersion
-      FilterName: win.evendata.filterName
+      FilterName: win.eventdata.filterName
       FilterOrigin: win.eventdata.filterOrigin
       FolderPath: win.eventdata.image
       GrantedAccess: win.eventdata.grantedAccess
@@ -147,7 +147,7 @@ Wazuh:
       HostName: win.eventdata.hostName
       HostVersion: win.eventdata.hostVersion
       Image: win.eventdata.image
-      ImageName: win.evendata.imageName
+      ImageName: win.eventdata.imageName
       ImagePath: win.eventdata.imagePath
       ImageLoaded: win.eventdata.imageLoaded
       ImpHash: win.eventdata.impHash
@@ -167,7 +167,7 @@ Wazuh:
       Message: win.system.message
       ModifyingApplication: win.system.modifyingApplication
       NewName: win.eventdata.newName
-      NewTargetUserName: win.evendata.newTargetUserName
+      NewTargetUserName: win.eventdata.newTargetUserName
       NewUacValue: win.eventdata.newUacValue
       NewValue: win.eventdata.newValue
       ObjectClass: win.eventdata.objectClass
@@ -179,16 +179,16 @@ Wazuh:
       Origin: win.eventdata.origin
       OriginalFileName: win.eventdata.originalFileName
       PackageName: win.eventdata.packageName
-      Param1: win.evendata.param1
-      Param2: win.evendata.param2
-      Param3: win.evendata.param3
-      Param4: win.evendata.Param4
-      Param5: win.evendata.param5
-      Param6: win.evendata.param6
-      Param7: win.evendata.param7
-      Param8: win.evendata.Param8
-      Param9: win.evendata.Param9
-      Param10: win.evendata.Param10
+      Param1: win.eventdata.param1
+      Param2: win.eventdata.param2
+      Param3: win.eventdata.param3
+      Param4: win.eventdata.Param4
+      Param5: win.eventdata.param5
+      Param6: win.eventdata.param6
+      Param7: win.eventdata.param7
+      Param8: win.eventdata.Param8
+      Param9: win.eventdata.Param9
+      Param10: win.eventdata.Param10
       ParentCommandLine: win.eventdata.parentCommandLine
       ParentImage: win.eventdata.parentImage
       ParentIntegrityLevel: win.eventdata.parentIntegrityLevel
@@ -203,7 +203,7 @@ Wazuh:
       ProcessPath: win.eventdata.processPath
       Product: win.eventdata.product
       Properties: win.eventdata.properties
-      ProviderContextName: win.evendata.providerContextName
+      ProviderContextName: win.eventdata.providerContextName
       ProviderName: win.eventdata.providerName
       Provider_Name: win.eventdata.providerName
       QueryName: win.eventdata.queryName
@@ -215,8 +215,8 @@ Wazuh:
       ServerName: win.eventdata.serverName
       ServiceFileName: win.eventdata.serviceFileName
       ServiceName: win.eventdata.serviceName
-      ServiceStartType: win.evendata.serviceStartType
-      ServiceType: win.evendata.serviceType
+      ServiceStartType: win.eventdata.serviceStartType
+      ServiceType: win.eventdata.serviceType
       sha1: win.eventdata.hashes
       sha256: win.eventdata.hashes
       ShareName: win.eventdata.shareName
@@ -260,7 +260,7 @@ Wazuh:
       Type: win.eventdata.type
       User: win.eventdata.user
       UserName: win.eventdata.samAccountName
-      Value: win.evendata.value
+      Value: win.eventdata.value
       WorkstationName: win.eventdata.workstationName
     Zeek:
       answers: data.answers
