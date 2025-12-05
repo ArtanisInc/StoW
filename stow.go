@@ -455,17 +455,22 @@ func GetIfGrpSid(sigma *SigmaRule, c *Config) (string, string) {
 
 func GetGroups(sigma *SigmaRule, c *Config) string {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
-	var groups string
+	var builder strings.Builder
+
 	if sigma.LogSource.Category != "" {
-		groups = sigma.LogSource.Category + ","
+		builder.WriteString(sigma.LogSource.Category)
+		builder.WriteString(",")
 	}
 	if sigma.LogSource.Product != "" {
-		groups += sigma.LogSource.Product + ","
+		builder.WriteString(sigma.LogSource.Product)
+		builder.WriteString(",")
 	}
 	if sigma.LogSource.Service != "" {
-		groups += sigma.LogSource.Service + ","
+		builder.WriteString(sigma.LogSource.Service)
+		builder.WriteString(",")
 	}
-	return groups
+
+	return builder.String()
 }
 
 func GetOptions(sigma *SigmaRule, c *Config) []string {
