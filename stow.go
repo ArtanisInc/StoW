@@ -245,16 +245,94 @@ type WazuhRule struct {
 	Fields      []Field     `xml:"field"`
 }
 
-type Stack []int
+// sanitizeXMLComment ensures the string is safe to use in an XML comment
+// XML comments cannot contain "--" and cannot start or end with "-"
+func sanitizeXMLComment(s string) string {
+	if s == "" {
+		return s
+	}
 
-func (s *Stack) Push(v int) {
-	*s = append(*s, v)
+	// Replace all occurrences of "--" with a single dash
+	s = strings.ReplaceAll(s, "--", "-")
+
+	// Ensure the comment doesn't start with "-"
+	s = strings.TrimLeft(s, "-")
+
+	// Ensure the comment doesn't end with "-"
+	s = strings.TrimRight(s, "-")
+
+	// If the string is now empty or only whitespace, return a safe default
+	if strings.TrimSpace(s) == "" {
+		return "N/A"
+	}
+
+	return s
 }
 
-func (s *Stack) Pop() int {
-	res := (*s)[len(*s)-1]
-	*s = (*s)[:len(*s)-1]
-	return res
+// validateFilePath checks if a file path is valid and accessible
+func validateFilePath(path string, shouldExist bool) error {
+	if path == "" {
+		return fmt.Errorf("file path cannot be empty")
+	}
+
+	// Clean the path to prevent directory traversal
+	cleanPath := filepath.Clean(path)
+
+	if shouldExist {
+		info, err := os.Stat(cleanPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return fmt.Errorf("path does not exist: %s", cleanPath)
+			}
+			return fmt.Errorf("cannot access path %s: %w", cleanPath, err)
+		}
+
+		// Additional check: ensure it's not a directory when we expect a file
+		if info.IsDir() && filepath.Ext(cleanPath) != "" {
+			return fmt.Errorf("expected file but got directory: %s", cleanPath)
+		}
+	}
+
+	return nil
+}
+
+// validateConfig checks if required configuration values are set and valid
+func validateConfig(c *Config) error {
+	// Validate Sigma configuration
+	if c.Sigma.RulesRoot == "" {
+		return fmt.Errorf("Sigma RulesRoot cannot be empty")
+	}
+
+	if err := validateFilePath(c.Sigma.RulesRoot, true); err != nil {
+		return fmt.Errorf("invalid Sigma RulesRoot: %w", err)
+	}
+
+	// Validate Wazuh configuration
+	if c.Wazuh.RuleIdStart < 0 {
+		return fmt.Errorf("Wazuh RuleIdStart must be non-negative, got: %d", c.Wazuh.RuleIdStart)
+	}
+
+	if c.Wazuh.MaxRulesPerFile < 0 {
+		return fmt.Errorf("Wazuh MaxRulesPerFile must be non-negative, got: %d", c.Wazuh.MaxRulesPerFile)
+	}
+
+	// Validate product-specific rule ID ranges don't overlap
+	if len(c.Wazuh.ProductRuleIdStart) > 0 {
+		usedRanges := make(map[int]string)
+		for product, startId := range c.Wazuh.ProductRuleIdStart {
+			if startId < 0 {
+				return fmt.Errorf("product %s has negative rule ID start: %d", product, startId)
+			}
+			// Check for overlaps (assuming 10000 IDs per product as per comments)
+			rangeStart := startId / 10000
+			if existingProduct, exists := usedRanges[rangeStart]; exists {
+				return fmt.Errorf("product %s rule ID range overlaps with %s", product, existingProduct)
+			}
+			usedRanges[rangeStart] = product
+		}
+	}
+
+	return nil
 }
 
 func HandleB64OffsetsList(value []string) string {
@@ -784,13 +862,13 @@ func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detectio
 	rule.Description = sigma.Title
 	rule.Info.Type = "link"
 	rule.Info.Value = url
-	// sometimes we see "--" in sigma fields which will break xml when in comments
-	rule.Author = xml.Comment("     Author: " + strings.Replace(sigma.Author, "--", "-", -1))
-	rule.SigmaDescription = xml.Comment("Description: " + strings.Replace(sigma.Description, "--", "-", -1))
-	rule.Date = xml.Comment("    Created: " + strings.Replace(sigma.Date, "--", "-", -1))
-	rule.Modified = xml.Comment("   Modified: " + strings.Replace(sigma.Modified, "--", "-", -1))
-	rule.Status = xml.Comment("     Status: " + strings.Replace(sigma.Status, "--", "-", -1))
-	rule.SigmaID = xml.Comment("   Sigma ID: " + strings.Replace(sigma.ID, "--", "-", -1))
+	// Sanitize fields for safe XML comment usage
+	rule.Author = xml.Comment("     Author: " + sanitizeXMLComment(sigma.Author))
+	rule.SigmaDescription = xml.Comment("Description: " + sanitizeXMLComment(sigma.Description))
+	rule.Date = xml.Comment("    Created: " + sanitizeXMLComment(sigma.Date))
+	rule.Modified = xml.Comment("   Modified: " + sanitizeXMLComment(sigma.Modified))
+	rule.Status = xml.Comment("     Status: " + sanitizeXMLComment(sigma.Status))
+	rule.SigmaID = xml.Comment("   Sigma ID: " + sanitizeXMLComment(sigma.ID))
 	filteredMitreTags := filterMitreTags(sigma.Tags)
 	if len(filteredMitreTags) > 0 {
 		rule.Mitre = &struct {
@@ -1618,26 +1696,17 @@ func main() {
 	c.Info, c.Debug = getArgs(os.Args, c)
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
+	// Validate configuration
+	if err := validateConfig(c); err != nil {
+		LogIt(ERROR, fmt.Sprintf("Configuration validation failed: %v", err), nil, c.Info, c.Debug)
+		log.Fatal("Please fix the configuration errors and try again.")
+	}
+
 	// Initialize the XmlRules map for multiple products
 	c.Wazuh.XmlRules = make(map[string]*WazuhGroup)
 
 	// Initialize the CDB Lists map
 	c.CDBLists = make(map[string][]string)
-
-	// Check if Sigma rules directory is valid
-	sigmaRulesPathInfo, err := os.Stat(c.Sigma.RulesRoot)
-	if err != nil {
-		if os.IsNotExist(err) {
-			LogIt(ERROR, fmt.Sprintf("Sigma rules directory '%s' not found. Please check the 'RulesRoot' path in your config.yaml.", c.Sigma.RulesRoot), err, c.Info, c.Debug)
-		} else {
-			LogIt(ERROR, fmt.Sprintf("Error accessing Sigma rules directory '%s'. Please check the 'RulesRoot' path in your config.yaml.", c.Sigma.RulesRoot), err, c.Info, c.Debug)
-		}
-		return
-	}
-	if !sigmaRulesPathInfo.IsDir() {
-		LogIt(ERROR, fmt.Sprintf("The configured Sigma rules path '%s' is not a directory. Please check the 'RulesRoot' path in your config.yaml.", c.Sigma.RulesRoot), nil, c.Info, c.Debug)
-		return
-	}
 
 	sigmaRuleIds := WalkSigmaRules(c)
 
@@ -1721,12 +1790,3 @@ func LogIt(level string, msg string, err error, info bool, debug bool) {
 		}
 	}
 }
-
-// func contains(slice []string, str string) bool {
-// 	for _, v := range slice {
-// 		if v == str {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
