@@ -82,12 +82,40 @@ Wazuh:
     SigmaIdToWazuhGroup:
     SigmaIdToWazuhId:
     ProductServiceToWazuhGroup:
+    CategoryToWazuhGroup:
     ######################################################
     # Sigma logsource.service will be matched before logsource.product
     ProductServiceToWazuhId:
       windows: 18100, 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
       windefend: 60005
+      application: 60003
+      security: 60001
+      system: 60002
       sysmon: 61603, 61604, 61605, 61606, 61607, 61608, 61609, 61610, 61611, 61612, 61613, 61614, 61615, 61616, 61617
+    ######################################################
+    # Sigma logsource.category mapping (checked after service, before product)
+    # Maps Sigma categories to specific Wazuh parent rule IDs
+    CategoryToWazuhId:
+      # Sysmon categories (Event 1-15)
+      process_creation: 61603        # Sysmon Event 1
+      file_change: 61604             # Sysmon Event 2
+      network_connection: 61605      # Sysmon Event 3
+      sysmon_status: 61606           # Sysmon Event 4
+      driver_load: 61608             # Sysmon Event 6
+      image_load: 61609              # Sysmon Event 7
+      create_remote_thread: 61610    # Sysmon Event 8
+      raw_access_thread: 61611       # Sysmon Event 9
+      process_access: 61612          # Sysmon Event 10
+      file_event: 61613              # Sysmon Event 11
+      registry_add: 61614            # Sysmon Event 12
+      registry_delete: 61614         # Sysmon Event 12
+      registry_event: 61614          # Sysmon Event 12
+      registry_set: 61615            # Sysmon Event 13
+      registry_rename: 61616         # Sysmon Event 14
+      create_stream_hash: 61617      # Sysmon Event 15
+      # Note: Sysmon Event 16+ (pipe_created, wmi_event, dns_query, etc.) are not yet
+      # supported in Wazuh standard ruleset. These will fall back to generic Windows rules.
+      # PowerShell categories (ps_*) will also fall back to generic Windows rules.
   ######################################################
   # Sigma to Wazuh field name mappings
   # section should match the sigma product field; e.g. windows, linux, mac, apache, check point fw1

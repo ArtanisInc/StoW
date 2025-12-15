@@ -59,6 +59,8 @@ type Config struct {
 			SigmaIdToWazuhId           map[string]string `yaml:"SigmaIdToWazuhId"`
 			ProductServiceToWazuhGroup map[string]string `yaml:"ProductServiceToWazuhGroup"`
 			ProductServiceToWazuhId    map[string]string `yaml:"ProductServiceToWazuhId"`
+			CategoryToWazuhGroup       map[string]string `yaml:"CategoryToWazuhGroup"`
+			CategoryToWazuhId          map[string]string `yaml:"CategoryToWazuhId"`
 		} `yaml:"SidGrpMaps"`
 		FieldMaps map[string]map[string]string `yaml:"FieldMaps"`
 		XmlRules  map[string]*WazuhGroup
@@ -435,6 +437,7 @@ func GetLevel(sigmaLevel string, c *Config) int {
 func GetIfGrpSid(sigma *SigmaRule, c *Config) (string, string) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 	// Get Wazuh if_group or if_sids dependencies for converted rules
+	// Priority order: Sigma ID > Service > Category > Product
 	switch {
 	case c.Wazuh.SidGrpMaps.SigmaIdToWazuhGroup[sigma.ID] != "":
 		return "grp", c.Wazuh.SidGrpMaps.SigmaIdToWazuhGroup[sigma.ID]
@@ -442,10 +445,14 @@ func GetIfGrpSid(sigma *SigmaRule, c *Config) (string, string) {
 		return "sid", c.Wazuh.SidGrpMaps.SigmaIdToWazuhId[sigma.ID]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Service] != "":
 		return "grp", c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Service]
+	case c.Wazuh.SidGrpMaps.CategoryToWazuhGroup[sigma.LogSource.Category] != "":
+		return "grp", c.Wazuh.SidGrpMaps.CategoryToWazuhGroup[sigma.LogSource.Category]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Product] != "":
 		return "grp", c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Product]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service] != "":
 		return "sid", c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service]
+	case c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Category] != "":
+		return "sid", c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Category]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Product] != "":
 		return "sid", c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Product]
 	default:
