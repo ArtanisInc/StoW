@@ -91,7 +91,7 @@ Wazuh:
       application: 60003
       security: 60001
       system: 60002
-      sysmon: 61603, 61604, 61605, 61606, 61607, 61608, 61609, 61610, 61611, 61612, 61613, 61614, 61615, 61616, 61617
+      sysmon: 61603, 61604, 61605, 61606, 61607, 61608, 61609, 61610, 61611, 61612, 61613, 61614, 61615, 61616, 61617, 61644, 61646, 61647, 100203, 100204, 100205, 100206, 100207, 100208
     ######################################################
     # Sigma logsource.category mapping (checked after service, before product)
     # Maps Sigma categories to specific Wazuh parent rule IDs
@@ -113,9 +113,14 @@ Wazuh:
       registry_set: 61615            # Sysmon Event 13
       registry_rename: 61616         # Sysmon Event 14
       create_stream_hash: 61617      # Sysmon Event 15
-      # Note: Sysmon Event 16+ (pipe_created, wmi_event, dns_query, etc.) are not yet
-      # supported in Wazuh standard ruleset. These will fall back to generic Windows rules.
-      # PowerShell categories (ps_*) will also fall back to generic Windows rules.
+      # Sysmon new events (Event 16+) - requires 100000-sysmon_new_events.xml
+      pipe_created: 61646, 61647     # Sysmon Events 17-18
+      dns_query: 61644               # Sysmon Event 22
+      wmi_event: 100203, 100204, 100205  # Sysmon Events 19-21
+      file_delete: 100206            # Sysmon Event 23
+      clipboard_capture: 100207      # Sysmon Event 24
+      process_tampering: 100208      # Sysmon Event 25
+      # PowerShell categories (ps_*) will fall back to generic Windows rules.
   ######################################################
   # Sigma to Wazuh field name mappings
   # section should match the sigma product field; e.g. windows, linux, mac, apache, check point fw1
