@@ -1,0 +1,307 @@
+<!--
+  Wazuh Rules for New Sysmon Events (Events 16+)
+
+  This file extends Wazuh's base Sysmon ruleset (0595-win-sysmon_rules.xml)
+  by adding support for newer Sysmon events introduced in recent versions.
+
+  Dependencies:
+  - Requires Wazuh base rules: 61600 (Sysmon informational event)
+  - Complements existing Events 1-15 (already in Wazuh base ruleset)
+
+  Rule ID Ranges:
+  - 61644, 61646-61647: New base Sysmon event types (Events 17-18, 22)
+  - 100203-100211: Extended detection rules for Events 19-21, 23-29
+
+  References:
+  - Wazuh Sysmon Rules: https://github.com/wazuh/wazuh-ruleset/blob/master/rules/0595-win-sysmon_rules.xml
+  - SOCFortress: https://github.com/socfortress/Wazuh-Rules/tree/main/Sysmon%20New%20Events
+  - Sysmon Documentation: https://docs.microsoft.com/en-us/sysinternals/downloads/sysmon
+-->
+
+<group name="windows,sysmon,">
+
+  <!-- ============================================ -->
+  <!-- SYSMON NEW EVENT TYPES (Events 16+)          -->
+  <!-- ============================================ -->
+
+  <!-- Rule 61644: Sysmon Event 22 - DNS Query -->
+  <rule id="61644" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^22$</field>
+    <description>Sysmon Event 22: DNS Request by $(win.eventdata.image)</description>
+    <options>no_full_log</options>
+    <group>sysmon,dns_query,sysmon_event_22,</group>
+    <mitre>
+      <id>T1071</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 61646: Sysmon Event 17 - Pipe Created -->
+  <rule id="61646" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^17$</field>
+    <description>Sysmon Event 17: PipeEvent (Pipe Created) by $(win.eventdata.image)</description>
+    <options>no_full_log</options>
+    <group>sysmon,pipe_created,sysmon_event_17,</group>
+  </rule>
+
+  <!-- Rule 61647: Sysmon Event 18 - Pipe Connected -->
+  <rule id="61647" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^18$</field>
+    <description>Sysmon Event 18: PipeEvent (Pipe Connected) by $(win.eventdata.image)</description>
+    <options>no_full_log</options>
+    <group>sysmon,pipe_created,sysmon_event_18,</group>
+  </rule>
+
+  <!-- Rule 100203: Sysmon Event 19 - WMI Event Filter -->
+  <rule id="100203" level="5">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^19$</field>
+    <description>Sysmon Event 19: WmiEvent (WmiEventFilter activity detected)</description>
+    <options>no_full_log</options>
+    <group>sysmon,wmi_event,sysmon_event_19,</group>
+    <mitre>
+      <id>T1047</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100204: Sysmon Event 20 - WMI Event Consumer -->
+  <rule id="100204" level="5">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^20$</field>
+    <description>Sysmon Event 20: WmiEvent (WmiEventConsumer activity detected)</description>
+    <options>no_full_log</options>
+    <group>sysmon,wmi_event,sysmon_event_20,</group>
+    <mitre>
+      <id>T1047</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100205: Sysmon Event 21 - WMI Event Consumer to Filter Binding -->
+  <rule id="100205" level="5">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^21$</field>
+    <description>Sysmon Event 21: WmiEvent (WmiEventConsumerToFilter activity detected)</description>
+    <options>no_full_log</options>
+    <group>sysmon,wmi_event,sysmon_event_21,</group>
+    <mitre>
+      <id>T1047</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100206: Sysmon Event 23 - File Delete -->
+  <rule id="100206" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^23$</field>
+    <description>Sysmon Event 23: FileDelete (A file delete was detected)</description>
+    <options>no_full_log</options>
+    <group>sysmon,file_delete,sysmon_event_23,</group>
+    <mitre>
+      <id>T1107</id>
+      <id>T1485</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100207: Sysmon Event 24 - Clipboard Change -->
+  <rule id="100207" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^24$</field>
+    <description>Sysmon Event 24: ClipboardChange (New content in the clipboard)</description>
+    <options>no_full_log</options>
+    <group>sysmon,clipboard_capture,sysmon_event_24,</group>
+    <mitre>
+      <id>T1115</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100208: Sysmon Event 25 - Process Tampering -->
+  <rule id="100208" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^25$</field>
+    <description>Sysmon Event 25: ProcessTampering (Process image change)</description>
+    <options>no_full_log</options>
+    <group>sysmon,process_tampering,sysmon_event_25,</group>
+    <mitre>
+      <id>T1055</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100209: Sysmon Event 26 - File Delete Logged -->
+  <rule id="100209" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^26$</field>
+    <description>Sysmon Event 26: FileDeleteDetected (File Delete archived)</description>
+    <options>no_full_log</options>
+    <group>sysmon,file_delete,sysmon_event_26,</group>
+    <mitre>
+      <id>T1070</id>
+      <id>T1485</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100210: Sysmon Event 27 - File Block Executable -->
+  <rule id="100210" level="5">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^27$</field>
+    <description>Sysmon Event 27: FileBlockExecutable</description>
+    <options>no_full_log</options>
+    <group>sysmon,file_block_executable,sysmon_event_27,</group>
+    <mitre>
+      <id>T1036</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100211: Sysmon Event 28 - File Block Shredding -->
+  <rule id="100211" level="5">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^28$</field>
+    <description>Sysmon Event 28: FileBlockShredding</description>
+    <options>no_full_log</options>
+    <group>sysmon,file_block_shredding,sysmon_event_28,</group>
+    <mitre>
+      <id>T1485</id>
+    </mitre>
+  </rule>
+
+  <!-- Rule 100212: Sysmon Event 29 - File Executable Detected -->
+  <rule id="100212" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^29$</field>
+    <description>Sysmon Event 29: FileExecutableDetected</description>
+    <options>no_full_log</options>
+    <group>sysmon,file_executable_detected,sysmon_event_29,</group>
+  </rule>
+
+  <!-- ============================================ -->
+  <!-- EXTENDED THREAT DETECTION RULES              -->
+  <!-- ============================================ -->
+
+  <!-- Rule 100220: Suspicious Named Pipe - Cobalt Strike / Metasploit -->
+  <rule id="100220" level="10">
+    <if_sid>61646,61647</if_sid>
+    <field name="win.eventdata.pipeName" type="pcre2">\\\\(msagent_|MSSE-|postex_|status_|MsFteWds|mojo\.|chrome\.|crashpad_)</field>
+    <description>Sysmon: Suspicious named pipe detected (possible C2 framework activity)</description>
+    <mitre>
+      <id>T1090</id>
+      <id>T1071</id>
+    </mitre>
+    <group>sysmon,pipe_created,malware,cobalt_strike,</group>
+  </rule>
+
+  <!-- Rule 100221: DNS Query to Suspicious Free TLD -->
+  <rule id="100221" level="7">
+    <if_sid>61644</if_sid>
+    <field name="win.eventdata.queryName" type="pcre2">\\.(tk|ml|ga|cf|gq)$</field>
+    <description>Sysmon: DNS query to suspicious free TLD (often used in malware campaigns)</description>
+    <mitre>
+      <id>T1071</id>
+    </mitre>
+    <group>sysmon,dns_query,suspicious,</group>
+  </rule>
+
+  <!-- Rule 100222: DNS Query - Long Domain (DGA Detection) -->
+  <rule id="100222" level="7">
+    <if_sid>61644</if_sid>
+    <field name="win.eventdata.queryName" type="pcre2">^[a-z0-9]{30,}\\.</field>
+    <description>Sysmon: DNS query to very long domain (possible DGA activity)</description>
+    <mitre>
+      <id>T1568.002</id>
+    </mitre>
+    <group>sysmon,dns_query,dga,</group>
+  </rule>
+
+  <!-- Rule 100223: WMI Persistence - EventFilter Created -->
+  <rule id="100223" level="10">
+    <if_sid>100203</if_sid>
+    <field name="win.eventdata.eventType">^WmiEventFilter$</field>
+    <description>Sysmon: WMI event filter created (potential persistence mechanism)</description>
+    <mitre>
+      <id>T1047</id>
+      <id>T1546.003</id>
+    </mitre>
+    <group>sysmon,wmi_event,persistence,</group>
+  </rule>
+
+  <!-- Rule 100224: WMI Persistence - EventConsumer Created -->
+  <rule id="100224" level="10">
+    <if_sid>100204</if_sid>
+    <field name="win.eventdata.eventType">^WmiEventConsumer$</field>
+    <description>Sysmon: WMI event consumer created (potential persistence mechanism)</description>
+    <mitre>
+      <id>T1047</id>
+      <id>T1546.003</id>
+    </mitre>
+    <group>sysmon,wmi_event,persistence,</group>
+  </rule>
+
+  <!-- Rule 100225: WMI Persistence - FilterToConsumer Binding -->
+  <rule id="100225" level="12">
+    <if_sid>100205</if_sid>
+    <field name="win.eventdata.eventType">^WmiFilterToConsumerBinding$</field>
+    <description>Sysmon: WMI filter to consumer binding created (persistence mechanism activated)</description>
+    <mitre>
+      <id>T1047</id>
+      <id>T1546.003</id>
+    </mitre>
+    <group>sysmon,wmi_event,persistence,</group>
+  </rule>
+
+  <!-- Rule 100226: Security Event Log Cleared -->
+  <rule id="100226" level="15">
+    <if_sid>100206</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)\\Windows\\System32\\winevt\\Logs\\Security\.evtx</field>
+    <description>Sysmon: Security event log file deleted (audit trail destruction)</description>
+    <mitre>
+      <id>T1070.001</id>
+    </mitre>
+    <group>sysmon,file_delete,defense_evasion,pci_dss_10.6.1,pci_dss_10.2.7,gpg13_4.14,gdpr_IV_35.7.d,gdpr_IV_32.2,hipaa_164.312.b,nist_800_53_AU.6,nist_800_53_AU.14,</group>
+  </rule>
+
+  <!-- Rule 100227: Critical System File Deletion -->
+  <rule id="100227" level="10">
+    <if_sid>100206</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)(\\Windows\\System32\\|\\Program Files\\)</field>
+    <description>Sysmon: Critical system file deleted</description>
+    <mitre>
+      <id>T1485</id>
+      <id>T1070</id>
+    </mitre>
+    <group>sysmon,file_delete,defense_evasion,</group>
+  </rule>
+
+  <!-- Rule 100228: Event Log File Deletion (Any) -->
+  <rule id="100228" level="12">
+    <if_sid>100206</if_sid>
+    <field name="win.eventdata.targetFilename" type="pcre2">(?i)\.evtx$</field>
+    <description>Sysmon: Windows event log file deleted</description>
+    <mitre>
+      <id>T1070.001</id>
+    </mitre>
+    <group>sysmon,file_delete,defense_evasion,pci_dss_10.6.1,gpg13_4.14,gdpr_IV_35.7.d,hipaa_164.312.b,nist_800_53_AU.6,</group>
+  </rule>
+
+  <!-- Rule 100229: Clipboard Capture - Large Data -->
+  <rule id="100229" level="7">
+    <if_sid>100207</if_sid>
+    <field name="win.eventdata.archived">^true$</field>
+    <description>Sysmon: Large clipboard data captured and archived (possible data exfiltration)</description>
+    <mitre>
+      <id>T1115</id>
+      <id>T1005</id>
+    </mitre>
+    <group>sysmon,clipboard_capture,collection,</group>
+  </rule>
+
+  <!-- Rule 100230: Process Tampering - Code Injection -->
+  <rule id="100230" level="12">
+    <if_sid>100208</if_sid>
+    <description>Sysmon: Process image tampering detected (potential code injection or hollow process)</description>
+    <mitre>
+      <id>T1055</id>
+      <id>T1055.012</id>
+    </mitre>
+    <group>sysmon,process_tampering,defense_evasion,</group>
+  </rule>
+
+</group>
