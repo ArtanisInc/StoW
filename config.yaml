@@ -119,7 +119,9 @@ Wazuh:
         pipe_created: 61646, 61647     # Sysmon Events 17-18
         dns_query: 61644               # Sysmon Event 22
         wmi_event: 109203, 109204, 109205  # Sysmon Events 19-21
-        file_delete: 109212            # Sysmon Event 26 (replaces Event 23 - no archiving)
+        # file_delete: 109206          # Sysmon Event 23 - DISABLED (archives files, 400GB+ storage issues)
+        file_delete: 109212            # Sysmon Event 26 (FileDeleteDetected - no archiving)
+        file_delete_detected: 109212   # Sysmon Event 26 (explicit mapping)
         # clipboard_capture: 109207    # Sysmon Event 24 - DISABLED (privacy/storage concerns, CVE-2022-41120)
         process_tampering: 109208      # Sysmon Event 25
         # PowerShell categories (ps_*) will fall back to generic Windows rules.
