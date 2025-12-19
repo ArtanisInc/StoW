@@ -237,6 +237,7 @@ type WazuhRule struct {
 		IDs []string `xml:"id,omitempty"`
 	} `xml:"mitre,omitempty"`
 	Description string      `xml:"description"`
+	DecodedAs   string      `xml:"decoded_as,omitempty"`
 	Options     []string    `xml:"options,omitempty"`
 	Groups      string      `xml:"group,omitempty"`
 	IfSid       string      `xml:"if_sid,omitempty"`
@@ -1512,6 +1513,53 @@ func ReadYamlFile(path string, c *Config) {
 	ProcessDnfSets(passingSets, detections, &sigmaRule, url, c)
 }
 
+// generateLinuxParentRules creates the base auditd parent rules for Linux
+// Phase 3: Auto-generate parent rules that Sigma-converted rules depend on
+func generateLinuxParentRules() []WazuhRule {
+	return []WazuhRule{
+		{
+			ID:          "200110",
+			Level:       "3",
+			DecodedAs:   "auditd-syscall",
+			Description: "Audit: SYSCALL Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,syscall,",
+		},
+		{
+			ID:          "200111",
+			Level:       "3",
+			DecodedAs:   "auditd-execve",
+			Description: "Audit: EXECVE Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,execve,",
+		},
+		{
+			ID:          "200112",
+			Level:       "3",
+			DecodedAs:   "auditd-path",
+			Description: "Audit: PATH Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,path,",
+		},
+		{
+			ID:          "200113",
+			Level:       "5",
+			DecodedAs:   "auditd-config_change",
+			Description: "Audit: CONFIG_CHANGE Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,config_change,",
+		},
+		{
+			ID:          "200114",
+			Level:       "3",
+			DecodedAs:   "auditd-user_and_cred",
+			Description: "Audit: USER credentials Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,user_and_cred,",
+		},
+	}
+}
+
 func WriteWazuhXmlRules(c *Config) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
@@ -1519,6 +1567,14 @@ func WriteWazuhXmlRules(c *Config) {
 	for product, xmlRules := range c.Wazuh.XmlRules {
 		if len(xmlRules.Rules) == 0 {
 			continue // Skip empty rule sets
+		}
+
+		// Phase 3: Prepend Linux parent rules if this is a Linux product
+		if product == "linux" {
+			parentRules := generateLinuxParentRules()
+			// Prepend parent rules to the beginning
+			xmlRules.Rules = append(parentRules, xmlRules.Rules...)
+			LogIt(INFO, fmt.Sprintf("Phase 3: Added %d Linux parent rules to %s", len(parentRules), product), nil, c.Info, c.Debug)
 		}
 
 		// Get the starting ID for this product, fallback to default RuleIdStart if not configured
