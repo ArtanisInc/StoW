@@ -91,7 +91,7 @@ Wazuh:
       application: 60003
       security: 60001
       system: 60002
-      sysmon: 61603, 61604, 61605, 61606, 61607, 61608, 61609, 61610, 61611, 61612, 61613, 61614, 61615, 61616, 61617, 61644, 61646, 61647, 109203, 109204, 109205, 109206, 109207, 109208
+      sysmon: 61603, 61604, 61605, 61606, 61607, 61608, 61609, 61610, 61611, 61612, 61613, 61614, 61615, 61616, 61617, 61644, 61646, 61647, 109203, 109204, 109205, 109208, 109212
     ######################################################
     # Sigma logsource.category mapping (checked after service, before product)
     # Maps Sigma categories to specific Wazuh parent rule IDs
@@ -119,8 +119,8 @@ Wazuh:
         pipe_created: 61646, 61647     # Sysmon Events 17-18
         dns_query: 61644               # Sysmon Event 22
         wmi_event: 109203, 109204, 109205  # Sysmon Events 19-21
-        file_delete: 109206            # Sysmon Event 23
-        clipboard_capture: 109207      # Sysmon Event 24
+        file_delete: 109212            # Sysmon Event 26 (replaces Event 23 - no archiving)
+        # clipboard_capture: 109207    # Sysmon Event 24 - DISABLED (privacy/storage concerns, CVE-2022-41120)
         process_tampering: 109208      # Sysmon Event 25
         # PowerShell categories (ps_*) will fall back to generic Windows rules.
 

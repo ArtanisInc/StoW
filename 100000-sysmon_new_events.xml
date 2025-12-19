@@ -10,16 +10,19 @@
 
   StoW Integration:
   - Add these events to config.yaml CategoryToWazuhId mappings
-  - Events 17-25 provide parent rules for Sigma conversions
+  - Events 17-22, 25-26 provide parent rules for Sigma conversions
+  - Events 23-24 are DISABLED due to operational concerns (see below)
 
   Rule ID Strategy:
   - Events 17, 18, 22: Use 616xx range (61646, 61647, 61644) with overwrite="yes"
     * These align with Wazuh's standard Sysmon event numbering
     * overwrite="yes" prevents conflicts if Wazuh adds these events later
-  - Events 19-21, 23-25: Use 109xxx range (109203-109208) per SOCFortress
+  - Events 6, 19-21, 25-26: Use 109xxx range (109211, 109203-109205, 109208, 109212)
     * Separate range for extended events not yet in Wazuh base
+  - Events 23-24: Commented out (109206, 109207) - see operational notes
 
   References:
+  - ArtanisInc: https://github.com/ArtanisInc/Wazuh-Rules/tree/main/Sysmon%20New%20Events
   - SOCFortress: https://github.com/socfortress/Wazuh-Rules/tree/main/Sysmon%20New%20Events
   - Wazuh Sysmon Rules: https://github.com/wazuh/wazuh-ruleset/blob/master/rules/0595-win-sysmon_rules.xml
 -->
@@ -32,7 +35,7 @@
     <field name="win.system.eventID">^17$</field>
     <description>Sysmon - Event 17: PipeEvent (Pipe Created) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
-    <group>sysmon,sysmon_event_17,</group>
+    <group>sysmon_event_17,</group>
   </rule>
 
   <!-- Sysmon Event 18: Named Pipe Connected -->
@@ -41,7 +44,7 @@
     <field name="win.system.eventID">^18$</field>
     <description>Sysmon - Event 18: PipeEvent (Pipe Connected) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
-    <group>sysmon,sysmon_event_18,</group>
+    <group>sysmon_event_18,</group>
   </rule>
 
   <!-- Sysmon Event 22: DNS Query -->
@@ -49,11 +52,11 @@
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^22$</field>
     <description>Sysmon - Event 22: DNS Request by $(win.eventdata.image)</description>
-    <options>no_full_log</options>
-    <group>sysmon,sysmon_event_22,</group>
     <mitre>
       <id>T1071</id>
     </mitre>
+    <options>no_full_log</options>
+    <group>sysmon_event_22,</group>
   </rule>
 
   <!-- Sysmon Event 19: WMI Event Filter Activity -->
@@ -61,11 +64,10 @@
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^19$</field>
     <description>Sysmon - Event 19: WmiEvent (WmiEventFilter activity detected) by $(win.eventdata.image)</description>
-    <options>no_full_log</options>
-    <group>sysmon,sysmon_event_19,</group>
     <mitre>
       <id>T1047</id>
     </mitre>
+    <group>sysmon_event_19,</group>
   </rule>
 
   <!-- Sysmon Event 20: WMI Event Consumer Activity -->
@@ -73,11 +75,10 @@
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^20$</field>
     <description>Sysmon - Event 20: WmiEvent (WmiEventConsumer activity detected) by $(win.eventdata.image)</description>
-    <options>no_full_log</options>
-    <group>sysmon,sysmon_event_20,</group>
     <mitre>
       <id>T1047</id>
     </mitre>
+    <group>sysmon_event_20,</group>
   </rule>
 
   <!-- Sysmon Event 21: WMI Event Consumer to Filter Binding -->
@@ -85,36 +86,54 @@
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^21$</field>
     <description>Sysmon - Event 21: WmiEvent (WmiEventConsumerToFilter activity detected) by $(win.eventdata.image)</description>
-    <options>no_full_log</options>
-    <group>sysmon,sysmon_event_21,</group>
     <mitre>
       <id>T1047</id>
     </mitre>
+    <group>sysmon_event_21,</group>
   </rule>
 
-  <!-- Sysmon Event 23: File Delete -->
+  <!-- Event 23: FileDelete - DISABLED
+       Reason: Archives deleted files to C:\Sysmon\ which causes storage issues (can exceed 400GB)
+       Use Event 26 (FileDeleteDetected) instead - provides same metadata without file archiving
+       Only enable Event 23 for IR/forensics in controlled environments
   <rule id="109206" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^23$</field>
     <description>Sysmon - Event 23: FileDelete (A file delete was detected) by $(win.eventdata.image)</description>
-    <options>no_full_log</options>
-    <group>sysmon,sysmon_event_23,</group>
     <mitre>
       <id>T1107</id>
       <id>T1485</id>
     </mitre>
+    <group>sysmon_event_23,</group>
   </rule>
+  -->
 
-  <!-- Sysmon Event 24: Clipboard Change -->
+  <!-- Event 24: ClipboardChange - DISABLED
+       Reason: Privacy and security concerns - captures passwords, API keys, PII in plaintext
+       Creates large .CLIP files (400GB+ reported), CVE-2022-41120 vulnerability
+       Only enable on specific monitored servers (RDP-exposed) with admin approval
   <rule id="109207" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^24$</field>
     <description>Sysmon - Event 24: ClipboardChange (New content in the clipboard) by $(win.eventdata.image)</description>
-    <options>no_full_log</options>
-    <group>sysmon,sysmon_event_24,</group>
     <mitre>
       <id>T1115</id>
     </mitre>
+    <group>sysmon_event_24,</group>
+  </rule>
+  -->
+
+  <!-- Sysmon Event 26: File Delete Detected (Replacement for Event 23) -->
+  <rule id="109212" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^26$</field>
+    <description>Sysmon - Event 26: FileDeleteDetected (File delete logged without archiving) by $(win.eventdata.image)</description>
+    <mitre>
+      <id>T1070</id>
+      <id>T1107</id>
+      <id>T1485</id>
+    </mitre>
+    <group>sysmon_event_26,</group>
   </rule>
 
   <!-- Sysmon Event 25: Process Tampering -->
@@ -122,11 +141,44 @@
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^25$</field>
     <description>Sysmon - Event 25: ProcessTampering (Process image change) by $(win.eventdata.image)</description>
-    <options>no_full_log</options>
-    <group>sysmon,sysmon_event_25,</group>
     <mitre>
       <id>T1055</id>
     </mitre>
+    <group>sysmon_event_25,</group>
+  </rule>
+
+  <!-- Sysmon Event 6: Driver Loaded (Missing from base ruleset) -->
+  <rule id="109211" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^6$</field>
+    <description>Sysmon - Event 6: Driver Loaded by $(win.eventdata.image)</description>
+    <options>no_full_log</options>
+    <group>sysmon_event_6,</group>
+  </rule>
+
+  <!-- Special Detection: Windows Security Log Cleared -->
+  <rule id="109209" level="12">
+    <if_sid>63103</if_sid>
+    <field name="win.system.channel">Security</field>
+    <description>Windows Security log was cleared.</description>
+    <mitre>
+      <id>T1070</id>
+      <id>T1107</id>
+    </mitre>
+    <group>logs_cleared,pci_dss_10.6.1,gpg13_10.1,gdpr_IV_35.7.d,hipaa_164.312.b,nist_800_53_AU.6,tsc_CC7.2,tsc_CC7.3,</group>
+  </rule>
+
+  <!-- Special Detection: Pass the Hash Login -->
+  <rule id="109210" level="12">
+    <if_sid>60106</if_sid>
+    <field name="win.eventdata.logonType">^9$</field>
+    <field name="win.eventdata.logonProcessName">^seclogo$</field>
+    <field name="win.eventdata.authenticationPackageName">^Negotiate$</field>
+    <description>Potential User Login Via Pass the Hash Detected.</description>
+    <mitre>
+      <id>T1078</id>
+    </mitre>
+    <group>special_logon,</group>
   </rule>
 
 </group>
