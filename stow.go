@@ -55,12 +55,12 @@ type Config struct {
 			EmailLevels  []string `yaml:"EmailLevels"`
 		} `yaml:"Options"`
 		SidGrpMaps struct {
-			SigmaIdToWazuhGroup        map[string]string `yaml:"SigmaIdToWazuhGroup"`
-			SigmaIdToWazuhId           map[string]string `yaml:"SigmaIdToWazuhId"`
-			ProductServiceToWazuhGroup map[string]string `yaml:"ProductServiceToWazuhGroup"`
-			ProductServiceToWazuhId    map[string]string `yaml:"ProductServiceToWazuhId"`
-			CategoryToWazuhGroup       map[string]string `yaml:"CategoryToWazuhGroup"`
-			CategoryToWazuhId          map[string]string `yaml:"CategoryToWazuhId"`
+			SigmaIdToWazuhGroup        map[string]string            `yaml:"SigmaIdToWazuhGroup"`
+			SigmaIdToWazuhId           map[string]string            `yaml:"SigmaIdToWazuhId"`
+			ProductServiceToWazuhGroup map[string]string            `yaml:"ProductServiceToWazuhGroup"`
+			ProductServiceToWazuhId    map[string]string            `yaml:"ProductServiceToWazuhId"`
+			CategoryToWazuhGroup       map[string]string            `yaml:"CategoryToWazuhGroup"`
+			CategoryToWazuhId          map[string]map[string]string `yaml:"CategoryToWazuhId"` // Product -> Category -> Rule IDs
 		} `yaml:"SidGrpMaps"`
 		FieldMaps map[string]map[string]string `yaml:"FieldMaps"`
 		XmlRules  map[string]*WazuhGroup
@@ -451,8 +451,9 @@ func GetIfGrpSid(sigma *SigmaRule, c *Config) (string, string) {
 		return "grp", c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Product]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service] != "":
 		return "sid", c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service]
-	case c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Category] != "":
-		return "sid", c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Category]
+	case c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product] != nil && c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product][sigma.LogSource.Category] != "":
+		// Product-specific category mapping (e.g., Windows process_creation -> 61603, Linux process_creation -> 200111)
+		return "sid", c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product][sigma.LogSource.Category]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Product] != "":
 		return "sid", c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Product]
 	default:
