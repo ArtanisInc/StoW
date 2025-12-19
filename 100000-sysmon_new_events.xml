@@ -12,6 +12,13 @@
   - Add these events to config.yaml CategoryToWazuhId mappings
   - Events 17-25 provide parent rules for Sigma conversions
 
+  Rule ID Strategy:
+  - Events 17, 18, 22: Use 616xx range (61646, 61647, 61644) with overwrite="yes"
+    * These align with Wazuh's standard Sysmon event numbering
+    * overwrite="yes" prevents conflicts if Wazuh adds these events later
+  - Events 19-21, 23-25: Use 109xxx range (109203-109208) per SOCFortress
+    * Separate range for extended events not yet in Wazuh base
+
   References:
   - SOCFortress: https://github.com/socfortress/Wazuh-Rules/tree/main/Sysmon%20New%20Events
   - Wazuh Sysmon Rules: https://github.com/wazuh/wazuh-ruleset/blob/master/rules/0595-win-sysmon_rules.xml
@@ -20,28 +27,28 @@
 <group name="windows,sysmon,">
 
   <!-- Sysmon Event 17: Named Pipe Created -->
-  <rule id="61646" level="3">
+  <rule id="61646" level="3" overwrite="yes">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^17$</field>
-    <description>Sysmon - Event 17: PipeEvent (Pipe Created)</description>
+    <description>Sysmon - Event 17: PipeEvent (Pipe Created) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_17,</group>
   </rule>
 
   <!-- Sysmon Event 18: Named Pipe Connected -->
-  <rule id="61647" level="3">
+  <rule id="61647" level="3" overwrite="yes">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^18$</field>
-    <description>Sysmon - Event 18: PipeEvent (Pipe Connected)</description>
+    <description>Sysmon - Event 18: PipeEvent (Pipe Connected) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_18,</group>
   </rule>
 
   <!-- Sysmon Event 22: DNS Query -->
-  <rule id="61644" level="3">
+  <rule id="61644" level="3" overwrite="yes">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^22$</field>
-    <description>Sysmon - Event 22: DNS Request</description>
+    <description>Sysmon - Event 22: DNS Request by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_22,</group>
     <mitre>
@@ -50,10 +57,10 @@
   </rule>
 
   <!-- Sysmon Event 19: WMI Event Filter Activity -->
-  <rule id="100203" level="3">
+  <rule id="109203" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^19$</field>
-    <description>Sysmon - Event 19: WmiEvent (WmiEventFilter activity detected)</description>
+    <description>Sysmon - Event 19: WmiEvent (WmiEventFilter activity detected) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_19,</group>
     <mitre>
@@ -62,10 +69,10 @@
   </rule>
 
   <!-- Sysmon Event 20: WMI Event Consumer Activity -->
-  <rule id="100204" level="3">
+  <rule id="109204" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^20$</field>
-    <description>Sysmon - Event 20: WmiEvent (WmiEventConsumer activity detected)</description>
+    <description>Sysmon - Event 20: WmiEvent (WmiEventConsumer activity detected) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_20,</group>
     <mitre>
@@ -74,10 +81,10 @@
   </rule>
 
   <!-- Sysmon Event 21: WMI Event Consumer to Filter Binding -->
-  <rule id="100205" level="3">
+  <rule id="109205" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^21$</field>
-    <description>Sysmon - Event 21: WmiEvent (WmiEventConsumerToFilter activity detected)</description>
+    <description>Sysmon - Event 21: WmiEvent (WmiEventConsumerToFilter activity detected) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_21,</group>
     <mitre>
@@ -86,10 +93,10 @@
   </rule>
 
   <!-- Sysmon Event 23: File Delete -->
-  <rule id="100206" level="3">
+  <rule id="109206" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^23$</field>
-    <description>Sysmon - Event 23: FileDelete (A file delete was detected)</description>
+    <description>Sysmon - Event 23: FileDelete (A file delete was detected) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_23,</group>
     <mitre>
@@ -99,10 +106,10 @@
   </rule>
 
   <!-- Sysmon Event 24: Clipboard Change -->
-  <rule id="100207" level="3">
+  <rule id="109207" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^24$</field>
-    <description>Sysmon - Event 24: ClipboardChange (New content in the clipboard)</description>
+    <description>Sysmon - Event 24: ClipboardChange (New content in the clipboard) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_24,</group>
     <mitre>
@@ -111,10 +118,10 @@
   </rule>
 
   <!-- Sysmon Event 25: Process Tampering -->
-  <rule id="100208" level="3">
+  <rule id="109208" level="3">
     <if_sid>61600</if_sid>
     <field name="win.system.eventID">^25$</field>
-    <description>Sysmon - Event 25: ProcessTampering (Process image change)</description>
+    <description>Sysmon - Event 25: ProcessTampering (Process image change) by $(win.eventdata.image)</description>
     <options>no_full_log</options>
     <group>sysmon,sysmon_event_25,</group>
     <mitre>
