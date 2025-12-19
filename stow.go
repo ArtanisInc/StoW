@@ -650,8 +650,46 @@ func handleCIDRField(fieldName string, values []string, selectionKey string, sel
 	}
 }
 
+// isSimpleValue checks if a value is simple enough for exact field matching
+// Returns true if the value contains no wildcards, regex special chars, or complex patterns
+func isSimpleValue(v string) bool {
+	// Check for regex/wildcard characters that require PCRE2
+	return !strings.ContainsAny(v, "*?|()[]{}\\^$+.")
+}
+
+// needsCaseInsensitive determines if case-insensitive matching is needed for a field
+// Returns false for fields that have predictable case (like audit.type which is always uppercase)
+func needsCaseInsensitive(fieldName string, product string) bool {
+	product = strings.ToLower(product)
+	fieldName = strings.ToLower(fieldName)
+
+	// Linux auditd fields that are always uppercase or lowercase
+	if product == "linux" {
+		switch fieldName {
+		case "audit.type", "type":
+			return false // Always uppercase: EXECVE, SYSCALL, PATH, etc.
+		case "audit.syscall", "syscall":
+			return false // Numeric values
+		}
+	}
+
+	// Windows fields that are predictable
+	if product == "windows" {
+		switch fieldName {
+		case "win.system.eventid", "eventid":
+			return false // Numeric values
+		case "win.system.level", "level":
+			return false // Numeric values
+		}
+	}
+
+	// Default: use case-insensitive for user input and command lines
+	return true
+}
+
 // buildFieldValue constructs a regex pattern value based on the input value and modifiers
-func buildFieldValue(v string, mods fieldModifiers) string {
+// Phase 2 optimization: Intelligently adds (?i) only when needed
+func buildFieldValue(v string, mods fieldModifiers, fieldName string, product string) string {
 	if mods.isB64 {
 		return HandleB64Offsets(v)
 	}
@@ -663,6 +701,12 @@ func buildFieldValue(v string, mods fieldModifiers) string {
 	// Build regex pattern with anchors if needed
 	pattern := regexp.QuoteMeta(v)
 
+	// Phase 2: Determine if case-insensitive is needed
+	casePrefix := ""
+	if needsCaseInsensitive(fieldName, product) {
+		casePrefix = "(?i)"
+	}
+
 	if mods.startsWith || mods.endsWith {
 		prefix := ""
 		suffix := ""
@@ -672,10 +716,10 @@ func buildFieldValue(v string, mods fieldModifiers) string {
 		if mods.endsWith {
 			suffix = "$"
 		}
-		return "(?i)" + prefix + pattern + suffix
+		return casePrefix + prefix + pattern + suffix
 	}
 
-	return "(?i)" + pattern
+	return casePrefix + pattern
 }
 
 // processDetectionField extracts and processes a single field from a Sigma detection.
@@ -708,11 +752,28 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 
 	values := GetFieldValues(value, fieldName, c)
 
+	// Phase 2: Check if we can use exact field matching instead of regex
+	canUseExact := !mods.isRegex && !mods.startsWith && !mods.endsWith && !mods.isB64
+	if canUseExact {
+		for _, v := range values {
+			if !isSimpleValue(v) {
+				canUseExact = false
+				break
+			}
+		}
+	}
+
 	// Handle 'all' modifier - create separate field for each value
 	if mods.hasAll {
 		for _, v := range values {
 			newField := field
-			newField.Value = buildFieldValue(v, mods)
+			// Phase 2: Use exact matching if possible
+			if canUseExact && len(values) == 1 {
+				newField.Type = ""
+				newField.Value = v
+			} else {
+				newField.Value = buildFieldValue(v, mods, wazuhField, sigma.LogSource.Product)
+			}
 			*fields = append(*fields, newField)
 			LogIt(INFO, fmt.Sprintf("processDetectionField appended field: %v", newField), nil, c.Info, c.Debug)
 		}
@@ -722,7 +783,7 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 	// Build combined field value (OR logic)
 	var fieldValues []string
 	for _, v := range values {
-		fieldValues = append(fieldValues, buildFieldValue(v, mods))
+		fieldValues = append(fieldValues, buildFieldValue(v, mods, wazuhField, sigma.LogSource.Product))
 	}
 
 	if len(fieldValues) == 0 {
@@ -745,6 +806,13 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 			combinedValue = combinedValue + "$"
 		}
 		field.Value = combinedValue
+	}
+
+	// Phase 2: Use exact matching for simple single values with no modifiers
+	if canUseExact && len(values) == 1 {
+		field.Type = ""
+		field.Value = values[0]
+		LogIt(INFO, fmt.Sprintf("Phase 2: Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
 	}
 
 	*fields = append(*fields, field)
