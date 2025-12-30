@@ -1059,8 +1059,9 @@ func optimizeLinuxRule(rule *WazuhRule) {
 		"add_user":       "200114", // auditd-user_and_cred (user management)
 		"del_user":       "200114", // auditd-user_and_cred (user management)
 		"user_chauthtok": "200114", // auditd-user_and_cred (password change)
-		// Note: SERVICE_STOP, TTY and other specialized types are not mapped
-		// as they may require specialized parent rules or should remain as field matches
+		"service_stop":   "200115", // auditd-service_stop (service management)
+		"tty":            "200116", // auditd-tty (TTY/terminal events)
+		"user_tty":       "200116", // auditd-tty (user TTY events)
 	}
 
 	// Look for audit.type field (exact match only, skip pcre2)
@@ -1084,6 +1085,22 @@ func optimizeLinuxRule(rule *WazuhRule) {
 
 			// Remove the audit.type field (no longer needed)
 			rule.Fields = append(rule.Fields[:auditTypeIndex], rule.Fields[auditTypeIndex+1:]...)
+			return
+		}
+	}
+
+	// Special case: Handle pcre2 regex patterns for TTY|USER_TTY
+	// This pattern matches both TTY and USER_TTY types, which both map to parent rule 200116
+	for i, field := range rule.Fields {
+		if field.Name == "audit.type" && field.Type == "pcre2" {
+			// Check if this is the TTY|USER_TTY pattern
+			if strings.Contains(field.Value, "TTY") && strings.Contains(field.Value, "USER_TTY") {
+				// Set if_sid to TTY parent rule
+				rule.IfSid = "200116"
+				// Remove the audit.type field (no longer needed)
+				rule.Fields = append(rule.Fields[:i], rule.Fields[i+1:]...)
+				return
+			}
 		}
 	}
 }
@@ -1631,6 +1648,22 @@ func generateLinuxParentRules() []WazuhRule {
 			Description: "Audit: USER credentials Messages grouped.",
 			Options:     []string{"no_full_log"},
 			Groups:      "linux,auditd,user_and_cred,",
+		},
+		{
+			ID:          "200115",
+			Level:       "3",
+			DecodedAs:   "auditd-service_stop",
+			Description: "Audit: SERVICE_STOP Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,service_stop,",
+		},
+		{
+			ID:          "200116",
+			Level:       "3",
+			DecodedAs:   "auditd-tty",
+			Description: "Audit: TTY/USER_TTY Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,tty,",
 		},
 	}
 }
