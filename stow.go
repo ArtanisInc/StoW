@@ -674,13 +674,34 @@ func needsCaseInsensitive(fieldName string, product string) bool {
 		}
 	}
 
-	// Windows fields that are predictable
+	// Windows fields that are predictable or numeric (don't need case-insensitive)
 	if product == "windows" {
 		switch fieldName {
+		// Numeric fields
 		case "win.system.eventid", "eventid":
 			return false // Numeric values
 		case "win.system.level", "level":
 			return false // Numeric values
+		case "win.eventdata.logontype", "logontype":
+			return false // Numeric logon type (2, 3, 7, 9, 10, etc.)
+		case "win.eventdata.processid", "processid":
+			return false // Numeric process ID
+		case "win.eventdata.threadid", "threadid":
+			return false // Numeric thread ID
+		case "win.eventdata.status", "status":
+			return false // Hex status codes (0xC0000XXX)
+
+		// GUIDs and hash fields (always uppercase hex or lowercase, but consistent)
+		case "win.eventdata.guid", "guid":
+			return false // GUIDs have fixed format
+		case "win.eventdata.hashes", "hashes":
+			return false // SHA256/MD5 hashes are case-consistent
+
+		// Provider names are case-sensitive in Windows Event Log
+		case "win.eventdata.providername", "providername":
+			return false // Provider names are case-preserving
+		case "win.system.provider_name", "provider_name":
+			return false // Provider names are case-preserving
 		}
 	}
 
@@ -1018,6 +1039,55 @@ func populateRuleMetadata(rule *WazuhRule, sigma *SigmaRule, url string, product
 	}
 }
 
+// optimizeLinuxRule converts audit.type field matching to if_sid for better performance
+// This optimization applies to Linux/auditd rules that explicitly check audit.type field
+// instead of using the proper parent rule chaining via if_sid
+func optimizeLinuxRule(rule *WazuhRule) {
+	// Skip if rule already has if_sid (already optimized)
+	if rule.IfSid != "" {
+		return
+	}
+
+	// Map audit.type values to their corresponding parent rule IDs (case-insensitive)
+	auditTypeToIfSid := map[string]string{
+		"execve":         "200111", // auditd-execve (process execution)
+		"syscall":        "200110", // auditd-syscall (system calls)
+		"path":           "200112", // auditd-path (file access)
+		"config_change":  "200113", // auditd-config_change
+		"user_acct":      "200114", // auditd-user_and_cred
+		"user_auth":      "200114", // auditd-user_and_cred
+		"add_user":       "200114", // auditd-user_and_cred (user management)
+		"del_user":       "200114", // auditd-user_and_cred (user management)
+		"user_chauthtok": "200114", // auditd-user_and_cred (password change)
+		// Note: SERVICE_STOP, TTY and other specialized types are not mapped
+		// as they may require specialized parent rules or should remain as field matches
+	}
+
+	// Look for audit.type field (exact match only, skip pcre2)
+	var auditTypeValue string
+	var auditTypeIndex int = -1
+
+	for i, field := range rule.Fields {
+		if field.Name == "audit.type" && field.Type == "" {
+			// Found exact match audit.type field (not pcre2)
+			auditTypeValue = strings.ToLower(field.Value) // Normalize to lowercase
+			auditTypeIndex = i
+			break
+		}
+	}
+
+	// If we found an audit.type field, convert to if_sid
+	if auditTypeIndex >= 0 && auditTypeValue != "" {
+		if ifSid, exists := auditTypeToIfSid[auditTypeValue]; exists {
+			// Set the if_sid
+			rule.IfSid = ifSid
+
+			// Remove the audit.type field (no longer needed)
+			rule.Fields = append(rule.Fields[:auditTypeIndex], rule.Fields[auditTypeIndex+1:]...)
+		}
+	}
+}
+
 // BuildRule constructs a Wazuh rule from a Sigma rule detection
 func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
@@ -1047,6 +1117,11 @@ func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detectio
 	rule.SrcIps = ruleFields.SrcIps
 	rule.DstIps = ruleFields.DstIps
 	rule.Lists = ruleFields.ListFields
+
+	// Optimize Linux rules: Convert audit.type fields to if_sid
+	if product == "linux" {
+		optimizeLinuxRule(&rule)
+	}
 
 	return rule
 }
