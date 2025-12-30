@@ -48,9 +48,10 @@ Wazuh:
   MaxRulesPerFile: 500
   # Product-specific rule ID starting points (10000 IDs per product range)
   # Note: Windows starts at 200004 to reserve 200000-200003 for PowerShell parent rules
+  # Note: Linux starts at 210007 to reserve 210000-210006 for auditd parent rules
   ProductRuleIdStart:
     windows: 200004
-    linux: 210000
+    linux: 210007
     azure: 220000
     m365: 230000
   # Convert Sigma rule levels to Wazuh levels
@@ -131,18 +132,18 @@ Wazuh:
         ps_classic_start: 200002       # PowerShell Classic Start (Event 400)
         ps_classic_provider_start: 200003  # PowerShell Classic Provider Start (Event 600)
 
-      # Linux/Auditd category mappings - requires 200110-auditd.xml parent rules
+      # Linux/Auditd category mappings - StoW auto-generates parent rules 210000-210006
       linux:
-        process_creation: 200111       # auditd-execve (command execution)
-        file_event: 200112             # auditd-path (file operations)
-        file_access: 200112            # auditd-path
-        file_change: 200112            # auditd-path
-        file_delete: 200112            # auditd-path
-        network_connection: 200110     # auditd-syscall
-        syscall: 200110                # auditd-syscall
-        config_change: 200113          # auditd-config-change
-        user_auth: 200114              # auditd-user-cred
-        authentication: 200114         # auditd-user-cred
+        process_creation: 210001       # auditd-execve (command execution)
+        file_event: 210002             # auditd-path (file operations)
+        file_access: 210002            # auditd-path
+        file_change: 210002            # auditd-path
+        file_delete: 210002            # auditd-path
+        network_connection: 210000     # auditd-syscall
+        syscall: 210000                # auditd-syscall
+        config_change: 210003          # auditd-config-change
+        user_auth: 210004              # auditd-user-cred
+        authentication: 210004         # auditd-user-cred
   ######################################################
   # Sigma to Wazuh field name mappings
   # section should match the sigma product field; e.g. windows, linux, mac, apache, check point fw1

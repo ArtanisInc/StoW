@@ -1049,19 +1049,20 @@ func optimizeLinuxRule(rule *WazuhRule) {
 	}
 
 	// Map audit.type values to their corresponding parent rule IDs (case-insensitive)
+	// Phase 6: Updated to new Linux range 210000-210006
 	auditTypeToIfSid := map[string]string{
-		"execve":         "200111", // auditd-execve (process execution)
-		"syscall":        "200110", // auditd-syscall (system calls)
-		"path":           "200112", // auditd-path (file access)
-		"config_change":  "200113", // auditd-config_change
-		"user_acct":      "200114", // auditd-user_and_cred
-		"user_auth":      "200114", // auditd-user_and_cred
-		"add_user":       "200114", // auditd-user_and_cred (user management)
-		"del_user":       "200114", // auditd-user_and_cred (user management)
-		"user_chauthtok": "200114", // auditd-user_and_cred (password change)
-		"service_stop":   "200115", // auditd-service_stop (service management)
-		"tty":            "200116", // auditd-tty (TTY/terminal events)
-		"user_tty":       "200116", // auditd-tty (user TTY events)
+		"execve":         "210001", // auditd-execve (process execution)
+		"syscall":        "210000", // auditd-syscall (system calls)
+		"path":           "210002", // auditd-path (file access)
+		"config_change":  "210003", // auditd-config_change
+		"user_acct":      "210004", // auditd-user_and_cred
+		"user_auth":      "210004", // auditd-user_and_cred
+		"add_user":       "210004", // auditd-user_and_cred (user management)
+		"del_user":       "210004", // auditd-user_and_cred (user management)
+		"user_chauthtok": "210004", // auditd-user_and_cred (password change)
+		"service_stop":   "210005", // auditd-service_stop (service management)
+		"tty":            "210006", // auditd-tty (TTY/terminal events)
+		"user_tty":       "210006", // auditd-tty (user TTY events)
 	}
 
 	// Look for audit.type field (exact match only, skip pcre2)
@@ -1090,13 +1091,13 @@ func optimizeLinuxRule(rule *WazuhRule) {
 	}
 
 	// Special case: Handle pcre2 regex patterns for TTY|USER_TTY
-	// This pattern matches both TTY and USER_TTY types, which both map to parent rule 200116
+	// This pattern matches both TTY and USER_TTY types, which both map to parent rule 210006
 	for i, field := range rule.Fields {
 		if field.Name == "audit.type" && field.Type == "pcre2" {
 			// Check if this is the TTY|USER_TTY pattern
 			if strings.Contains(field.Value, "TTY") && strings.Contains(field.Value, "USER_TTY") {
 				// Set if_sid to TTY parent rule
-				rule.IfSid = "200116"
+				rule.IfSid = "210006"
 				// Remove the audit.type field (no longer needed)
 				rule.Fields = append(rule.Fields[:i], rule.Fields[i+1:]...)
 				return
@@ -1146,24 +1147,25 @@ func optimizeLinuxRule(rule *WazuhRule) {
 	}
 
 	// Assign if_sid based on detected decoder (priority order)
+	// Phase 6: Updated to new Linux range 210000-210006
 	if hasExecveField {
-		rule.IfSid = "200111" // auditd-execve
+		rule.IfSid = "210001" // auditd-execve
 		return
 	}
 	if hasPathField {
-		rule.IfSid = "200112" // auditd-path
+		rule.IfSid = "210002" // auditd-path
 		return
 	}
 	if hasSyscallField {
-		rule.IfSid = "200110" // auditd-syscall
+		rule.IfSid = "210000" // auditd-syscall
 		return
 	}
 	if hasConfigChangeField {
-		rule.IfSid = "200113" // auditd-config_change
+		rule.IfSid = "210003" // auditd-config_change
 		return
 	}
 	if hasTTYField {
-		rule.IfSid = "200116" // auditd-tty
+		rule.IfSid = "210006" // auditd-tty
 		return
 	}
 
@@ -1672,11 +1674,11 @@ func ReadYamlFile(path string, c *Config) {
 }
 
 // generateLinuxParentRules creates the base auditd parent rules for Linux
-// Phase 3: Auto-generate parent rules that Sigma-converted rules depend on
+// Phase 6: Moved to Linux range 210000-210006 for better coherence with product ranges
 func generateLinuxParentRules() []WazuhRule {
 	return []WazuhRule{
 		{
-			ID:          "200110",
+			ID:          "210000",
 			Level:       "3",
 			DecodedAs:   "auditd-syscall",
 			Description: "Audit: SYSCALL Messages grouped.",
@@ -1684,7 +1686,7 @@ func generateLinuxParentRules() []WazuhRule {
 			Groups:      "linux,auditd,syscall,",
 		},
 		{
-			ID:          "200111",
+			ID:          "210001",
 			Level:       "3",
 			DecodedAs:   "auditd-execve",
 			Description: "Audit: EXECVE Messages grouped.",
@@ -1692,7 +1694,7 @@ func generateLinuxParentRules() []WazuhRule {
 			Groups:      "linux,auditd,execve,",
 		},
 		{
-			ID:          "200112",
+			ID:          "210002",
 			Level:       "3",
 			DecodedAs:   "auditd-path",
 			Description: "Audit: PATH Messages grouped.",
@@ -1700,7 +1702,7 @@ func generateLinuxParentRules() []WazuhRule {
 			Groups:      "linux,auditd,path,",
 		},
 		{
-			ID:          "200113",
+			ID:          "210003",
 			Level:       "5",
 			DecodedAs:   "auditd-config_change",
 			Description: "Audit: CONFIG_CHANGE Messages grouped.",
@@ -1708,7 +1710,7 @@ func generateLinuxParentRules() []WazuhRule {
 			Groups:      "linux,auditd,config_change,",
 		},
 		{
-			ID:          "200114",
+			ID:          "210004",
 			Level:       "3",
 			DecodedAs:   "auditd-user_and_cred",
 			Description: "Audit: USER credentials Messages grouped.",
@@ -1716,7 +1718,7 @@ func generateLinuxParentRules() []WazuhRule {
 			Groups:      "linux,auditd,user_and_cred,",
 		},
 		{
-			ID:          "200115",
+			ID:          "210005",
 			Level:       "3",
 			DecodedAs:   "auditd-service_stop",
 			Description: "Audit: SERVICE_STOP Messages grouped.",
@@ -1724,7 +1726,7 @@ func generateLinuxParentRules() []WazuhRule {
 			Groups:      "linux,auditd,service_stop,",
 		},
 		{
-			ID:          "200116",
+			ID:          "210006",
 			Level:       "3",
 			DecodedAs:   "auditd-tty",
 			Description: "Audit: TTY/USER_TTY Messages grouped.",

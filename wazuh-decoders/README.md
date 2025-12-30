@@ -12,13 +12,13 @@ The StoW converter generates Linux rules with parent rule chaining (`<if_sid>` t
 Complete Wazuh decoder definitions for parsing auditd logs and extracting structured fields.
 
 **Supported Decoders (7 total):**
-- `auditd-syscall` → Parent rule 200110 (12 rules)
-- `auditd-execve` → Parent rule 200111 (217 rules)
-- `auditd-path` → Parent rule 200112 (20 rules)
-- `auditd-config_change` → Parent rule 200113 (0 rules)
-- `auditd-user_and_cred` → Parent rule 200114 (1 rule)
-- `auditd-service_stop` → Parent rule 200115 (1 rule) **[NEW]**
-- `auditd-tty` → Parent rule 200116 (1 rule) **[NEW]**
+- `auditd-syscall` → Parent rule 210000 (12 rules)
+- `auditd-execve` → Parent rule 210001 (217 rules)
+- `auditd-path` → Parent rule 210002 (20 rules)
+- `auditd-config_change` → Parent rule 210003 (0 rules)
+- `auditd-user_and_cred` → Parent rule 210004 (1 rule)
+- `auditd-service_stop` → Parent rule 210005 (1 rule) **[NEW]**
+- `auditd-tty` → Parent rule 210006 (1 rule) **[NEW]**
 
 ### `auditd.conf`
 Reference auditd configuration optimized for security monitoring with Wazuh integration.
@@ -75,22 +75,22 @@ sudo systemctl restart wazuh-manager
 ### Test Decoders with wazuh-logtest
 
 ```bash
-# Test SERVICE_STOP decoder (parent rule 200115)
+# Test SERVICE_STOP decoder (parent rule 210005)
 echo 'type=SERVICE_STOP msg=audit(1722957155.494:4802): pid=1 uid=0 auid=4294967295 ses=4294967295 subj=unconfined msg='\''unit=firewalld comm="systemd" exe="/usr/lib/systemd/systemd" hostname=? addr=? terminal=? res=success'\''UID="root" AUID="unset"' | /var/ossec/bin/wazuh-logtest -v
 
 # Expected output should show:
 # - decoder: auditd-service_stop
-# - rule: 200115 (parent) and 210026 (Disable System Firewall)
+# - rule: 210005 (parent) and 210026 (Disable System Firewall)
 # - extracted field: audit.unit=firewalld
 ```
 
 ```bash
-# Test TTY decoder (parent rule 200116)
+# Test TTY decoder (parent rule 210006)
 echo 'type=USER_TTY msg=audit(1573643958.798:1973): pid=2964 uid=0 auid=1000 ses=22 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 data=636174202F7661722F6C6F672F61756469742F61756469742E6C6F67UID="root" AUID="testuser"' | /var/ossec/bin/wazuh-logtest -v
 
 # Expected output should show:
 # - decoder: auditd-tty
-# - rule: 200116 (parent) and 210034/210036 (Linux Keylogging)
+# - rule: 210006 (parent) and 210034/210036 (Linux Keylogging)
 # - extracted field: audit.data=(hex encoded)
 ```
 
@@ -110,13 +110,13 @@ grep '"rule":{"id":"210' /var/ossec/logs/alerts/alerts.json | jq .
 
 | Parent Rule | Decoder Name | Audit Type | Child Rules | Status |
 |-------------|--------------|------------|-------------|---------|
-| 200110 | auditd-syscall | SYSCALL | 12 | ✅ Active |
-| 200111 | auditd-execve | EXECVE | 217 | ✅ Active |
-| 200112 | auditd-path | PATH | 20 | ✅ Active |
-| 200113 | auditd-config_change | CONFIG_CHANGE | 0 | ⚪ Unused |
-| 200114 | auditd-user_and_cred | USER_* | 1 | ✅ Active |
-| 200115 | auditd-service_stop | SERVICE_STOP | 1 | ✅ Active |
-| 200116 | auditd-tty | TTY/USER_TTY | 1 | ✅ Active |
+| 210000 | auditd-syscall | SYSCALL | 12 | ✅ Active |
+| 210001 | auditd-execve | EXECVE | 217 | ✅ Active |
+| 210002 | auditd-path | PATH | 20 | ✅ Active |
+| 210003 | auditd-config_change | CONFIG_CHANGE | 0 | ⚪ Unused |
+| 210004 | auditd-user_and_cred | USER_* | 1 | ✅ Active |
+| 210005 | auditd-service_stop | SERVICE_STOP | 1 | ✅ Active |
+| 210006 | auditd-tty | TTY/USER_TTY | 1 | ✅ Active |
 
 **Total Coverage:** 252/282 Linux rules use parent rule chaining (89%)
 
