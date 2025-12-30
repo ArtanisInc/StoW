@@ -124,7 +124,11 @@ Wazuh:
         file_delete_detected: 109212   # Sysmon Event 26 (explicit mapping)
         # clipboard_capture: 109207    # Sysmon Event 24 - DISABLED (privacy/storage concerns, CVE-2022-41120)
         process_tampering: 109208      # Sysmon Event 25
-        # PowerShell categories (ps_*) will fall back to generic Windows rules.
+        # PowerShell categories - requires 100535-win_powershell_rules.xml parent rules
+        ps_script: 60009               # PowerShell Script Block Logging (Event 4104)
+        ps_module: 60010               # PowerShell Module Logging (Event 4103)
+        ps_classic_start: 60011        # PowerShell Classic Start (Event 400)
+        ps_classic_provider_start: 60012  # PowerShell Classic Provider Start (Event 600)
 
       # Linux/Auditd category mappings - requires 200110-auditd.xml parent rules
       linux:
