@@ -1173,6 +1173,62 @@ func optimizeLinuxRule(rule *WazuhRule) {
 	// or is not an auditd rule (e.g., clamav, cron, sshd) - no if_sid needed
 }
 
+// optimizeWindowsEventRule converts generic Windows channel parent rules to EventID-specific parent rules
+// Phase 7: Optimize rules using generic channel fallback (60001, 60002, 60003) to dedicated Event ID parents
+func optimizeWindowsEventRule(rule *WazuhRule) {
+	// Skip if rule already has if_sid assigned to a specific parent (not generic fallback)
+	if rule.IfSid != "" {
+		// Check if it's a generic fallback parent (60001, 60002, 60003)
+		genericParents := map[string]bool{
+			"60001": true, // Security Channel
+			"60002": true, // System Channel
+			"60003": true, // Application Channel
+			"18100": true, // Generic Windows
+			"60000": true, // Generic Windows Events
+		}
+
+		// If not using generic fallback, this rule is already optimized
+		if !genericParents[rule.IfSid] {
+			return
+		}
+	}
+
+	// Map EventID to dedicated parent rule ID (Phase 7)
+	eventIdToIfSid := map[string]string{
+		"4697": "200100", // Security: Service Installation
+		"7045": "200101", // System: Service Installation
+		"5145": "200102", // Security: Network Share Object Access
+		"4624": "200103", // Security: Successful Account Logon
+	}
+
+	// Look for win.system.eventID field
+	var eventIDValue string
+	var eventIDIndex int = -1
+
+	for i, field := range rule.Fields {
+		if field.Name == "win.system.eventID" && field.Type == "" {
+			// Found exact match EventID field (not pcre2)
+			eventIDValue = field.Value
+			eventIDIndex = i
+			break
+		}
+	}
+
+	// If we found an EventID that has a dedicated parent rule, convert to if_sid
+	if eventIDIndex >= 0 && eventIDValue != "" {
+		if ifSid, exists := eventIdToIfSid[eventIDValue]; exists {
+			// Set the dedicated parent if_sid
+			rule.IfSid = ifSid
+
+			// Remove the EventID field since the parent rule already filters by EventID
+			rule.Fields = append(rule.Fields[:eventIDIndex], rule.Fields[eventIDIndex+1:]...)
+			return
+		}
+	}
+
+	// If no dedicated parent rule exists for this EventID, keep using generic fallback
+}
+
 // BuildRule constructs a Wazuh rule from a Sigma rule detection
 func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
@@ -1206,6 +1262,11 @@ func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detectio
 	// Optimize Linux rules: Convert audit.type fields to if_sid
 	if product == "linux" {
 		optimizeLinuxRule(&rule)
+	}
+
+	// Phase 7: Optimize Windows rules: Convert generic channel fallback to EventID-specific parent rules
+	if product == "windows" {
+		optimizeWindowsEventRule(&rule)
 	}
 
 	return rule
@@ -1787,6 +1848,58 @@ func generatePowerShellParentRules() []WazuhRule {
 	}
 }
 
+// generateWindowsEventParentRules creates parent rules for high-volume Windows Event IDs
+// Phase 7: Optimize rules that currently use generic channel fallback (60001, 60002, 60003)
+// These parent rules filter by exact EventID for better performance
+func generateWindowsEventParentRules() []WazuhRule {
+	return []WazuhRule{
+		{
+			ID:          "200100",
+			Level:       "3",
+			Description: "Windows Security: Service Installation (Event 4697)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,security,service_install,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4697", Type: ""},
+				{Name: "win.system.channel", Value: "Security", Type: ""},
+			},
+		},
+		{
+			ID:          "200101",
+			Level:       "3",
+			Description: "Windows System: Service Installation (Event 7045)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,system,service_install,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "7045", Type: ""},
+				{Name: "win.system.channel", Value: "System", Type: ""},
+			},
+		},
+		{
+			ID:          "200102",
+			Level:       "3",
+			Description: "Windows Security: Network Share Object Access (Event 5145)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,security,share_access,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "5145", Type: ""},
+				{Name: "win.system.channel", Value: "Security", Type: ""},
+			},
+		},
+		{
+			ID:          "200103",
+			Level:       "3",
+			Description: "Windows Security: Successful Account Logon (Event 4624)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,security,logon,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4624", Type: ""},
+				{Name: "win.system.channel", Value: "Security", Type: ""},
+			},
+		},
+	}
+}
+
 func WriteWazuhXmlRules(c *Config) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
@@ -1810,6 +1923,14 @@ func WriteWazuhXmlRules(c *Config) {
 			// Prepend parent rules to the beginning
 			xmlRules.Rules = append(parentRules, xmlRules.Rules...)
 			LogIt(INFO, fmt.Sprintf("Phase 5: Added %d PowerShell parent rules to %s", len(parentRules), product), nil, c.Info, c.Debug)
+		}
+
+		// Phase 7: Prepend Windows Event ID parent rules if this is a Windows product
+		if product == "windows" {
+			eventParentRules := generateWindowsEventParentRules()
+			// Prepend event parent rules after PowerShell parent rules
+			xmlRules.Rules = append(eventParentRules, xmlRules.Rules...)
+			LogIt(INFO, fmt.Sprintf("Phase 7: Added %d Windows Event ID parent rules to %s", len(eventParentRules), product), nil, c.Info, c.Debug)
 		}
 
 		// Get the starting ID for this product, fallback to default RuleIdStart if not configured
