@@ -123,7 +123,6 @@ Wazuh:
         registry_rename: 61616         # Sysmon Event 14
         create_stream_hash: 61617      # Sysmon Event 15
         # Sysmon new events (Event 16+) - requires 100000-sysmon_new_events.xml
-        sysmon_config: 109213          # Sysmon Event 16 (Configuration State Changed)
         pipe_created: 61646, 61647     # Sysmon Events 17-18
         dns_query: 61644               # Sysmon Event 22
         wmi_event: 109203, 109204, 109205  # Sysmon Events 19-21
