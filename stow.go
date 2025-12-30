@@ -55,10 +55,12 @@ type Config struct {
 			EmailLevels  []string `yaml:"EmailLevels"`
 		} `yaml:"Options"`
 		SidGrpMaps struct {
-			SigmaIdToWazuhGroup        map[string]string `yaml:"SigmaIdToWazuhGroup"`
-			SigmaIdToWazuhId           map[string]string `yaml:"SigmaIdToWazuhId"`
-			ProductServiceToWazuhGroup map[string]string `yaml:"ProductServiceToWazuhGroup"`
-			ProductServiceToWazuhId    map[string]string `yaml:"ProductServiceToWazuhId"`
+			SigmaIdToWazuhGroup        map[string]string            `yaml:"SigmaIdToWazuhGroup"`
+			SigmaIdToWazuhId           map[string]string            `yaml:"SigmaIdToWazuhId"`
+			ProductServiceToWazuhGroup map[string]string            `yaml:"ProductServiceToWazuhGroup"`
+			ProductServiceToWazuhId    map[string]string            `yaml:"ProductServiceToWazuhId"`
+			CategoryToWazuhGroup       map[string]string            `yaml:"CategoryToWazuhGroup"`
+			CategoryToWazuhId          map[string]map[string]string `yaml:"CategoryToWazuhId"` // Product -> Category -> Rule IDs
 		} `yaml:"SidGrpMaps"`
 		FieldMaps map[string]map[string]string `yaml:"FieldMaps"`
 		XmlRules  map[string]*WazuhGroup
@@ -235,6 +237,7 @@ type WazuhRule struct {
 		IDs []string `xml:"id,omitempty"`
 	} `xml:"mitre,omitempty"`
 	Description string      `xml:"description"`
+	DecodedAs   string      `xml:"decoded_as,omitempty"`
 	Options     []string    `xml:"options,omitempty"`
 	Groups      string      `xml:"group,omitempty"`
 	IfSid       string      `xml:"if_sid,omitempty"`
@@ -435,6 +438,7 @@ func GetLevel(sigmaLevel string, c *Config) int {
 func GetIfGrpSid(sigma *SigmaRule, c *Config) (string, string) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 	// Get Wazuh if_group or if_sids dependencies for converted rules
+	// Priority order: Sigma ID > Service > Category > Product
 	switch {
 	case c.Wazuh.SidGrpMaps.SigmaIdToWazuhGroup[sigma.ID] != "":
 		return "grp", c.Wazuh.SidGrpMaps.SigmaIdToWazuhGroup[sigma.ID]
@@ -442,10 +446,15 @@ func GetIfGrpSid(sigma *SigmaRule, c *Config) (string, string) {
 		return "sid", c.Wazuh.SidGrpMaps.SigmaIdToWazuhId[sigma.ID]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Service] != "":
 		return "grp", c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Service]
+	case c.Wazuh.SidGrpMaps.CategoryToWazuhGroup[sigma.LogSource.Category] != "":
+		return "grp", c.Wazuh.SidGrpMaps.CategoryToWazuhGroup[sigma.LogSource.Category]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Product] != "":
 		return "grp", c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Product]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service] != "":
 		return "sid", c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service]
+	case c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product] != nil && c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product][sigma.LogSource.Category] != "":
+		// Product-specific category mapping (e.g., Windows process_creation -> 61603, Linux process_creation -> 200111)
+		return "sid", c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product][sigma.LogSource.Category]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Product] != "":
 		return "sid", c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Product]
 	default:
@@ -642,8 +651,67 @@ func handleCIDRField(fieldName string, values []string, selectionKey string, sel
 	}
 }
 
+// isSimpleValue checks if a value is simple enough for exact field matching
+// Returns true if the value contains no wildcards, regex special chars, or complex patterns
+func isSimpleValue(v string) bool {
+	// Check for regex/wildcard characters that require PCRE2
+	return !strings.ContainsAny(v, "*?|()[]{}\\^$+.")
+}
+
+// needsCaseInsensitive determines if case-insensitive matching is needed for a field
+// Returns false for fields that have predictable case (like audit.type which is always uppercase)
+func needsCaseInsensitive(fieldName string, product string) bool {
+	product = strings.ToLower(product)
+	fieldName = strings.ToLower(fieldName)
+
+	// Linux auditd fields that are always uppercase or lowercase
+	if product == "linux" {
+		switch fieldName {
+		case "audit.type", "type":
+			return false // Always uppercase: EXECVE, SYSCALL, PATH, etc.
+		case "audit.syscall", "syscall":
+			return false // Numeric values
+		}
+	}
+
+	// Windows fields that are predictable or numeric (don't need case-insensitive)
+	if product == "windows" {
+		switch fieldName {
+		// Numeric fields
+		case "win.system.eventid", "eventid":
+			return false // Numeric values
+		case "win.system.level", "level":
+			return false // Numeric values
+		case "win.eventdata.logontype", "logontype":
+			return false // Numeric logon type (2, 3, 7, 9, 10, etc.)
+		case "win.eventdata.processid", "processid":
+			return false // Numeric process ID
+		case "win.eventdata.threadid", "threadid":
+			return false // Numeric thread ID
+		case "win.eventdata.status", "status":
+			return false // Hex status codes (0xC0000XXX)
+
+		// GUIDs and hash fields (always uppercase hex or lowercase, but consistent)
+		case "win.eventdata.guid", "guid":
+			return false // GUIDs have fixed format
+		case "win.eventdata.hashes", "hashes":
+			return false // SHA256/MD5 hashes are case-consistent
+
+		// Provider names are case-sensitive in Windows Event Log
+		case "win.eventdata.providername", "providername":
+			return false // Provider names are case-preserving
+		case "win.system.provider_name", "provider_name":
+			return false // Provider names are case-preserving
+		}
+	}
+
+	// Default: use case-insensitive for user input and command lines
+	return true
+}
+
 // buildFieldValue constructs a regex pattern value based on the input value and modifiers
-func buildFieldValue(v string, mods fieldModifiers) string {
+// Phase 2 optimization: Intelligently adds (?i) only when needed
+func buildFieldValue(v string, mods fieldModifiers, fieldName string, product string) string {
 	if mods.isB64 {
 		return HandleB64Offsets(v)
 	}
@@ -655,6 +723,12 @@ func buildFieldValue(v string, mods fieldModifiers) string {
 	// Build regex pattern with anchors if needed
 	pattern := regexp.QuoteMeta(v)
 
+	// Phase 2: Determine if case-insensitive is needed
+	casePrefix := ""
+	if needsCaseInsensitive(fieldName, product) {
+		casePrefix = "(?i)"
+	}
+
 	if mods.startsWith || mods.endsWith {
 		prefix := ""
 		suffix := ""
@@ -664,10 +738,10 @@ func buildFieldValue(v string, mods fieldModifiers) string {
 		if mods.endsWith {
 			suffix = "$"
 		}
-		return "(?i)" + prefix + pattern + suffix
+		return casePrefix + prefix + pattern + suffix
 	}
 
-	return "(?i)" + pattern
+	return casePrefix + pattern
 }
 
 // processDetectionField extracts and processes a single field from a Sigma detection.
@@ -700,11 +774,28 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 
 	values := GetFieldValues(value, fieldName, c)
 
+	// Phase 2: Check if we can use exact field matching instead of regex
+	canUseExact := !mods.isRegex && !mods.startsWith && !mods.endsWith && !mods.isB64
+	if canUseExact {
+		for _, v := range values {
+			if !isSimpleValue(v) {
+				canUseExact = false
+				break
+			}
+		}
+	}
+
 	// Handle 'all' modifier - create separate field for each value
 	if mods.hasAll {
 		for _, v := range values {
 			newField := field
-			newField.Value = buildFieldValue(v, mods)
+			// Phase 2: Use exact matching if possible
+			if canUseExact && len(values) == 1 {
+				newField.Type = ""
+				newField.Value = v
+			} else {
+				newField.Value = buildFieldValue(v, mods, wazuhField, sigma.LogSource.Product)
+			}
 			*fields = append(*fields, newField)
 			LogIt(INFO, fmt.Sprintf("processDetectionField appended field: %v", newField), nil, c.Info, c.Debug)
 		}
@@ -714,7 +805,7 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 	// Build combined field value (OR logic)
 	var fieldValues []string
 	for _, v := range values {
-		fieldValues = append(fieldValues, buildFieldValue(v, mods))
+		fieldValues = append(fieldValues, buildFieldValue(v, mods, wazuhField, sigma.LogSource.Product))
 	}
 
 	if len(fieldValues) == 0 {
@@ -737,6 +828,13 @@ func processDetectionField(selectionKey string, key string, value any, sigma *Si
 			combinedValue = combinedValue + "$"
 		}
 		field.Value = combinedValue
+	}
+
+	// Phase 2: Use exact matching for simple single values with no modifiers
+	if canUseExact && len(values) == 1 {
+		field.Type = ""
+		field.Value = values[0]
+		LogIt(INFO, fmt.Sprintf("Phase 2: Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
 	}
 
 	*fields = append(*fields, field)
@@ -941,6 +1039,196 @@ func populateRuleMetadata(rule *WazuhRule, sigma *SigmaRule, url string, product
 	}
 }
 
+// optimizeLinuxRule converts audit.type field matching to if_sid for better performance
+// This optimization applies to Linux/auditd rules that explicitly check audit.type field
+// OR use fields from specific auditd decoders without specifying if_sid
+func optimizeLinuxRule(rule *WazuhRule) {
+	// Skip if rule already has if_sid (already optimized)
+	if rule.IfSid != "" {
+		return
+	}
+
+	// Map audit.type values to their corresponding parent rule IDs (case-insensitive)
+	// Phase 6: Updated to new Linux range 210000-210006
+	auditTypeToIfSid := map[string]string{
+		"execve":         "210001", // auditd-execve (process execution)
+		"syscall":        "210000", // auditd-syscall (system calls)
+		"path":           "210002", // auditd-path (file access)
+		"config_change":  "210003", // auditd-config_change
+		"user_acct":      "210004", // auditd-user_and_cred
+		"user_auth":      "210004", // auditd-user_and_cred
+		"add_user":       "210004", // auditd-user_and_cred (user management)
+		"del_user":       "210004", // auditd-user_and_cred (user management)
+		"user_chauthtok": "210004", // auditd-user_and_cred (password change)
+		"service_stop":   "210005", // auditd-service_stop (service management)
+		"tty":            "210006", // auditd-tty (TTY/terminal events)
+		"user_tty":       "210006", // auditd-tty (user TTY events)
+	}
+
+	// Look for audit.type field (exact match only, skip pcre2)
+	var auditTypeValue string
+	var auditTypeIndex int = -1
+
+	for i, field := range rule.Fields {
+		if field.Name == "audit.type" && field.Type == "" {
+			// Found exact match audit.type field (not pcre2)
+			auditTypeValue = strings.ToLower(field.Value) // Normalize to lowercase
+			auditTypeIndex = i
+			break
+		}
+	}
+
+	// If we found an audit.type field, convert to if_sid
+	if auditTypeIndex >= 0 && auditTypeValue != "" {
+		if ifSid, exists := auditTypeToIfSid[auditTypeValue]; exists {
+			// Set the if_sid
+			rule.IfSid = ifSid
+
+			// Remove the audit.type field (no longer needed)
+			rule.Fields = append(rule.Fields[:auditTypeIndex], rule.Fields[auditTypeIndex+1:]...)
+			return
+		}
+	}
+
+	// Special case: Handle pcre2 regex patterns for TTY|USER_TTY
+	// This pattern matches both TTY and USER_TTY types, which both map to parent rule 210006
+	for i, field := range rule.Fields {
+		if field.Name == "audit.type" && field.Type == "pcre2" {
+			// Check if this is the TTY|USER_TTY pattern
+			if strings.Contains(field.Value, "TTY") && strings.Contains(field.Value, "USER_TTY") {
+				// Set if_sid to TTY parent rule
+				rule.IfSid = "210006"
+				// Remove the audit.type field (no longer needed)
+				rule.Fields = append(rule.Fields[:i], rule.Fields[i+1:]...)
+				return
+			}
+		}
+	}
+
+	// NEW: Field-based decoder detection
+	// If no audit.type was found, detect which decoder is needed based on field names
+	// This handles rules that use auditd decoder fields without explicitly specifying audit.type
+	hasExecveField := false
+	hasPathField := false
+	hasSyscallField := false
+	hasConfigChangeField := false
+	hasTTYField := false
+
+	for _, field := range rule.Fields {
+		// Check for EXECVE decoder fields (highest priority for process execution)
+		if strings.HasPrefix(field.Name, "audit.execve.") {
+			hasExecveField = true
+			break // EXECVE is very specific, use it immediately
+		}
+
+		// Check for PATH decoder fields (file system operations)
+		if strings.HasPrefix(field.Name, "audit.file.") || strings.HasPrefix(field.Name, "audit.directory.") {
+			hasPathField = true
+		}
+
+		// Check for SYSCALL decoder fields
+		if field.Name == "audit.syscall" || field.Name == "audit.arch" ||
+			field.Name == "audit.command" || field.Name == "audit.exe" ||
+			field.Name == "audit.ppid" || field.Name == "audit.tty" ||
+			field.Name == "audit.success" || field.Name == "audit.exit" ||
+			field.Name == "audit.key" {
+			hasSyscallField = true
+		}
+
+		// Check for CONFIG_CHANGE decoder fields
+		if field.Name == "audit.op" || field.Name == "audit.list" {
+			hasConfigChangeField = true
+		}
+
+		// Check for TTY decoder fields (keylogging)
+		if field.Name == "audit.data" {
+			hasTTYField = true
+		}
+	}
+
+	// Assign if_sid based on detected decoder (priority order)
+	// Phase 6: Updated to new Linux range 210000-210006
+	if hasExecveField {
+		rule.IfSid = "210001" // auditd-execve
+		return
+	}
+	if hasPathField {
+		rule.IfSid = "210002" // auditd-path
+		return
+	}
+	if hasSyscallField {
+		rule.IfSid = "210000" // auditd-syscall
+		return
+	}
+	if hasConfigChangeField {
+		rule.IfSid = "210003" // auditd-config_change
+		return
+	}
+	if hasTTYField {
+		rule.IfSid = "210006" // auditd-tty
+		return
+	}
+
+	// If no decoder-specific fields found, this rule likely uses full_log matching
+	// or is not an auditd rule (e.g., clamav, cron, sshd) - no if_sid needed
+}
+
+// optimizeWindowsEventRule converts generic Windows channel parent rules to EventID-specific parent rules
+// Phase 7: Optimize rules using generic channel fallback (60001, 60002, 60003) to dedicated Event ID parents
+func optimizeWindowsEventRule(rule *WazuhRule) {
+	// Skip if rule already has if_sid assigned to a specific parent (not generic fallback)
+	if rule.IfSid != "" {
+		// Check if it's a generic fallback parent (60001, 60002, 60003)
+		genericParents := map[string]bool{
+			"60001": true, // Security Channel
+			"60002": true, // System Channel
+			"60003": true, // Application Channel
+			"18100": true, // Generic Windows
+			"60000": true, // Generic Windows Events
+		}
+
+		// If not using generic fallback, this rule is already optimized
+		if !genericParents[rule.IfSid] {
+			return
+		}
+	}
+
+	// Map EventID to dedicated parent rule ID (Phase 7)
+	eventIdToIfSid := map[string]string{
+		"4697": "200100", // Security: Service Installation
+		"7045": "200101", // System: Service Installation
+		"5145": "200102", // Security: Network Share Object Access
+		"4624": "200103", // Security: Successful Account Logon
+	}
+
+	// Look for win.system.eventID field
+	var eventIDValue string
+	var eventIDIndex int = -1
+
+	for i, field := range rule.Fields {
+		if field.Name == "win.system.eventID" && field.Type == "" {
+			// Found exact match EventID field (not pcre2)
+			eventIDValue = field.Value
+			eventIDIndex = i
+			break
+		}
+	}
+
+	// If we found an EventID that has a dedicated parent rule, convert to if_sid
+	if eventIDIndex >= 0 && eventIDValue != "" {
+		if ifSid, exists := eventIdToIfSid[eventIDValue]; exists {
+			// Set the dedicated parent if_sid
+			rule.IfSid = ifSid
+
+			// Remove the EventID field since the parent rule already filters by EventID
+			rule.Fields = append(rule.Fields[:eventIDIndex], rule.Fields[eventIDIndex+1:]...)
+			return
+		}
+	}
+
+	// If no dedicated parent rule exists for this EventID, keep using generic fallback
+}
+
 // BuildRule constructs a Wazuh rule from a Sigma rule detection
 func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detections map[string]any, selectionNegations map[string]bool) WazuhRule {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
@@ -970,6 +1258,16 @@ func BuildRule(sigma *SigmaRule, url string, product string, c *Config, detectio
 	rule.SrcIps = ruleFields.SrcIps
 	rule.DstIps = ruleFields.DstIps
 	rule.Lists = ruleFields.ListFields
+
+	// Optimize Linux rules: Convert audit.type fields to if_sid
+	if product == "linux" {
+		optimizeLinuxRule(&rule)
+	}
+
+	// Phase 7: Optimize Windows rules: Convert generic channel fallback to EventID-specific parent rules
+	if product == "windows" {
+		optimizeWindowsEventRule(&rule)
+	}
 
 	return rule
 }
@@ -1436,6 +1734,172 @@ func ReadYamlFile(path string, c *Config) {
 	ProcessDnfSets(passingSets, detections, &sigmaRule, url, c)
 }
 
+// generateLinuxParentRules creates the base auditd parent rules for Linux
+// Phase 6: Moved to Linux range 210000-210006 for better coherence with product ranges
+func generateLinuxParentRules() []WazuhRule {
+	return []WazuhRule{
+		{
+			ID:          "210000",
+			Level:       "3",
+			DecodedAs:   "auditd-syscall",
+			Description: "Audit: SYSCALL Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,syscall,",
+		},
+		{
+			ID:          "210001",
+			Level:       "3",
+			DecodedAs:   "auditd-execve",
+			Description: "Audit: EXECVE Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,execve,",
+		},
+		{
+			ID:          "210002",
+			Level:       "3",
+			DecodedAs:   "auditd-path",
+			Description: "Audit: PATH Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,path,",
+		},
+		{
+			ID:          "210003",
+			Level:       "5",
+			DecodedAs:   "auditd-config_change",
+			Description: "Audit: CONFIG_CHANGE Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,config_change,",
+		},
+		{
+			ID:          "210004",
+			Level:       "3",
+			DecodedAs:   "auditd-user_and_cred",
+			Description: "Audit: USER credentials Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,user_and_cred,",
+		},
+		{
+			ID:          "210005",
+			Level:       "3",
+			DecodedAs:   "auditd-service_stop",
+			Description: "Audit: SERVICE_STOP Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,service_stop,",
+		},
+		{
+			ID:          "210006",
+			Level:       "3",
+			DecodedAs:   "auditd-tty",
+			Description: "Audit: TTY/USER_TTY Messages grouped.",
+			Options:     []string{"no_full_log"},
+			Groups:      "linux,auditd,tty,",
+		},
+	}
+}
+
+// generatePowerShellParentRules creates PowerShell-specific parent rules for Windows
+// These rules filter PowerShell events by EventID and ProviderName for optimal performance
+func generatePowerShellParentRules() []WazuhRule {
+	return []WazuhRule{
+		{
+			ID:          "200000",
+			Level:       "3",
+			Description: "PowerShell: Script Block Logging (Event 4104)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_script,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4104", Type: ""},
+				{Name: "win.system.channel", Value: "Microsoft-Windows-PowerShell/Operational", Type: ""},
+			},
+		},
+		{
+			ID:          "200001",
+			Level:       "3",
+			Description: "PowerShell: Module Logging (Event 4103)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_module,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4103", Type: ""},
+				{Name: "win.system.channel", Value: "Microsoft-Windows-PowerShell/Operational", Type: ""},
+			},
+		},
+		{
+			ID:          "200002",
+			Level:       "5",
+			Description: "PowerShell: Classic PowerShell Engine Start (Event 400)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_classic_start,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "400", Type: ""},
+				{Name: "win.system.provider_name", Value: "PowerShell", Type: ""},
+			},
+		},
+		{
+			ID:          "200003",
+			Level:       "5",
+			Description: "PowerShell: Classic Provider Start (Event 600)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_classic_provider_start,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "600", Type: ""},
+				{Name: "win.system.provider_name", Value: "PowerShell", Type: ""},
+			},
+		},
+	}
+}
+
+// generateWindowsEventParentRules creates parent rules for high-volume Windows Event IDs
+// Phase 7: Optimize rules that currently use generic channel fallback (60001, 60002, 60003)
+// These parent rules filter by exact EventID for better performance
+func generateWindowsEventParentRules() []WazuhRule {
+	return []WazuhRule{
+		{
+			ID:          "200100",
+			Level:       "3",
+			Description: "Windows Security: Service Installation (Event 4697)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,security,service_install,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4697", Type: ""},
+				{Name: "win.system.channel", Value: "Security", Type: ""},
+			},
+		},
+		{
+			ID:          "200101",
+			Level:       "3",
+			Description: "Windows System: Service Installation (Event 7045)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,system,service_install,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "7045", Type: ""},
+				{Name: "win.system.channel", Value: "System", Type: ""},
+			},
+		},
+		{
+			ID:          "200102",
+			Level:       "3",
+			Description: "Windows Security: Network Share Object Access (Event 5145)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,security,share_access,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "5145", Type: ""},
+				{Name: "win.system.channel", Value: "Security", Type: ""},
+			},
+		},
+		{
+			ID:          "200103",
+			Level:       "3",
+			Description: "Windows Security: Successful Account Logon (Event 4624)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,security,logon,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4624", Type: ""},
+				{Name: "win.system.channel", Value: "Security", Type: ""},
+			},
+		},
+	}
+}
+
 func WriteWazuhXmlRules(c *Config) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
@@ -1443,6 +1907,30 @@ func WriteWazuhXmlRules(c *Config) {
 	for product, xmlRules := range c.Wazuh.XmlRules {
 		if len(xmlRules.Rules) == 0 {
 			continue // Skip empty rule sets
+		}
+
+		// Phase 3: Prepend Linux parent rules if this is a Linux product
+		if product == "linux" {
+			parentRules := generateLinuxParentRules()
+			// Prepend parent rules to the beginning
+			xmlRules.Rules = append(parentRules, xmlRules.Rules...)
+			LogIt(INFO, fmt.Sprintf("Phase 3: Added %d Linux parent rules to %s", len(parentRules), product), nil, c.Info, c.Debug)
+		}
+
+		// Phase 5: Prepend PowerShell parent rules if this is a Windows product
+		if product == "windows" {
+			parentRules := generatePowerShellParentRules()
+			// Prepend parent rules to the beginning
+			xmlRules.Rules = append(parentRules, xmlRules.Rules...)
+			LogIt(INFO, fmt.Sprintf("Phase 5: Added %d PowerShell parent rules to %s", len(parentRules), product), nil, c.Info, c.Debug)
+		}
+
+		// Phase 7: Prepend Windows Event ID parent rules if this is a Windows product
+		if product == "windows" {
+			eventParentRules := generateWindowsEventParentRules()
+			// Prepend event parent rules after PowerShell parent rules
+			xmlRules.Rules = append(eventParentRules, xmlRules.Rules...)
+			LogIt(INFO, fmt.Sprintf("Phase 7: Added %d Windows Event ID parent rules to %s", len(eventParentRules), product), nil, c.Info, c.Debug)
 		}
 
 		// Get the starting ID for this product, fallback to default RuleIdStart if not configured

@@ -1,0 +1,511 @@
+<!--
+  Wazuh Decoders for Linux Auditd Events
+
+  This file provides decoders for parsing auditd (Linux Audit Daemon) logs
+  and extracting structured fields for use with Wazuh rules.
+
+  Installation:
+  1. Copy this file to /var/ossec/etc/decoders/auditd_decoders.xml on Wazuh manager
+  2. Restart Wazuh manager: systemctl restart wazuh-manager
+  3. Verify decoders: /var/ossec/bin/wazuh-logtest
+
+  Dependencies:
+  - Requires auditd logs in standard format (typically from /var/log/audit/audit.log)
+  - Works with StoW-generated Linux rules (210000-sigma_linux.xml)
+  - Supports parent rules 200110-200116
+
+  Field Coverage:
+  ✓ Fully Supported (17 fields):
+    - audit.command, audit.exe, audit.uid, audit.ses
+    - audit.execve.a0-a7 (command arguments)
+    - audit.directory.name, audit.directory.nametype
+    - audit.cwd (requires CWD records enabled in auditd.conf)
+    - audit.key, audit.syscall, audit.type, audit.unit
+
+  ⚠ Partial Support (1 field):
+    - audit.saddr (captured as hex, needs post-processing for IP/port)
+
+  ❌ Not Supported - Require External Data (6 fields):
+    - audit.dest_host (needs DNS resolution or command line extraction)
+    - audit.dest_ip, audit.dest_port (need SOCKADDR hex decoding)
+    - audit.initiated (needs syscall type logic: connect=true, accept=false)
+    - audit.parent_comm, audit.parent_exe (need correlation via ppid)
+
+  References:
+  - Based on: https://github.com/ArtanisInc/Wazuh-Rules/tree/main/Auditd
+  - Auditd documentation: https://linux.die.net/man/8/auditd
+  - Sigma field mappings: config.yaml FieldMaps:Linux section
+-->
+
+<decoder name="auditd-config_change">
+  <prematch>^type=CONFIG_CHANGE </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-config_change">
+  <parent>auditd-config_change</parent>
+  <regex offset="after_parent">auid=(\d+) </regex>
+  <order>audit.auid</order>
+</decoder>
+
+<decoder name="auditd-config_change">
+  <parent>auditd-config_change</parent>
+  <regex offset="after_parent">ses=(\d+) </regex>
+  <order>audit.session</order>
+</decoder>
+
+<decoder name="auditd-config_change">
+  <parent>auditd-config_change</parent>
+  <regex offset="after_parent">subj=(\S+) </regex>
+  <order>audit.subj</order>
+</decoder>
+
+<decoder name="auditd-config_change">
+  <parent>auditd-config_change</parent>
+  <regex offset="after_parent">op=(\S+) </regex>
+  <order>audit.op</order>
+</decoder>
+
+<decoder name="auditd-config_change">
+  <parent>auditd-config_change</parent>
+  <regex offset="after_parent">key="(\S+)" </regex>
+  <order>audit.key</order>
+</decoder>
+
+<decoder name="auditd-config_change">
+  <parent>auditd-config_change</parent>
+  <regex offset="after_parent">list=(\d+) </regex>
+  <order>audit.list</order>
+</decoder>
+
+<decoder name="auditd-config_change">
+  <parent>auditd-config_change</parent>
+  <regex offset="after_parent">res=(\S+)</regex>
+  <order>audit.res</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- EXECVE: Process Execution Events         -->
+<!-- ========================================= -->
+
+<decoder name="auditd-execve">
+  <prematch>^type=EXECVE </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a0="([^"]+)"</regex>
+  <order>audit.execve.a0</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a1="([^"]+)"</regex>
+  <order>audit.execve.a1</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a2="([^"]+)"</regex>
+  <order>audit.execve.a2</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a3="([^"]+)"</regex>
+  <order>audit.execve.a3</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a4="([^"]+)"</regex>
+  <order>audit.execve.a4</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a5="([^"]+)"</regex>
+  <order>audit.execve.a5</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a6="([^"]+)"</regex>
+  <order>audit.execve.a6</order>
+</decoder>
+
+<decoder name="auditd-execve">
+  <parent>auditd-execve</parent>
+  <regex offset="after_parent">a7="([^"]+)"</regex>
+  <order>audit.execve.a7</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- CWD: Current Working Directory Events    -->
+<!-- ========================================= -->
+
+<decoder name="auditd-cwd">
+  <prematch>^type=CWD </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-cwd">
+  <parent>auditd-cwd</parent>
+  <regex offset="after_parent">cwd="([^"]+)"</regex>
+  <order>audit.cwd</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- PATH: File System Access Events          -->
+<!-- ========================================= -->
+
+<decoder name="auditd-path">
+  <prematch>^type=PATH </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-path">
+  <parent>auditd-path</parent>
+  <regex offset="after_parent">name="([^"]+)" inode=(\d+) \.* mode=(\d+) \.* nametype=(\S+)</regex>
+  <order>audit.directory.name, audit.directory.inode, audit.directory.mode, audit.directory.nametype</order>
+</decoder>
+
+<decoder name="auditd-path">
+  <parent>auditd-path</parent>
+  <regex offset="after_parent">name=([^ ]+) inode=(\d+) \.* mode=(\d+)</regex>
+  <order>audit.file.name, audit.file.inode, audit.file.mode</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- SYSCALL: System Call Events              -->
+<!-- NOTE: SYSCALL records contain ppid but   -->
+<!-- not parent_comm or parent_exe. These     -->
+<!-- require external correlation via ppid    -->
+<!-- ========================================= -->
+
+<decoder name="auditd-syscall">
+  <prematch>^type=SYSCALL </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">arch=(\S+) </regex>
+  <order>audit.arch</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">syscall=(\d+) </regex>
+  <order>audit.syscall</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">success=(\S+) </regex>
+  <order>audit.success</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">exit=(\S+) </regex>
+  <order>audit.exit</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">ppid=(\d+) </regex>
+  <order>audit.ppid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">pid=(\d+) </regex>
+  <order>audit.pid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">auid=(\d+) </regex>
+  <order>audit.auid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">uid=(\d+) </regex>
+  <order>audit.uid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">gid=(\d+) </regex>
+  <order>audit.gid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">euid=(\d+) </regex>
+  <order>audit.euid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">suid=(\d+) </regex>
+  <order>audit.suid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">fsuid=(\d+) </regex>
+  <order>audit.fsuid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">egid=(\d+) </regex>
+  <order>audit.egid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">sgid=(\d+) </regex>
+  <order>audit.fsgid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">fsgid=(\d+) </regex>
+  <order>audit.fsgid</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">tty=(\S+) </regex>
+  <order>audit.tty</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">ses=(\d+) </regex>
+  <order>audit.session</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">comm="([^"]+)" </regex>
+  <order>audit.command</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">exe="([^"]+)" </regex>
+  <order>audit.exe</order>
+</decoder>
+
+<decoder name="auditd-syscall">
+  <parent>auditd-syscall</parent>
+  <regex offset="after_parent">key="([^"]+)"</regex>
+  <order>audit.key</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- SOCKADDR: Network Socket Address         -->
+<!-- NOTE: saddr field contains hex-encoded   -->
+<!-- socket address (IP+port). Hostname       -->
+<!-- resolution requires external correlation -->
+<!-- ========================================= -->
+
+<decoder name="auditd-sockaddr">
+  <prematch>^type=SOCKADDR </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-sockaddr">
+  <parent>auditd-sockaddr</parent>
+  <regex offset="after_parent">saddr=(\S+)</regex>
+  <order>audit.saddr</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- USER_AND_CRED: User Authentication       -->
+<!-- ========================================= -->
+
+<decoder name="auditd-user_and_cred">
+  <prematch>^type=</prematch>
+  <regex offset="after_prematch">(\S+) msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.type, audit.id</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">pid=(\d+) </regex>
+  <order>audit.pid</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">uid=(\d+) </regex>
+  <order>audit.uid</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">auid=(\d+) </regex>
+  <order>audit.auid</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">ses=(\d+) </regex>
+  <order>audit.session</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">subj=(\S+) </regex>
+  <order>audit.subj</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">acct="([^"]+)" </regex>
+  <order>audit.acct</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">unit=(\S+) </regex>
+  <order>audit.unit</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">exe="([^"]+)" </regex>
+  <order>audit.exe</order>
+</decoder>
+
+<decoder name="auditd-user_and_cred">
+  <parent>auditd-user_and_cred</parent>
+  <regex offset="after_parent">addr=(\S+) </regex>
+  <order>srcip</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- SERVICE_STOP: Service Management Events  -->
+<!-- NEW DECODER for parent rule 200115       -->
+<!-- ========================================= -->
+
+<decoder name="auditd-service_stop">
+  <prematch>^type=SERVICE_STOP </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">pid=(\d+) </regex>
+  <order>audit.pid</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">uid=(\d+) </regex>
+  <order>audit.uid</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">auid=(\d+) </regex>
+  <order>audit.auid</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">ses=(\d+) </regex>
+  <order>audit.session</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">subj=(\S+) </regex>
+  <order>audit.subj</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">unit=(\S+) </regex>
+  <order>audit.unit</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">comm="([^"]+)" </regex>
+  <order>audit.comm</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">exe="([^"]+)" </regex>
+  <order>audit.exe</order>
+</decoder>
+
+<decoder name="auditd-service_stop">
+  <parent>auditd-service_stop</parent>
+  <regex offset="after_parent">res=(\S+)</regex>
+  <order>audit.res</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- TTY: Terminal/Keylogging Events          -->
+<!-- NEW DECODER for parent rule 200116       -->
+<!-- Handles both TTY and USER_TTY types      -->
+<!-- ========================================= -->
+
+<decoder name="auditd-tty">
+  <prematch>^type=TTY |^type=USER_TTY </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-tty">
+  <parent>auditd-tty</parent>
+  <regex offset="after_parent">pid=(\d+) </regex>
+  <order>audit.pid</order>
+</decoder>
+
+<decoder name="auditd-tty">
+  <parent>auditd-tty</parent>
+  <regex offset="after_parent">uid=(\d+) </regex>
+  <order>audit.uid</order>
+</decoder>
+
+<decoder name="auditd-tty">
+  <parent>auditd-tty</parent>
+  <regex offset="after_parent">auid=(\d+) </regex>
+  <order>audit.auid</order>
+</decoder>
+
+<decoder name="auditd-tty">
+  <parent>auditd-tty</parent>
+  <regex offset="after_parent">ses=(\d+) </regex>
+  <order>audit.session</order>
+</decoder>
+
+<decoder name="auditd-tty">
+  <parent>auditd-tty</parent>
+  <regex offset="after_parent">subj=(\S+) </regex>
+  <order>audit.subj</order>
+</decoder>
+
+<decoder name="auditd-tty">
+  <parent>auditd-tty</parent>
+  <regex offset="after_parent">data=(\S+)</regex>
+  <order>audit.data</order>
+</decoder>

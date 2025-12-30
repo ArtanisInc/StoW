@@ -15,6 +15,10 @@ Sigma:
   #  - unsupported
   # Sigma rule IDs to never try and convert (list)
   SkipIds:
+    - 8ac03a65-6c84-4116-acad-dc1558ff7a77  # Sysmon Event 16 - Configuration State Changed
+    - 23b71bc5-953e-4971-be4c-c896cda73fc2  # Sysmon Event 27 - File Block Executable
+    - c3e5c1b1-45e9-4632-b242-27939c170239  # Sysmon Event 28 - File Block Shredding
+    - 693a44e9-7f26-4cb6-b787-214867672d3a  # Sysmon Event 29 - File Executable Detected
   # Ignore all "convert only's" and convert all rules (yes|no), overides all other convert_only's
   # skip* will still be skipped
   # rule status will also be considered when converting all
@@ -47,9 +51,13 @@ Wazuh:
   # Recommended: 500-1000 rules per file for optimal performance
   MaxRulesPerFile: 500
   # Product-specific rule ID starting points (10000 IDs per product range)
+  # Note: Windows starts at 200400 to reserve:
+  #   - 200000-200003 for PowerShell parent rules (Phase 5)
+  #   - 200100-200103 for Windows Event ID parent rules (Phase 7)
+  # Note: Linux starts at 210007 to reserve 210000-210006 for auditd parent rules
   ProductRuleIdStart:
-    windows: 200000
-    linux: 210000
+    windows: 200400
+    linux: 210007
     azure: 220000
     m365: 230000
   # Convert Sigma rule levels to Wazuh levels
@@ -66,7 +74,7 @@ Wazuh:
     # enable Wazuh email per Sigma GUID (list)
     SigmaIdEmail:
     # have wazuh send an alert email (true|false)
-    EmailAlert: true
+    EmailAlert: false
     # at what levels do we want to enable Wazuh email alerts (list)
     # disabled if SigmaIDEmail field above is false
     EmailLevels:
@@ -82,12 +90,64 @@ Wazuh:
     SigmaIdToWazuhGroup:
     SigmaIdToWazuhId:
     ProductServiceToWazuhGroup:
+    CategoryToWazuhGroup:
     ######################################################
     # Sigma logsource.service will be matched before logsource.product
     ProductServiceToWazuhId:
-      windows: 18100, 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
+      windows: 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
       windefend: 60005
-      sysmon: 184665, 185000, 185001, 185002, 185003, 185004, 185005, 185006, 185007, 185008, 185009, 185010, 185011, 185012, 185013, 184666, 184667, 184676, 184677, 184678, 184686, 184687, 184696, 184697, 184698, 184706, 184707, 184716, 184717, 184726, 184727, 184736, 184737, 184746, 184747, 184766, 184767, 184776
+      application: 60003
+      security: 60001
+      system: 60002
+    ######################################################
+    # Sigma logsource.category mapping (checked after service, before product)
+    # Maps Sigma categories to specific Wazuh parent rule IDs
+    # NOTE: Product-specific mappings below. Use the correct mapping based on logsource.product
+    CategoryToWazuhId:
+      # Windows/Sysmon category mappings
+      windows:
+        process_creation: 61603        # Sysmon Event 1
+        file_change: 61604             # Sysmon Event 2
+        network_connection: 61605      # Sysmon Event 3
+        sysmon_status: 61606           # Sysmon Event 4
+        driver_load: 61608             # Sysmon Event 6
+        image_load: 61609              # Sysmon Event 7
+        create_remote_thread: 61610    # Sysmon Event 8
+        raw_access_thread: 61611       # Sysmon Event 9
+        process_access: 61612          # Sysmon Event 10
+        file_event: 61613              # Sysmon Event 11
+        registry_add: 61614            # Sysmon Event 12
+        registry_delete: 61614         # Sysmon Event 12
+        registry_event: 61614          # Sysmon Event 12
+        registry_set: 61615            # Sysmon Event 13
+        registry_rename: 61616         # Sysmon Event 14
+        create_stream_hash: 61617      # Sysmon Event 15
+        # Sysmon new events (Event 16+) - requires 100000-sysmon_new_events.xml
+        pipe_created: 61646, 61647     # Sysmon Events 17-18
+        dns_query: 61644               # Sysmon Event 22
+        wmi_event: 109203, 109204, 109205  # Sysmon Events 19-21
+        # file_delete: 109206          # Sysmon Event 23 - DISABLED (archives files, 400GB+ storage issues)
+        # file_delete_detected: 109212   # Sysmon Event 26 (explicit mapping)
+        # clipboard_capture: 109207    # Sysmon Event 24 - DISABLED (privacy/storage concerns, CVE-2022-41120)
+        process_tampering: 109208      # Sysmon Event 25
+        # PowerShell categories - StoW auto-generates parent rules 200000-200003
+        ps_script: 200000              # PowerShell Script Block Logging (Event 4104)
+        ps_module: 200001              # PowerShell Module Logging (Event 4103)
+        ps_classic_start: 200002       # PowerShell Classic Start (Event 400)
+        ps_classic_provider_start: 200003  # PowerShell Classic Provider Start (Event 600)
+
+      # Linux/Auditd category mappings - StoW auto-generates parent rules 210000-210006
+      linux:
+        process_creation: 210001       # auditd-execve (command execution)
+        file_event: 210002             # auditd-path (file operations)
+        file_access: 210002            # auditd-path
+        file_change: 210002            # auditd-path
+        file_delete: 210002            # auditd-path
+        network_connection: 210000     # auditd-syscall
+        syscall: 210000                # auditd-syscall
+        config_change: 210003          # auditd-config-change
+        user_auth: 210004              # auditd-user-cred
+        authentication: 210004         # auditd-user-cred
   ######################################################
   # Sigma to Wazuh field name mappings
   # section should match the sigma product field; e.g. windows, linux, mac, apache, check point fw1

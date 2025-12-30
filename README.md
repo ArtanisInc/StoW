@@ -1,434 +1,339 @@
 # StoW - Sigma to Wazuh Converter
 
-Convert [Sigma](https://github.com/SigmaHQ/sigma) detection rules into [Wazuh](https://wazuh.com) SIEM rules automatically.
+**High-performance converter transforming [Sigma](https://github.com/SigmaHQ/sigma) detection rules into [Wazuh](https://wazuh.com) SIEM rules with intelligent optimization.**
 
-## Overview
+[![Conversion Rate](https://img.shields.io/badge/conversion-84.04%25-success)]()
+[![Rules Generated](https://img.shields.io/badge/rules-4345-blue)]()
+[![Go Version](https://img.shields.io/badge/go-1.18+-00ADD8)]()
 
-StoW is a powerful converter that transforms Sigma detection rules (a generic signature format for SIEM systems) into Wazuh-compatible XML rules. It intelligently handles complex detection logic, field mappings, and automatically manages rule IDs across different products (Windows, Linux, Azure, M365).
+---
 
-### Key Features
+## 🎯 Overview
 
-- ✅ **Automatic Field Mapping** - Maps Sigma fields to Wazuh event data fields for multiple products
-- ✅ **Product-Specific Rule IDs** - Segregates rules by product with non-overlapping ID ranges
-- ✅ **Intelligent File Splitting** - Splits large rule sets into multiple files for optimal performance
-- ✅ **CDB List Generation** - Automatically converts oversized fields to CDB lists
-- ✅ **MITRE ATT&CK Integration** - Preserves MITRE technique tags from Sigma rules
-- ✅ **Comprehensive Validation** - Validates configuration and provides clear error messages
-- ✅ **Flexible Filtering** - Convert only rules matching specific products, services, or categories
+StoW automatically converts Sigma detection rules into production-ready Wazuh XML rules with:
+- **Smart parent rule chaining** for 92.2% of Linux rules (auditd optimization)
+- **Event ID-based optimization** for Windows rules
+- **Automatic CDB list generation** for large field sets (10,930 entries)
+- **Multi-product support** (Windows, Linux, Azure, M365)
 
-## Requirements
+### Current Statistics
 
-- **Go** 1.18 or higher
-- **Sigma Rules** repository (clone from [SigmaHQ](https://github.com/SigmaHQ/sigma))
-- **Wazuh** 3.11.0+ (for deployment)
-
-## Installation
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/StoW.git
-cd StoW
+```
+Products:    4 (Windows, Linux, Azure, M365)
+Total Rules: 4,345 Wazuh rules from 2,585 Sigma rules
+Conversion:  84.04% (495 skipped: experimental/unsupported)
+File Size:   87,933 lines across 11 XML files
+CDB Lists:   15 files with 10,930 optimized entries
 ```
 
-### 2. Clone Sigma Rules
+---
+
+## ⚡ Key Features
+
+### Intelligence & Optimization
+- ✅ **Linux if_sid Optimization** - Converts field matching to parent rule chaining (92.2% coverage)
+- ✅ **Windows Event ID Parents** - Auto-generates parent rules (200100-200103)
+- ✅ **PowerShell Category Parents** - Dedicated parent rules (200000-200003)
+- ✅ **Sysmon Extended Events** - Support for Events 6, 17-22, 25 via 100000-sysmon_new_events.xml
+
+### Performance & Scalability
+- ✅ **Intelligent File Splitting** - Splits into 500-rule chunks for optimal Wazuh performance
+- ✅ **Automatic CDB Lists** - Converts 1000+ value fields to O(1) lookup lists
+- ✅ **Product-Specific ID Ranges** - Non-overlapping IDs (200000+)
+
+### Compliance & Integration
+- ✅ **MITRE ATT&CK Tags** - Preserves technique mappings from Sigma
+- ✅ **Comprehensive Metadata** - Author, dates, status, references
+- ✅ **Email Alerts** - Configurable for critical/high severity
+- ✅ **No Full Log** - Optimized alert payloads
+
+---
+
+## 📦 Requirements
+
+| Component | Version | Purpose |
+|-----------|---------|---------|
+| **Go** | 1.18+ | Build StoW converter |
+| **Sigma Rules** | Latest | Source detection rules |
+| **Wazuh** | 3.11.0+ | Target SIEM platform |
+| **Auditd** (Linux) | Any | Linux log source |
+
+---
+
+## 🚀 Quick Start
+
+### 1. Setup
 
 ```bash
+# Clone StoW
+git clone https://github.com/ArtanisInc/StoW.git
+cd StoW
+
+# Clone Sigma rules (sibling directory)
 cd ..
 git clone https://github.com/SigmaHQ/sigma.git
 cd StoW
-```
 
-### 3. Build the Converter
-
-```bash
+# Build converter
 go build -o stow stow.go
 ```
 
-## Configuration
+### 2. Configure
 
-Edit `config.yaml` to customize the conversion process:
-
-### Basic Configuration
+Edit `config.yaml` - key settings:
 
 ```yaml
-Title: Sigma to Wazuh Converter Config
-Info: false   # Set to true for verbose output
-Debug: false  # Set to true for debug logging
-
 Sigma:
-  # URL base for rule references
-  BaseUrl: https://github.com/SigmaHQ/sigma/tree/master/rules
-
-  # Path to Sigma rules directory
   RulesRoot: ../sigma/rules
+  RuleStatus: [stable, test]  # Skip experimental
+  ConvertProducts: [windows, linux, azure, m365]
 
-  # Rule status to convert
-  RuleStatus:
-    - stable
-    - test
-    # - experimental  # Uncomment to include experimental rules
-```
-
-### Product Selection
-
-```yaml
-Sigma:
-  # Convert only these products (comment out to convert all)
-  ConvertProducts:
-    - windows
-    - linux
-    - azure
-    - m365
-```
-
-### Wazuh Rule ID Configuration
-
-```yaml
 Wazuh:
-  # Starting rule ID
-  RuleIdStart: 200000
-
-  # Product-specific ID ranges (10,000 IDs per product)
-  ProductRuleIdStart:
-    windows: 200000  # Windows rules: 200000-209999
-    linux: 210000    # Linux rules:   210000-219999
-    azure: 220000    # Azure rules:   220000-229999
-    m365: 230000     # M365 rules:    230000-239999
-
-  # Maximum rules per file (0 = no splitting)
   MaxRulesPerFile: 500
+  EmailAlert: false  # Disable email alerts
+
+  ProductRuleIdStart:
+    windows: 200400  # Reserve 200000-200399 for parents
+    linux: 210007    # Reserve 210000-210006 for parents
 ```
 
-### Alert Configuration
-
-```yaml
-Wazuh:
-  Levels:
-    informational: 5
-    low: 7
-    medium: 10
-    high: 12
-    critical: 15
-
-  Options:
-    NoFullLog: true      # Don't include full log in alerts
-    EmailAlert: true     # Enable email alerts
-    EmailLevels:
-      - critical
-      - high
-```
-
-## Usage
-
-### Basic Conversion
+### 3. Convert
 
 ```bash
-./stow
+./stow -c config.yaml
+
+# Output:
+# Created 200400-sigma_windows_part1.xml (500 rules)
+# Created 200400-sigma_windows_part2.xml (500 rules)
+# ...
+# Total: 4,345 Wazuh rules (84.04% conversion)
 ```
 
-### With Verbose Output
+---
 
-```bash
-./stow --info
-```
-
-### With Debug Information
-
-```bash
-./stow --debug
-```
-
-### Example Output
-
-```
-Product windows: 1523 Wazuh rules
-Product linux: 234 Wazuh rules
-Product azure: 187 Wazuh rules
-Product m365: 145 Wazuh rules
-
-Splitting windows: 1523 rules into 4 files (500 rules per file)
-  Created 200000-sigma_windows_part1.xml with 500 rules
-  Created 200000-sigma_windows_part2.xml with 500 rules
-  Created 200000-sigma_windows_part3.xml with 500 rules
-  Created 200000-sigma_windows_part4.xml with 23 rules
-Created 210000-sigma_linux.xml with 234 rules
-Created 220000-sigma_azure.xml with 187 rules
-Created 230000-sigma_m365.xml with 145 rules
-
-***************************************************************************
- Number of Sigma Experimental rules skipped: 234
-    Number of Sigma TIMEFRAME rules skipped: 45
-       Number of Sigma CONFIG rules skipped: 12
-Number of Sigma rules CONVERTED TO CDB: 23
----------------------------------------------------------------------------
-                Total Sigma rules converted: 1523
----------------------------------------------------------------------------
-                  Total Wazuh rules created: 2089
----------------------------------------------------------------------------
-                          Total Sigma rules: 2345
-                    Sigma rules converted %: 64.93
-***************************************************************************
-```
-
-## Output Files
+## 📁 Output Files
 
 ### XML Rule Files
-
-- `{ID}-sigma_{product}.xml` - Single file for product
-- `{ID}-sigma_{product}_part{N}.xml` - Split files (if MaxRulesPerFile is set)
-
-Example:
 ```
-200000-sigma_windows_part1.xml
-200000-sigma_windows_part2.xml
-210000-sigma_linux.xml
-220000-sigma_azure.xml
+200400-sigma_windows_part[1-8].xml  # 3,905 Windows rules
+210007-sigma_linux.xml              # 289 Linux rules
+220000-sigma_azure.xml              # 134 Azure rules
+230000-sigma_m365.xml               # 17 M365 rules
 ```
 
-### CDB List Files
-
-If rules contain large field values, they're automatically converted to CDB lists:
-
+### Parent Rule Files (Auto-Generated)
 ```
-lists/sigma_abc123_0_win_eventdata_commandLine
-lists/sigma_def456_1_win_eventdata_image
+100000-sysmon_new_events.xml  # Sysmon Events 6, 17-22, 25
+200000-* (in Windows files)   # PowerShell parents (4 rules)
+200100-* (in Windows files)   # Event ID parents (4 rules)
+210000-* (in Linux file)      # Auditd parents (7 rules)
 ```
 
-### Configuration Files
+### CDB Lists (15 files, 10,930 entries)
+```
+lists/sigma_*_commandLine       # Command line patterns
+lists/sigma_*_hashes            # File hashes
+lists/sigma_*_imageLoaded       # DLL names
+deploy_cdb_lists.sh             # Deployment script
+WAZUH_CDB_CONFIG.txt            # ossec.conf snippet
+```
 
-- `rule_ids.json` - Tracks Sigma ID to Wazuh ID mappings (preserves IDs between runs)
-- `WAZUH_CDB_CONFIG.txt` - Configuration snippet for ossec.conf
-- `deploy_cdb_lists.sh` - Deployment script for CDB lists
+### Tracking Files
+```
+rule_ids.json  # Sigma→Wazuh ID mappings (persistent)
+```
 
-## Deploying to Wazuh
+---
 
-### Option 1: Automated Deployment (Local)
+## 🔧 Deployment
+
+### Automated (Recommended)
 
 ```bash
+# Local deployment
 sudo ./deploy_cdb_lists.sh localhost
+
+# Remote deployment
+./deploy_cdb_lists.sh <wazuh-server> <ssh-user>
 ```
 
-### Option 2: Automated Deployment (Remote)
+### Manual Steps
 
+<details>
+<summary>Click to expand manual deployment steps</summary>
+
+#### 1. Copy Rules
 ```bash
-./deploy_cdb_lists.sh <wazuh-server-ip> <ssh-user>
+sudo cp 200400-sigma_windows_part*.xml /var/ossec/etc/rules/
+sudo cp 210007-sigma_linux.xml /var/ossec/etc/rules/
+sudo cp 220000-sigma_azure.xml /var/ossec/etc/rules/
+sudo cp 230000-sigma_m365.xml /var/ossec/etc/rules/
+sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
+sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml
+sudo chmod 640 /var/ossec/etc/rules/*sigma*.xml
 ```
 
-### Option 3: Manual Deployment
-
-1. **Copy XML rule files to Wazuh**
-
-```bash
-sudo cp *-sigma_*.xml /var/ossec/etc/rules/
-sudo chown wazuh:wazuh /var/ossec/etc/rules/sigma_*.xml
-sudo chmod 640 /var/ossec/etc/rules/sigma_*.xml
-```
-
-2. **Copy CDB list files (if generated)**
-
+#### 2. Copy CDB Lists
 ```bash
 sudo cp lists/* /var/ossec/etc/lists/
 sudo chown wazuh:wazuh /var/ossec/etc/lists/sigma_*
 sudo chmod 640 /var/ossec/etc/lists/sigma_*
 ```
 
-3. **Update Wazuh Configuration**
-
-Edit `/var/ossec/etc/ossec.conf` and add to the `<ruleset>` section:
-
+#### 3. Update ossec.conf
 ```xml
 <ruleset>
-  <!-- Existing rules -->
+  <!-- Sysmon Extended Events -->
+  <include>100000-sysmon_new_events.xml</include>
 
   <!-- Sigma Rules -->
-  <include>200000-sigma_windows_part1.xml</include>
-  <include>200000-sigma_windows_part2.xml</include>
-  <include>210000-sigma_linux.xml</include>
+  <include>200400-sigma_windows_part1.xml</include>
+  <include>200400-sigma_windows_part2.xml</include>
+  <include>200400-sigma_windows_part3.xml</include>
+  <include>200400-sigma_windows_part4.xml</include>
+  <include>200400-sigma_windows_part5.xml</include>
+  <include>200400-sigma_windows_part6.xml</include>
+  <include>200400-sigma_windows_part7.xml</include>
+  <include>200400-sigma_windows_part8.xml</include>
+  <include>210007-sigma_linux.xml</include>
   <include>220000-sigma_azure.xml</include>
   <include>230000-sigma_m365.xml</include>
-
-  <!-- CDB Lists (if applicable) -->
-  <list>etc/lists/sigma_abc123_0_win_eventdata_commandLine</list>
-  <list>etc/lists/sigma_def456_1_win_eventdata_image</list>
 </ruleset>
+
+<!-- CDB Lists - see WAZUH_CDB_CONFIG.txt for full list -->
 ```
 
-4. **Restart Wazuh Manager**
+#### 4. Install Linux Decoders (Required for Linux rules)
+```bash
+sudo cp wazuh-decoders/auditd_decoders.xml /var/ossec/etc/decoders/
+sudo chown wazuh:wazuh /var/ossec/etc/decoders/auditd_decoders.xml
+sudo chmod 640 /var/ossec/etc/decoders/auditd_decoders.xml
+```
 
+#### 5. Restart & Verify
 ```bash
 sudo systemctl restart wazuh-manager
+sudo /var/ossec/bin/wazuh-logtest  # Test with sample events
 ```
 
-5. **Verify Rules Loaded**
-
-```bash
-sudo /var/ossec/bin/wazuh-logtest
-# Test with sample events
-```
-
-## Field Mappings
-
-StoW includes comprehensive field mappings for multiple products:
-
-### Windows Event Fields
-- Sysmon events (Process, Network, Registry, etc.)
-- Windows Security events
-- PowerShell logs
-- Windows Defender logs
-
-### Linux Audit Fields
-- Auditd events
-- Process execution
-- File system operations
-
-### Cloud Platforms
-- **Azure**: Activity logs, sign-ins, operations
-- **M365**: Office 365 audit logs, operations
-
-### Network
-- **Zeek**: Connection logs, DNS, HTTP
-
-See `config.yaml` for complete field mapping definitions.
-
-## Advanced Usage
-
-### Converting Specific Categories
-
-```yaml
-Sigma:
-  ConvertCategories:
-    - process_creation
-    - network_connection
-```
-
-### Converting Specific Services
-
-```yaml
-Sigma:
-  ConvertServices:
-    - sysmon
-    - security
-```
-
-### Skipping Specific Rules
-
-```yaml
-Sigma:
-  SkipIds:
-    - 12345678-1234-1234-1234-123456789abc
-    - 87654321-4321-4321-4321-cba987654321
-```
-
-### Custom Field Mappings
-
-Add custom mappings in `config.yaml`:
-
-```yaml
-Wazuh:
-  FieldMaps:
-    MyProduct:
-      CustomField: myproduct.data.customfield
-      AnotherField: myproduct.data.anotherfield
-```
-
-## Troubleshooting
-
-### Issue: "Sigma RulesRoot path does not exist"
-
-**Solution**: Ensure the Sigma repository is cloned and the path in `config.yaml` is correct:
-
-```bash
-cd ..
-git clone https://github.com/SigmaHQ/sigma.git
-cd StoW
-# Update config.yaml RulesRoot to: ../sigma/rules
-```
-
-### Issue: "Product rule ID range overlaps"
-
-**Solution**: Ensure product ID ranges don't overlap. Each product should have a unique range (recommended: 10,000 IDs per product).
-
-### Issue: Rules not triggering in Wazuh
-
-**Checklist**:
-1. Verify rules are loaded: Check `/var/ossec/logs/ossec.log` for errors
-2. Verify field mappings match your log format
-3. Test with sample events using `wazuh-logtest`
-4. Check rule dependencies (`if_sid` values)
-
-### Issue: CDB lists not working
-
-**Solution**:
-1. Ensure CDB lists are declared in `ossec.conf`
-2. Restart Wazuh after adding lists (Wazuh 3.11.0+ compiles them automatically)
-3. Check permissions: `chown wazuh:wazuh /var/ossec/etc/lists/sigma_*`
-
-## Performance Considerations
-
-- **Large Rule Sets**: Use `MaxRulesPerFile` to split into multiple files (recommended: 500-1000 rules per file)
-- **CDB Lists**: Large field values are automatically converted to CDB lists for O(1) lookup performance
-- **Rule Dependencies**: Minimize `if_sid` chains for better performance
-
-## Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes with clear commit messages
-4. Add tests for new functionality
-5. Submit a pull request
-
-### Development
-
-```bash
-# Run tests
-go test ./...
-
-# Build
-go build -o stow stow.go
-
-# Run with debug
-./stow --debug
-```
-
-## Project Structure
-
-```
-StoW/
-├── stow.go              # Main converter logic
-├── config.yaml          # Configuration file
-├── get-wazuh_rule_info.py  # Utility for analyzing Wazuh rules
-├── README.md            # This file
-├── LICENSE              # License file
-├── go.mod               # Go module definition
-└── go.sum               # Go dependencies
-```
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- **Sigma Project**: [SigmaHQ](https://github.com/SigmaHQ/sigma) - Generic signature format for SIEM systems
-- **Wazuh**: [Wazuh](https://wazuh.com) - Open source security platform
-- **Detection Rule License**: Sigma rules are licensed under [DRL](https://github.com/SigmaHQ/Detection-Rule-License)
-
-## Resources
-
-- [Sigma Documentation](https://sigmahq.io/)
-- [Wazuh Documentation](https://documentation.wazuh.com/)
-- [Wazuh Rule Reference](https://documentation.wazuh.com/current/user-manual/ruleset/index.html)
-- [MITRE ATT&CK](https://attack.mitre.org/)
-
-## Support
-
-For issues, questions, or contributions:
-- **Issues**: [GitHub Issues](https://github.com/yourusername/StoW/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/StoW/discussions)
+</details>
 
 ---
 
-**Note**: Always test converted rules in a non-production environment before deploying to production Wazuh instances.
+## 📊 Rule ID Allocation
+
+| Product | ID Range | Count | Reserved IDs | Purpose |
+|---------|----------|-------|--------------|---------|
+| PowerShell Parents | 200000-200003 | 4 | - | ps_script, ps_module, ps_classic |
+| Event ID Parents | 200100-200103 | 4 | - | EventID-based grouping |
+| **Windows Rules** | 200400-209999 | 3,905 | 200000-200399 | Sigma Windows detections |
+| Auditd Parents | 210000-210006 | 7 | - | SYSCALL, EXECVE, PATH, etc. |
+| **Linux Rules** | 210007-219999 | 289 | 210000-210006 | Sigma Linux detections |
+| **Azure Rules** | 220000-229999 | 134 | - | Sigma Azure detections |
+| **M365 Rules** | 230000-239999 | 17 | - | Sigma M365 detections |
+
+---
+
+## 🔬 Advanced Configuration
+
+### Skip Specific Events (Example: Sysmon Events 16, 27-29)
+```yaml
+Sigma:
+  SkipIds:
+    - 8ac03a65-6c84-4116-acad-dc1558ff7a77  # Event 16
+    - 23b71bc5-953e-4971-be4c-c896cda73fc2  # Event 27
+    - c3e5c1b1-45e9-4632-b242-27939c170239  # Event 28
+    - 693a44e9-7f26-4cb6-b787-214867672d3a  # Event 29
+```
+
+### Custom Field Mappings
+See `config.yaml` FieldMaps section for:
+- Windows (100+ fields)
+- Linux (28 fields - complete)
+- Azure, M365, Zeek
+
+### Filter by Category/Service
+```yaml
+Sigma:
+  ConvertCategories: [process_creation, network_connection]
+  ConvertServices: [sysmon, security]
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Rules Not Triggering
+
+**Check decoder installation (Linux only):**
+```bash
+ls -l /var/ossec/etc/decoders/auditd_decoders.xml
+# If missing: cp wazuh-decoders/auditd_decoders.xml /var/ossec/etc/decoders/
+```
+
+**Verify rules loaded:**
+```bash
+grep -i "error\|warning" /var/ossec/logs/ossec.log
+```
+
+**Test with wazuh-logtest:**
+```bash
+/var/ossec/bin/wazuh-logtest -v < sample_event.log
+```
+
+### CDB Lists Not Working
+
+**Verify configuration:**
+```bash
+grep "sigma_" /var/ossec/etc/ossec.conf
+```
+
+**Check compilation (Wazuh 3.11.0+):**
+```bash
+ls -l /var/ossec/etc/lists/sigma_*.cdb
+# CDB files auto-compiled on Wazuh restart
+```
+
+### High Memory Usage
+
+**Reduce rules per file:**
+```yaml
+Wazuh:
+  MaxRulesPerFile: 300  # Lower from 500
+```
+
+---
+
+## 📚 Documentation
+
+- **Main README**: This file
+- **Auditd Decoders**: [wazuh-decoders/README.md](wazuh-decoders/README.md)
+- **Sigma Docs**: https://sigmahq.io/
+- **Wazuh Docs**: https://documentation.wazuh.com/
+
+---
+
+## 🤝 Contributing
+
+1. Fork repository
+2. Create feature branch
+3. Make changes with tests
+4. Submit PR with clear description
+
+---
+
+## 📜 License
+
+MIT License - see LICENSE file
+
+---
+
+## 🙏 Acknowledgments
+
+- **Sigma Project** - [SigmaHQ](https://github.com/SigmaHQ/sigma)
+- **Wazuh** - [Wazuh.com](https://wazuh.com)
+- **Detection Rule License** - [DRL](https://github.com/SigmaHQ/Detection-Rule-License)
+
+---
+
+**⚠️ Production Warning**: Always test in non-production environment first. Verify field mappings match your log sources.
