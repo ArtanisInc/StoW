@@ -110,15 +110,15 @@ grep '"rule":{"id":"210' /var/ossec/logs/alerts/alerts.json | jq .
 
 | Parent Rule | Decoder Name | Audit Type | Child Rules | Status |
 |-------------|--------------|------------|-------------|---------|
-| 210000 | auditd-syscall | SYSCALL | 12 | ✅ Active |
-| 210001 | auditd-execve | EXECVE | 217 | ✅ Active |
+| 210000 | auditd-syscall | SYSCALL | 13 | ✅ Active |
+| 210001 | auditd-execve | EXECVE | 224 | ✅ Active |
 | 210002 | auditd-path | PATH | 20 | ✅ Active |
 | 210003 | auditd-config_change | CONFIG_CHANGE | 0 | ⚪ Unused |
 | 210004 | auditd-user_and_cred | USER_* | 1 | ✅ Active |
 | 210005 | auditd-service_stop | SERVICE_STOP | 1 | ✅ Active |
 | 210006 | auditd-tty | TTY/USER_TTY | 1 | ✅ Active |
 
-**Total Coverage:** 252/282 Linux rules use parent rule chaining (89%)
+**Total Coverage:** 260/282 Linux rules use parent rule chaining (92.2%)
 
 ## 🔍 Field Extraction
 
