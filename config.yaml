@@ -47,8 +47,9 @@ Wazuh:
   # Recommended: 500-1000 rules per file for optimal performance
   MaxRulesPerFile: 500
   # Product-specific rule ID starting points (10000 IDs per product range)
+  # Note: Windows starts at 200004 to reserve 200000-200003 for PowerShell parent rules
   ProductRuleIdStart:
-    windows: 200000
+    windows: 200004
     linux: 210000
     azure: 220000
     m365: 230000
@@ -124,11 +125,11 @@ Wazuh:
         file_delete_detected: 109212   # Sysmon Event 26 (explicit mapping)
         # clipboard_capture: 109207    # Sysmon Event 24 - DISABLED (privacy/storage concerns, CVE-2022-41120)
         process_tampering: 109208      # Sysmon Event 25
-        # PowerShell categories - requires 100535-win_powershell_rules.xml parent rules
-        ps_script: 60009               # PowerShell Script Block Logging (Event 4104)
-        ps_module: 60010               # PowerShell Module Logging (Event 4103)
-        ps_classic_start: 60011        # PowerShell Classic Start (Event 400)
-        ps_classic_provider_start: 60012  # PowerShell Classic Provider Start (Event 600)
+        # PowerShell categories - StoW auto-generates parent rules 200000-200003
+        ps_script: 200000              # PowerShell Script Block Logging (Event 4104)
+        ps_module: 200001              # PowerShell Module Logging (Event 4103)
+        ps_classic_start: 200002       # PowerShell Classic Start (Event 400)
+        ps_classic_provider_start: 200003  # PowerShell Classic Provider Start (Event 600)
 
       # Linux/Auditd category mappings - requires 200110-auditd.xml parent rules
       linux:

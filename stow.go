@@ -1734,6 +1734,57 @@ func generateLinuxParentRules() []WazuhRule {
 	}
 }
 
+// generatePowerShellParentRules creates PowerShell-specific parent rules for Windows
+// These rules filter PowerShell events by EventID and ProviderName for optimal performance
+func generatePowerShellParentRules() []WazuhRule {
+	return []WazuhRule{
+		{
+			ID:          "200000",
+			Level:       "3",
+			Description: "PowerShell: Script Block Logging (Event 4104)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_script,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4104", Type: ""},
+				{Name: "win.system.channel", Value: "Microsoft-Windows-PowerShell/Operational", Type: ""},
+			},
+		},
+		{
+			ID:          "200001",
+			Level:       "3",
+			Description: "PowerShell: Module Logging (Event 4103)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_module,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "4103", Type: ""},
+				{Name: "win.system.channel", Value: "Microsoft-Windows-PowerShell/Operational", Type: ""},
+			},
+		},
+		{
+			ID:          "200002",
+			Level:       "5",
+			Description: "PowerShell: Classic PowerShell Engine Start (Event 400)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_classic_start,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "400", Type: ""},
+				{Name: "win.system.provider_name", Value: "PowerShell", Type: ""},
+			},
+		},
+		{
+			ID:          "200003",
+			Level:       "5",
+			Description: "PowerShell: Classic Provider Start (Event 600)",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,powershell,ps_classic_provider_start,",
+			Fields: []Field{
+				{Name: "win.system.eventID", Value: "600", Type: ""},
+				{Name: "win.system.provider_name", Value: "PowerShell", Type: ""},
+			},
+		},
+	}
+}
+
 func WriteWazuhXmlRules(c *Config) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
@@ -1749,6 +1800,14 @@ func WriteWazuhXmlRules(c *Config) {
 			// Prepend parent rules to the beginning
 			xmlRules.Rules = append(parentRules, xmlRules.Rules...)
 			LogIt(INFO, fmt.Sprintf("Phase 3: Added %d Linux parent rules to %s", len(parentRules), product), nil, c.Info, c.Debug)
+		}
+
+		// Phase 5: Prepend PowerShell parent rules if this is a Windows product
+		if product == "windows" {
+			parentRules := generatePowerShellParentRules()
+			// Prepend parent rules to the beginning
+			xmlRules.Rules = append(parentRules, xmlRules.Rules...)
+			LogIt(INFO, fmt.Sprintf("Phase 5: Added %d PowerShell parent rules to %s", len(parentRules), product), nil, c.Info, c.Debug)
 		}
 
 		// Get the starting ID for this product, fallback to default RuleIdStart if not configured
