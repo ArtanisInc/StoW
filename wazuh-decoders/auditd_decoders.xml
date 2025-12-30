@@ -14,9 +14,27 @@
   - Works with StoW-generated Linux rules (210000-sigma_linux.xml)
   - Supports parent rules 200110-200116
 
+  Field Coverage:
+  ✓ Fully Supported (17 fields):
+    - audit.command, audit.exe, audit.uid, audit.ses
+    - audit.execve.a0-a7 (command arguments)
+    - audit.directory.name, audit.directory.nametype
+    - audit.cwd (requires CWD records enabled in auditd.conf)
+    - audit.key, audit.syscall, audit.type, audit.unit
+
+  ⚠ Partial Support (1 field):
+    - audit.saddr (captured as hex, needs post-processing for IP/port)
+
+  ❌ Not Supported - Require External Data (6 fields):
+    - audit.dest_host (needs DNS resolution or command line extraction)
+    - audit.dest_ip, audit.dest_port (need SOCKADDR hex decoding)
+    - audit.initiated (needs syscall type logic: connect=true, accept=false)
+    - audit.parent_comm, audit.parent_exe (need correlation via ppid)
+
   References:
   - Based on: https://github.com/ArtanisInc/Wazuh-Rules/tree/main/Auditd
   - Auditd documentation: https://linux.die.net/man/8/auditd
+  - Sigma field mappings: config.yaml FieldMaps:Linux section
 -->
 
 <decoder name="auditd-config_change">
@@ -126,6 +144,22 @@
 </decoder>
 
 <!-- ========================================= -->
+<!-- CWD: Current Working Directory Events    -->
+<!-- ========================================= -->
+
+<decoder name="auditd-cwd">
+  <prematch>^type=CWD </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-cwd">
+  <parent>auditd-cwd</parent>
+  <regex offset="after_parent">cwd="([^"]+)"</regex>
+  <order>audit.cwd</order>
+</decoder>
+
+<!-- ========================================= -->
 <!-- PATH: File System Access Events          -->
 <!-- ========================================= -->
 
@@ -149,6 +183,9 @@
 
 <!-- ========================================= -->
 <!-- SYSCALL: System Call Events              -->
+<!-- NOTE: SYSCALL records contain ppid but   -->
+<!-- not parent_comm or parent_exe. These     -->
+<!-- require external correlation via ppid    -->
 <!-- ========================================= -->
 
 <decoder name="auditd-syscall">
@@ -275,6 +312,25 @@
   <parent>auditd-syscall</parent>
   <regex offset="after_parent">key="([^"]+)"</regex>
   <order>audit.key</order>
+</decoder>
+
+<!-- ========================================= -->
+<!-- SOCKADDR: Network Socket Address         -->
+<!-- NOTE: saddr field contains hex-encoded   -->
+<!-- socket address (IP+port). Hostname       -->
+<!-- resolution requires external correlation -->
+<!-- ========================================= -->
+
+<decoder name="auditd-sockaddr">
+  <prematch>^type=SOCKADDR </prematch>
+  <regex offset="after_prematch">msg=audit\((\d+\.\d+:\d+)\): </regex>
+  <order>audit.id</order>
+</decoder>
+
+<decoder name="auditd-sockaddr">
+  <parent>auditd-sockaddr</parent>
+  <regex offset="after_parent">saddr=(\S+)</regex>
+  <order>audit.saddr</order>
 </decoder>
 
 <!-- ========================================= -->
