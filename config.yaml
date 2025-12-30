@@ -15,6 +15,9 @@ Sigma:
   #  - unsupported
   # Sigma rule IDs to never try and convert (list)
   SkipIds:
+    - 23b71bc5-953e-4971-be4c-c896cda73fc2  # Sysmon Event 27 - File Block Executable
+    - c3e5c1b1-45e9-4632-b242-27939c170239  # Sysmon Event 28 - File Block Shredding
+    - 693a44e9-7f26-4cb6-b787-214867672d3a  # Sysmon Event 29 - File Executable Detected
   # Ignore all "convert only's" and convert all rules (yes|no), overides all other convert_only's
   # skip* will still be skipped
   # rule status will also be considered when converting all
@@ -91,6 +94,7 @@ Wazuh:
     # Sigma logsource.service will be matched before logsource.product
     ProductServiceToWazuhId:
       windows: 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
+      sysmon: 109213  # Only Event 16 (Config State Changed) - Events 27-29 skipped via SkipIds
       windefend: 60005
       application: 60003
       security: 60001
