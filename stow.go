@@ -1041,7 +1041,7 @@ func populateRuleMetadata(rule *WazuhRule, sigma *SigmaRule, url string, product
 
 // optimizeLinuxRule converts audit.type field matching to if_sid for better performance
 // This optimization applies to Linux/auditd rules that explicitly check audit.type field
-// instead of using the proper parent rule chaining via if_sid
+// OR use fields from specific auditd decoders without specifying if_sid
 func optimizeLinuxRule(rule *WazuhRule) {
 	// Skip if rule already has if_sid (already optimized)
 	if rule.IfSid != "" {
@@ -1103,6 +1103,72 @@ func optimizeLinuxRule(rule *WazuhRule) {
 			}
 		}
 	}
+
+	// NEW: Field-based decoder detection
+	// If no audit.type was found, detect which decoder is needed based on field names
+	// This handles rules that use auditd decoder fields without explicitly specifying audit.type
+	hasExecveField := false
+	hasPathField := false
+	hasSyscallField := false
+	hasConfigChangeField := false
+	hasTTYField := false
+
+	for _, field := range rule.Fields {
+		// Check for EXECVE decoder fields (highest priority for process execution)
+		if strings.HasPrefix(field.Name, "audit.execve.") {
+			hasExecveField = true
+			break // EXECVE is very specific, use it immediately
+		}
+
+		// Check for PATH decoder fields (file system operations)
+		if strings.HasPrefix(field.Name, "audit.file.") || strings.HasPrefix(field.Name, "audit.directory.") {
+			hasPathField = true
+		}
+
+		// Check for SYSCALL decoder fields
+		if field.Name == "audit.syscall" || field.Name == "audit.arch" ||
+			field.Name == "audit.command" || field.Name == "audit.exe" ||
+			field.Name == "audit.ppid" || field.Name == "audit.tty" ||
+			field.Name == "audit.success" || field.Name == "audit.exit" ||
+			field.Name == "audit.key" {
+			hasSyscallField = true
+		}
+
+		// Check for CONFIG_CHANGE decoder fields
+		if field.Name == "audit.op" || field.Name == "audit.list" {
+			hasConfigChangeField = true
+		}
+
+		// Check for TTY decoder fields (keylogging)
+		if field.Name == "audit.data" {
+			hasTTYField = true
+		}
+	}
+
+	// Assign if_sid based on detected decoder (priority order)
+	if hasExecveField {
+		rule.IfSid = "200111" // auditd-execve
+		return
+	}
+	if hasPathField {
+		rule.IfSid = "200112" // auditd-path
+		return
+	}
+	if hasSyscallField {
+		rule.IfSid = "200110" // auditd-syscall
+		return
+	}
+	if hasConfigChangeField {
+		rule.IfSid = "200113" // auditd-config_change
+		return
+	}
+	if hasTTYField {
+		rule.IfSid = "200116" // auditd-tty
+		return
+	}
+
+	// If no decoder-specific fields found, this rule likely uses full_log matching
+	// or is not an auditd rule (e.g., clamav, cron, sshd) - no if_sid needed
 }
 
 // BuildRule constructs a Wazuh rule from a Sigma rule detection
