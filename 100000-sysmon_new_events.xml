@@ -156,6 +156,17 @@
     <group>sysmon_event_6,</group>
   </rule>
 
+  <!-- Sysmon Event 16: Sysmon Configuration State Changed -->
+  <rule id="109213" level="3">
+    <if_sid>61600</if_sid>
+    <field name="win.system.eventID">^16$</field>
+    <description>Sysmon - Event 16: Configuration State Changed (Sysmon config modified)</description>
+    <mitre>
+      <id>T1562.001</id>
+    </mitre>
+    <group>sysmon_event_16,sysmon_config,</group>
+  </rule>
+
   <!-- Special Detection: Windows Security Log Cleared -->
   <rule id="109209" level="12">
     <if_sid>63103</if_sid>
