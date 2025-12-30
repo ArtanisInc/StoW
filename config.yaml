@@ -90,7 +90,7 @@ Wazuh:
     ######################################################
     # Sigma logsource.service will be matched before logsource.product
     ProductServiceToWazuhId:
-      windows: 18100, 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
+      windows: 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
       windefend: 60005
       application: 60003
       security: 60001
