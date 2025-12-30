@@ -74,7 +74,7 @@ Wazuh:
     # enable Wazuh email per Sigma GUID (list)
     SigmaIdEmail:
     # have wazuh send an alert email (true|false)
-    EmailAlert: true
+    EmailAlert: false
     # at what levels do we want to enable Wazuh email alerts (list)
     # disabled if SigmaIDEmail field above is false
     EmailLevels:
