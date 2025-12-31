@@ -183,6 +183,14 @@ Wazuh:
   # section should match the sigma product field; e.g. windows, linux, mac, apache, check point fw1
   # section/product should be lower case
   FieldMaps:
+    # ============================================================================
+    # Windows FieldMaps (Default - Sysmon + Built-in Channels)
+    # ============================================================================
+    # These are the primary Windows field mappings, used for:
+    # - Sysmon events (all Event IDs)
+    # - Built-in Windows channels (DriverFrameworks, CodeIntegrity, Firewall, etc.)
+    # Note: Conditional mappings below (windows-security) override these for specific services
+    # ============================================================================
     Windows:
       Accesses: win.eventdata.accesses
       AccessList: win.eventdata.accessList
@@ -352,7 +360,16 @@ Wazuh:
       UserName: win.eventdata.samAccountName
       Value: win.eventdata.value
       WorkstationName: win.eventdata.workstationName
-    # Security Event Channel mappings (different field names than Sysmon)
+
+    # ============================================================================
+    # CONDITIONAL FIELDMAPS: Windows Security Event Channel
+    # ============================================================================
+    # These mappings override the Windows mappings above for Sigma rules with:
+    # logsource: product=windows + service=security
+    #
+    # Reason: Security Event 4688 uses different field names than Sysmon Event 1
+    # Example: Image → newProcessName (not image), ProcessId → newProcessId (hex)
+    # ============================================================================
     windows-security:
       # Process Creation (Event 4688) - field name differences from Sysmon
       Image: win.eventdata.newProcessName          # Sysmon: image, Security: newProcessName
