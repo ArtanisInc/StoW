@@ -1,0 +1,17 @@
+<!--
+  StoW - Sigma to Wazuh Converter
+  Parent rule for Windows Shell Core events
+
+  Channel: Microsoft-Windows-Shell-Core/Operational
+  Sigma Rules: 2 rules
+  Rule ID: 109977
+-->
+
+<group name="windows,shell,">
+  <rule id="109977" level="3">
+    <field name="win.system.channel">Microsoft-Windows-Shell-Core/Operational</field>
+    <description>Windows Shell Core Event</description>
+    <options>no_full_log</options>
+    <group>windows,shell,</group>
+  </rule>
+</group>

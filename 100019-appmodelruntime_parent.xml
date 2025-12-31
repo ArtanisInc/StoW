@@ -1,0 +1,17 @@
+<!--
+  StoW - Sigma to Wazuh Converter
+  Parent rule for AppModel Runtime events
+
+  Channel: Microsoft-Windows-AppModel-Runtime/Admin
+  Sigma Rules: 1 rule
+  Rule ID: 109975
+-->
+
+<group name="windows,appmodel,">
+  <rule id="109975" level="3">
+    <field name="win.system.channel">Microsoft-Windows-AppModel-Runtime/Admin</field>
+    <description>AppModel Runtime Event</description>
+    <options>no_full_log</options>
+    <group>windows,appmodel,</group>
+  </rule>
+</group>

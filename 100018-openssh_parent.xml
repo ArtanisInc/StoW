@@ -1,0 +1,17 @@
+<!--
+  StoW - Sigma to Wazuh Converter
+  Parent rule for OpenSSH Server events
+
+  Channel: OpenSSH/Operational
+  Sigma Rules: 1 rule
+  Rule ID: 109976
+-->
+
+<group name="windows,openssh,">
+  <rule id="109976" level="3">
+    <field name="win.system.channel">OpenSSH/Operational</field>
+    <description>OpenSSH Server Event</description>
+    <options>no_full_log</options>
+    <group>windows,openssh,</group>
+  </rule>
+</group>
