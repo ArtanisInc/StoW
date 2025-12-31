@@ -1,4 +1,4 @@
-#!//usr/bin/python3
+#!/usr/bin/python3
 """
     Author: Brian Kellogg
 
@@ -30,7 +30,7 @@ class WazuhRules(object):
                 raw_xml = '<rules>' + file.read() + '</rules>' # wrap file contents in outer tags so we can load it as one XML file
             return etree.ElementTree(etree.fromstring(raw_xml))
         except Exception as e:
-            print("ERROR: unable to load %si -> %s" % (rule_file, e))
+            print("ERROR: unable to load %s -> %s" % (rule_file, e))
             return None
 
     def load_wazuh_rules(self):
@@ -75,7 +75,7 @@ class Report(object):
                     level = e.attrib.get('level')
                 elif e.tag == 'description':
                     description = e.text
-                    description = description.replace('"', '""') # one rule has quotes in the description, need to escap them
+                    description = description.replace('"', '""') # one rule has quotes in the description, need to escape them
                 elif e.tag == 'if_sid':
                     ifsid = e.text
                 elif e.tag == "decoded_as":
