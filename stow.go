@@ -102,15 +102,17 @@ func initPreviousUsed(c *Config) {
 	}
 }
 
-func LoadStowConfig(c *Config) {
+func LoadStowConfig(c *Config, configPath string) {
 	// Load Sigma and Wazuh config for rule processing
-	data, err := os.ReadFile("./config.yaml")
+	data, err := os.ReadFile(configPath)
 	if err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
+		LogIt(ERROR, fmt.Sprintf("Failed to read config file: %s", configPath), err, c.Info, c.Debug)
+		os.Exit(1)
 	}
 	err = yaml.Unmarshal(data, &c)
 	if err != nil {
-		LogIt(ERROR, "", err, c.Info, c.Debug)
+		LogIt(ERROR, "Failed to parse config YAML", err, c.Info, c.Debug)
+		os.Exit(1)
 	}
 
 	// Lowercase the FieldMaps keys for case-insensitive matching
@@ -141,7 +143,7 @@ func LoadSigmaWazuhIdMap(c *Config) {
 	}
 }
 
-func InitConfig() *Config {
+func InitConfig(configPath string) *Config {
 	c := &Config{
 		Ids: struct {
 			PreviousUsed []int            `yaml:"PreviousUsed"`
@@ -152,7 +154,7 @@ func InitConfig() *Config {
 		},
 	}
 
-	LoadStowConfig(c)
+	LoadStowConfig(c, configPath)
 	LoadSigmaWazuhIdMap(c)
 
 	initPreviousUsed(c)
@@ -2292,8 +2294,14 @@ func PrintStats(c *Config, sigmaRuleIds []string) {
 }
 
 func main() {
-	c := InitConfig()
-	c.Info, c.Debug = getArgs(os.Args, c)
+	// Parse command-line arguments first to get config path
+	tempConfig := &Config{} // Temporary config for initial arg parsing
+	info, debug, configPath := getArgs(os.Args, tempConfig)
+
+	// Initialize config with the specified config file
+	c := InitConfig(configPath)
+	c.Info = info
+	c.Debug = debug
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
 
 	// Validate configuration
@@ -2337,23 +2345,52 @@ func main() {
 UTILITY FUNCTIONS
 */
 
-func getArgs(args []string, c *Config) (bool, bool) {
+func getArgs(args []string, c *Config) (bool, bool, string) {
 	LogIt(DEBUG, "", nil, c.Info, c.Debug)
+	configPath := "./config.yaml" // Default config path
+
 	if len(args) == 1 {
-		return c.Info, c.Debug
+		return c.Info, c.Debug, configPath
 	}
+
 	infoArgs := []string{"-i", "--info"}
 	debugArgs := []string{"-d", "--debug"}
-	for _, arg := range args {
+	configArgs := []string{"-c", "--config"}
+	helpArgs := []string{"-h", "--help"}
+
+	for i, arg := range args {
 		switch {
+		case slices.Contains(helpArgs, arg):
+			fmt.Println("StoW - Sigma to Wazuh Converter")
+			fmt.Println("\nUsage:")
+			fmt.Println("  ./stow [options]")
+			fmt.Println("\nOptions:")
+			fmt.Println("  -c, --config <path>   Path to config file (default: ./config.yaml)")
+			fmt.Println("  -i, --info            Enable info logging")
+			fmt.Println("  -d, --debug           Enable debug logging (includes info)")
+			fmt.Println("  -h, --help            Show this help message")
+			fmt.Println("\nExamples:")
+			fmt.Println("  ./stow")
+			fmt.Println("  ./stow -c config.yaml")
+			fmt.Println("  ./stow -c /path/to/custom-config.yaml -d")
+			os.Exit(0)
 		case slices.Contains(infoArgs, arg):
 			c.Info = true
 		case slices.Contains(debugArgs, arg):
 			c.Info = true
 			c.Debug = true
+		case slices.Contains(configArgs, arg):
+			// Check if there's a next argument for the config path
+			if i+1 < len(args) {
+				configPath = args[i+1]
+			} else {
+				fmt.Println("Error: -c/--config flag requires a path argument")
+				fmt.Println("Use --help for usage information")
+				os.Exit(1)
+			}
 		}
 	}
-	return c.Info, c.Debug
+	return c.Info, c.Debug, configPath
 }
 
 const DEBUG = "debug"
