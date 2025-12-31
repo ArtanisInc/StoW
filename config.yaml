@@ -119,6 +119,7 @@ Wazuh:
       smbclient-connectivity: 109986     # SMB Client connectivity (note: smbclient not smbserver!)
       applocker: 109985                  # AppLocker events
       security-mitigations: 109984       # Security Mitigations events
+      appxdeployment-server: 109983      # AppX Package Deployment (malicious packages, policy blocks)
     ######################################################
     # Sigma logsource.category mapping (checked after service, before product)
     # Maps Sigma categories to specific Wazuh parent rule IDs
