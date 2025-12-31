@@ -159,6 +159,13 @@ Wazuh:
         ps_classic_start: 200002       # PowerShell Classic Start (Event 400)
         ps_classic_provider_start: 200003  # PowerShell Classic Provider Start (Event 600)
 
+      # Windows Security Event Channel category mappings
+      # For Sigma rules with logsource: product=windows + service=security
+      windows-security:
+        process_creation: 109982       # Security Event 4688 (requires GPO for CommandLine)
+        # Note: Only process_creation implemented for now
+        # Other Security events (network_connection 5156, registry 4657, etc.) could be added later
+
       # Linux/Auditd category mappings - StoW auto-generates parent rules 210000-210006
       linux:
         process_creation: 210001       # auditd-execve (command execution)
@@ -345,6 +352,26 @@ Wazuh:
       UserName: win.eventdata.samAccountName
       Value: win.eventdata.value
       WorkstationName: win.eventdata.workstationName
+    # Security Event Channel mappings (different field names than Sysmon)
+    windows-security:
+      # Process Creation (Event 4688) - field name differences from Sysmon
+      Image: win.eventdata.newProcessName          # Sysmon: image, Security: newProcessName
+      ParentImage: win.eventdata.parentProcessName # Sysmon: parentImage, Security: parentProcessName
+      ProcessId: win.eventdata.newProcessId        # Sysmon: processId (decimal), Security: newProcessId (hex)
+      ParentProcessId: win.eventdata.processId     # Sysmon: parentProcessId, Security: processId (creator)
+      User: win.eventdata.subjectUserName          # Sysmon: user, Security: subjectUserName (+subjectDomainName)
+      LogonId: win.eventdata.subjectLogonId        # Sysmon: logonId, Security: subjectLogonId
+      IntegrityLevel: win.eventdata.mandatoryLabel # Sysmon: integrityLevel (Low/Medium/High), Security: mandatoryLabel (SID)
+      CommandLine: win.eventdata.commandLine       # Same in both (but needs GPO enabled in Security)
+      # Note: Security 4688 does NOT have: OriginalFileName, Hashes, ParentCommandLine, ProcessGuid, etc.
+      # Other Security event fields (if needed for other event types)
+      TargetUserName: win.eventdata.targetUserName
+      TargetUserSid: win.eventdata.targetUserSid
+      TargetDomainName: win.eventdata.targetDomainName
+      SubjectUserName: win.eventdata.subjectUserName
+      SubjectUserSid: win.eventdata.subjectUserSid
+      SubjectDomainName: win.eventdata.subjectDomainName
+      TokenElevationType: win.eventdata.tokenElevationType
     Zeek:
       answers: data.answers
       c-uri: data.c-uri
