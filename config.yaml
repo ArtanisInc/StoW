@@ -130,6 +130,8 @@ Wazuh:
         # file_delete_detected: 109212   # Sysmon Event 26 (explicit mapping)
         # clipboard_capture: 109207    # Sysmon Event 24 - DISABLED (privacy/storage concerns, CVE-2022-41120)
         process_tampering: 109208      # Sysmon Event 25
+        # DriverFrameworks category - requires 100001-driverframeworks_parent.xml
+        driver-framework: 109999       # DriverFrameworks Events 2003, 2100, 2102 (USB detection, etc.)
         # PowerShell categories - StoW auto-generates parent rules 200000-200003
         ps_script: 200000              # PowerShell Script Block Logging (Event 4104)
         ps_module: 200001              # PowerShell Module Logging (Event 4103)

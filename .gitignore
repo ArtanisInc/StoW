@@ -25,7 +25,7 @@ go.work
 # auto generated files
 *.xml
 !wazuh-decoders/*.xml  # Exception: Keep decoder files in git
-!100000-*.xml          # Exception: Keep parent rule files (100000-sysmon_new_events.xml, etc.)
+!1[0-9][0-9][0-9][0-9][0-9]-*.xml  # Exception: Keep parent rule files (100000-199999 range)
 *.csv
 *.txt
 *.json
