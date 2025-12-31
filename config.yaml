@@ -94,16 +94,24 @@ Wazuh:
     ######################################################
     # Sigma logsource.service will be matched before logsource.product
     ProductServiceToWazuhId:
+      # ========================================================================
+      # Legacy Windows Services (Wazuh built-in parent rules)
+      # ========================================================================
       windows: 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
       windefend: 60005
       application: 60003
       security: 60001
       system: 60002
-      # Windows Built-in Event Channels - requires parent rule files (100002-100010)
-      # CORRECTIONS from official Sigma service-to-channel mappings:
-      # - ldap_debug (not "ldap")
-      # - smbclient-connectivity (not "smbserver-connectivity")
-      # - dns-server vs dns-server-analytic are SEPARATE services!
+
+      # ========================================================================
+      # Windows Built-in Event Channels (Custom parent rules 100001-100012)
+      # ========================================================================
+      # Requires parent rule files: 1000[01-12]-*_parent.xml
+      # Note: Service names corrected from official Sigma mappings:
+      #   - ldap_debug (not "ldap")
+      #   - smbclient-connectivity (not "smbserver-connectivity")
+      #   - dns-server vs dns-server-analytic are SEPARATE services!
+      # ========================================================================
       codeintegrity-operational: 109998  # Code Integrity events
       firewall-as: 109997                # Windows Firewall Advanced Security
       bits-client: 109996                # BITS Client transfers
@@ -125,7 +133,11 @@ Wazuh:
     # Maps Sigma categories to specific Wazuh parent rule IDs
     # NOTE: Product-specific mappings below. Use the correct mapping based on logsource.product
     CategoryToWazuhId:
-      # Windows/Sysmon category mappings
+      # ========================================================================
+      # Windows/Sysmon Category Mappings (Default)
+      # ========================================================================
+      # Used for Sigma rules with logsource: product=windows (without service=security)
+      # ========================================================================
       windows:
         process_creation: 61603        # Sysmon Event 1
         file_change: 61604             # Sysmon Event 2
@@ -159,8 +171,12 @@ Wazuh:
         ps_classic_start: 200002       # PowerShell Classic Start (Event 400)
         ps_classic_provider_start: 200003  # PowerShell Classic Provider Start (Event 600)
 
-      # Windows Security Event Channel category mappings
-      # For Sigma rules with logsource: product=windows + service=security
+      # ========================================================================
+      # CONDITIONAL: Windows Security Event Channel Category Mappings
+      # ========================================================================
+      # These mappings override the Windows mappings above for Sigma rules with:
+      # logsource: product=windows + service=security
+      # ========================================================================
       windows-security:
         process_creation: 109982       # Security Event 4688 (requires GPO for CommandLine)
         # Note: Only process_creation implemented for now
