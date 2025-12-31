@@ -1,0 +1,36 @@
+<!--
+  Parent Rule for Windows NTLM Authentication Events
+
+  Provides base rule for NTLM authentication events from the
+  Microsoft-Windows-NTLM/Operational channel.
+
+  Required:
+  - Channel must be enabled on Windows:
+    wevtutil sl Microsoft-Windows-NTLM/Operational /e:true
+
+  Common Event IDs:
+  - 8001: NTLM client blocked audit
+  - 8002: NTLM server blocked audit (incoming)
+  - 8003: NTLM authentication blocked
+  - 8004: NTLM authentication allowed but would be blocked
+
+  Use Cases:
+  - Detect NTLM relay attacks
+  - Monitor authentication to suspicious hosts
+  - Track NTLM usage for migration to Kerberos
+  - Detect Pass-the-Hash attacks
+
+  Rule ID: 109994 (Custom parent rule for NTLM)
+-->
+
+<group name="windows,ntlm,">
+
+  <!-- Parent rule for all NTLM events -->
+  <rule id="109994" level="3">
+    <field name="win.system.channel">Microsoft-Windows-NTLM/Operational</field>
+    <description>Windows NTLM Authentication Event</description>
+    <options>no_full_log</options>
+    <group>windows,ntlm,</group>
+  </rule>
+
+</group>

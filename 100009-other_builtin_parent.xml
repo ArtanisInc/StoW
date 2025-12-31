@@ -1,0 +1,63 @@
+<!--
+  Parent Rules for Other Windows Built-in Event Channels
+
+  Provides base rules for various Windows event channels that have
+  fewer Sigma rule conversions (1-2 rules each).
+
+  All channels require explicit enablement via wevtutil commands.
+
+  Rule ID Range: 109991-109985
+-->
+
+<group name="windows,builtin,">
+
+  <!-- LDAP Client Events - Rule ID: 109991 -->
+  <rule id="109991" level="3">
+    <field name="win.system.channel">Microsoft-Windows-LDAP-Client/Debug</field>
+    <description>Windows LDAP Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,ldap,</group>
+  </rule>
+
+  <!-- LSA Server Events - Rule ID: 109990 -->
+  <rule id="109990" level="3">
+    <field name="win.system.channel">Microsoft-Windows-LSA/Operational</field>
+    <description>Windows LSA Server Event</description>
+    <options>no_full_log</options>
+    <group>windows,lsa-server,</group>
+  </rule>
+
+  <!-- Terminal Services Events - Rule ID: 109989 -->
+  <rule id="109989" level="3">
+    <field name="win.system.channel">Microsoft-Windows-TerminalServices-LocalSessionManager/Operational</field>
+    <description>Windows Terminal Services Event</description>
+    <options>no_full_log</options>
+    <group>windows,terminalservices-localsessionmanager,</group>
+  </rule>
+
+  <!-- SMB Client Security Events - Rule ID: 109988 -->
+  <rule id="109988" level="3">
+    <field name="win.system.channel">Microsoft-Windows-SmbClient/Security</field>
+    <description>Windows SMB Client Security Event</description>
+    <options>no_full_log</options>
+    <group>windows,smbclient-security,</group>
+  </rule>
+
+  <!-- SMB Server Connectivity Events - Rule ID: 109987 -->
+  <rule id="109987" level="3">
+    <field name="win.system.channel">Microsoft-Windows-SMBServer/Connectivity</field>
+    <description>Windows SMB Server Connectivity Event</description>
+    <options>no_full_log</options>
+    <group>windows,smbserver-connectivity,</group>
+  </rule>
+
+  <!-- AppLocker Events - Rule ID: 109986 -->
+  <!-- Note: AppLocker uses multiple channels (EXE/DLL, MSI/Script, Packaged app-Deployment, Packaged app-Execution) -->
+  <rule id="109986" level="3">
+    <field name="win.system.channel" type="pcre2">Microsoft-Windows-AppLocker/</field>
+    <description>Windows AppLocker Event</description>
+    <options>no_full_log</options>
+    <group>windows,applocker,</group>
+  </rule>
+
+</group>

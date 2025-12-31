@@ -99,6 +99,20 @@ Wazuh:
       application: 60003
       security: 60001
       system: 60002
+      # Windows Built-in Event Channels - requires parent rule files (100002-100009)
+      codeintegrity-operational: 109998  # Code Integrity events
+      firewall-as: 109997                # Windows Firewall Advanced Security
+      bits-client: 109996                # BITS Client transfers
+      dns-client: 109995                 # DNS Client queries
+      ntlm: 109994                       # NTLM authentication
+      taskscheduler: 109993              # Task Scheduler events
+      dns-server: 109992                 # DNS Server events
+      ldap: 109991                       # LDAP Client events
+      lsa-server: 109990                 # LSA Server events
+      terminalservices-localsessionmanager: 109989  # Terminal Services
+      smbclient-security: 109988         # SMB Client security
+      smbserver-connectivity: 109987     # SMB Server connectivity
+      applocker: 109986                  # AppLocker events
     ######################################################
     # Sigma logsource.category mapping (checked after service, before product)
     # Maps Sigma categories to specific Wazuh parent rule IDs
