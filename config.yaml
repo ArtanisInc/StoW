@@ -94,11 +94,40 @@ Wazuh:
     ######################################################
     # Sigma logsource.service will be matched before logsource.product
     ProductServiceToWazuhId:
+      # ========================================================================
+      # Legacy Windows Services (Wazuh built-in parent rules)
+      # ========================================================================
       windows: 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
       windefend: 60005
       application: 60003
       security: 60001
       system: 60002
+
+      # ========================================================================
+      # Windows Built-in Event Channels (Custom parent rules 100001-100012)
+      # ========================================================================
+      # Requires parent rule files: 1000[01-12]-*_parent.xml
+      # Note: Service names corrected from official Sigma mappings:
+      #   - ldap_debug (not "ldap")
+      #   - smbclient-connectivity (not "smbserver-connectivity")
+      #   - dns-server vs dns-server-analytic are SEPARATE services!
+      # ========================================================================
+      codeintegrity-operational: 109998  # Code Integrity events
+      firewall-as: 109997                # Windows Firewall Advanced Security
+      bits-client: 109996                # BITS Client transfers
+      dns-client: 109995                 # DNS Client queries
+      ntlm: 109994                       # NTLM authentication
+      taskscheduler: 109993              # Task Scheduler events
+      dns-server: 109992                 # DNS Server (channel: "DNS Server")
+      dns-server-analytic: 109991        # DNS Server Analytical (separate service! channel: Microsoft-Windows-DNS-Server/Analytical)
+      ldap_debug: 109990                 # LDAP Client debug (note: service name is ldap_debug not ldap!)
+      lsa-server: 109989                 # LSA Server events
+      terminalservices-localsessionmanager: 109988  # Terminal Services
+      smbclient-security: 109987         # SMB Client security
+      smbclient-connectivity: 109986     # SMB Client connectivity (note: smbclient not smbserver!)
+      applocker: 109985                  # AppLocker events
+      security-mitigations: 109984       # Security Mitigations events
+      appxdeployment-server: 109983      # AppX Package Deployment (malicious packages, policy blocks)
     ######################################################
     # Sigma logsource.category mapping (checked after service, before product)
     # Maps Sigma categories to specific Wazuh parent rule IDs
@@ -130,6 +159,8 @@ Wazuh:
         # file_delete_detected: 109212   # Sysmon Event 26 (explicit mapping)
         # clipboard_capture: 109207    # Sysmon Event 24 - DISABLED (privacy/storage concerns, CVE-2022-41120)
         process_tampering: 109208      # Sysmon Event 25
+        # DriverFrameworks category - requires 100001-driverframeworks_parent.xml
+        driver-framework: 109999       # DriverFrameworks Events 2003, 2100, 2102 (USB detection, etc.)
         # PowerShell categories - StoW auto-generates parent rules 200000-200003
         ps_script: 200000              # PowerShell Script Block Logging (Event 4104)
         ps_module: 200001              # PowerShell Module Logging (Event 4103)
@@ -153,6 +184,7 @@ Wazuh:
   # section should match the sigma product field; e.g. windows, linux, mac, apache, check point fw1
   # section/product should be lower case
   FieldMaps:
+    # Windows field mappings for Sysmon and built-in channels
     Windows:
       Accesses: win.eventdata.accesses
       AccessList: win.eventdata.accessList

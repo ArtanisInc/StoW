@@ -1,0 +1,36 @@
+<!--
+  Parent Rule for Windows Firewall Advanced Security Events
+
+  Provides base rule for Windows Firewall rule changes, policy modifications,
+  and configuration events from the Microsoft-Windows-Windows Firewall With Advanced Security/Firewall channel.
+
+  Required:
+  - Channel is enabled by default on Windows
+  - Events are logged to: Microsoft-Windows-Windows Firewall With Advanced Security/Firewall
+
+  Common Event IDs:
+  - 2002: Settings changed
+  - 2003: Settings changed
+  - 2004: Rule added to exception list
+  - 2005: Rule modified
+  - 2006-2007: Rule changes
+  - 2008: Settings changed
+  - 2009: Failed to load group policy
+  - 2033: All rules deleted
+  - 2071: Rule added (Windows 11)
+  - 2097: Rule added
+
+  Rule ID: 109997 (Custom parent rule for Windows Firewall)
+-->
+
+<group name="windows,firewall,">
+
+  <!-- Parent rule for all Windows Firewall Advanced Security events -->
+  <rule id="109997" level="3">
+    <field name="win.system.channel">Microsoft-Windows-Windows Firewall With Advanced Security/Firewall</field>
+    <description>Windows Firewall Advanced Security Event</description>
+    <options>no_full_log</options>
+    <group>windows,firewall-as,</group>
+  </rule>
+
+</group>

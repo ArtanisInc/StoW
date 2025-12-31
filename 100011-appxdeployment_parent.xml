@@ -1,0 +1,35 @@
+<!--
+  Parent Rule for Windows AppXDeployment Server Events
+
+  Provides base rule for AppX package deployment detection, including:
+  - Malicious package installations
+  - AppLocker policy blocks
+  - Package signature validation failures
+  - Packages from suspicious locations
+
+  Channel: Microsoft-Windows-AppXDeploymentServer/Operational
+
+  EventIDs covered:
+  - 400, 401: Package deployment/signature issues
+  - 412: AppLocker block
+  - 441, 442, 453, 454: Policy blocks
+  - 854: Package downloads/staging
+
+  Required:
+  - Channel must be enabled (enabled by default on Windows 10+)
+
+  Rule ID: 109983 (Custom parent rule for AppXDeploymentServer)
+  Related Sigma rules: 7 detection rules
+-->
+
+<group name="windows,appxdeployment,">
+
+  <!-- Parent rule for all AppXDeploymentServer events -->
+  <rule id="109983" level="3">
+    <field name="win.system.channel">Microsoft-Windows-AppXDeploymentServer/Operational</field>
+    <description>Windows AppXDeploymentServer Event</description>
+    <options>no_full_log</options>
+    <group>windows,appxdeployment,</group>
+  </rule>
+
+</group>

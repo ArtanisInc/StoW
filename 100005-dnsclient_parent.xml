@@ -1,0 +1,35 @@
+<!--
+  Parent Rule for Windows DNS Client Events
+
+  Provides base rule for DNS query events from the
+  Microsoft-Windows-DNS Client Events/Operational channel.
+
+  Required:
+  - Channel must be enabled on Windows:
+    wevtutil sl "Microsoft-Windows-DNS Client Events/Operational" /e:true
+
+  Common Event IDs:
+  - 3008: DNS query response
+  - 3020: DNS query timeout
+  - 3006: DNS query name resolution
+
+  Use Cases:
+  - Detect DNS tunneling (C2 communication)
+  - Monitor queries to suspicious domains (Tor, malware C2, etc.)
+  - Track DNS-based data exfiltration
+  - Detect DGA (Domain Generation Algorithm) activity
+
+  Rule ID: 109995 (Custom parent rule for DNS Client)
+-->
+
+<group name="windows,dns,">
+
+  <!-- Parent rule for all DNS Client events -->
+  <rule id="109995" level="3">
+    <field name="win.system.channel">Microsoft-Windows-DNS Client Events/Operational</field>
+    <description>Windows DNS Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,dns-client,</group>
+  </rule>
+
+</group>

@@ -452,6 +452,11 @@ func GetIfGrpSid(sigma *SigmaRule, c *Config) (string, string) {
 		return "grp", c.Wazuh.SidGrpMaps.ProductServiceToWazuhGroup[sigma.LogSource.Product]
 	case c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service] != "":
 		return "sid", c.Wazuh.SidGrpMaps.ProductServiceToWazuhId[sigma.LogSource.Service]
+	// Try product-service category mapping first (e.g., windows-security process_creation -> 109982)
+	case sigma.LogSource.Service != "" && c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product+"-"+sigma.LogSource.Service] != nil && c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product+"-"+sigma.LogSource.Service][sigma.LogSource.Category] != "":
+		productService := sigma.LogSource.Product + "-" + sigma.LogSource.Service
+		LogIt(DEBUG, fmt.Sprintf("GetIfGrpSid: Using product-service category mapping: %s.%s -> %s", productService, sigma.LogSource.Category, c.Wazuh.SidGrpMaps.CategoryToWazuhId[productService][sigma.LogSource.Category]), nil, c.Info, c.Debug)
+		return "sid", c.Wazuh.SidGrpMaps.CategoryToWazuhId[productService][sigma.LogSource.Category]
 	case c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product] != nil && c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product][sigma.LogSource.Category] != "":
 		// Product-specific category mapping (e.g., Windows process_creation -> 61603, Linux process_creation -> 200111)
 		return "sid", c.Wazuh.SidGrpMaps.CategoryToWazuhId[sigma.LogSource.Product][sigma.LogSource.Category]
@@ -498,11 +503,27 @@ func GetOptions(sigma *SigmaRule, c *Config) []string {
 }
 
 func GetWazuhField(fieldName string, sigma *SigmaRule, c *Config) string {
-	if f, ok := c.Wazuh.FieldMaps[strings.ToLower(sigma.LogSource.Product)][fieldName]; ok {
-		return f
-	} else {
-		return "full_log"
+	product := strings.ToLower(sigma.LogSource.Product)
+	service := strings.ToLower(sigma.LogSource.Service)
+
+	// Try product-service first (e.g., "windows-security")
+	if service != "" {
+		productService := product + "-" + service
+		if f, ok := c.Wazuh.FieldMaps[productService][fieldName]; ok {
+			LogIt(DEBUG, fmt.Sprintf("GetWazuhField: %s.%s -> %s (from %s)", product, fieldName, f, productService), nil, c.Info, c.Debug)
+			return f
+		}
 	}
+
+	// Fallback to product only (e.g., "windows" for Sysmon backward compatibility)
+	if f, ok := c.Wazuh.FieldMaps[product][fieldName]; ok {
+		LogIt(DEBUG, fmt.Sprintf("GetWazuhField: %s.%s -> %s (from %s)", product, fieldName, f, product), nil, c.Info, c.Debug)
+		return f
+	}
+
+	// Field not found in any mapping
+	LogIt(DEBUG, fmt.Sprintf("GetWazuhField: %s.%s -> full_log (not found)", product, fieldName), nil, c.Info, c.Debug)
+	return "full_log"
 }
 
 func GetFieldValues(value any, fieldName string, c *Config) []string {

@@ -26,6 +26,20 @@ File Size:   87,933 lines across 11 XML files
 CDB Lists:   15 files with 10,930 optimized entries
 ```
 
+### Windows Event Sources
+
+StoW is **primarily Sysmon-focused** but also supports select Windows built-in event channels:
+
+| Source | Rules | Setup Required |
+|--------|-------|----------------|
+| **Sysmon** | ~3,900 | Install Sysmon (see [WINDOWS_SETUP.md](WINDOWS_SETUP.md)) |
+| **Built-in Channels** | ~50 | Enable channels + Configure Wazuh agent |
+| **Security/System/App** | ❌ Not supported | Event ID-based (no Sigma categories) |
+
+**Supported built-in channels:** DriverFrameworks, CodeIntegrity, Firewall, BITS-Client, DNS-Client, NTLM, TaskScheduler, AppXDeployment, and more.
+
+**📖 See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for complete Windows setup guide** (channel activation, Wazuh agent configuration).
+
 ---
 
 ## ⚡ Key Features
@@ -35,6 +49,7 @@ CDB Lists:   15 files with 10,930 optimized entries
 - ✅ **Windows Event ID Parents** - Auto-generates parent rules (200100-200103)
 - ✅ **PowerShell Category Parents** - Dedicated parent rules (200000-200003)
 - ✅ **Sysmon Extended Events** - Support for Events 6, 17-22, 25 via 100000-sysmon_new_events.xml
+- ✅ **Built-in Channel Parents** - 11 parent rules for Windows channels (100001-100011, IDs 109983-109999)
 
 ### Performance & Scalability
 - ✅ **Intelligent File Splitting** - Splits into 500-rule chunks for optimal Wazuh performance
@@ -121,11 +136,30 @@ Wazuh:
 230000-sigma_m365.xml               # 17 M365 rules
 ```
 
-### Parent Rule Files (Auto-Generated)
+### Parent Rule Files
+
 ```
+# Sysmon Extended Events
 100000-sysmon_new_events.xml  # Sysmon Events 6, 17-22, 25
+
+# Windows Built-in Channel Parents (100001-100011, ~50 rules)
+100001-driverframeworks_parent.xml       # USB detection, drivers (ID 109999)
+100002-codeintegrity_parent.xml          # Code integrity violations (ID 109998)
+100003-firewall_parent.xml               # Firewall events (ID 109997)
+100004-bitsclient_parent.xml             # BITS transfers (ID 109996)
+100005-dnsclient_parent.xml              # DNS queries (ID 109995)
+100006-ntlm_parent.xml                   # NTLM authentication (ID 109994)
+100007-taskscheduler_parent.xml          # Scheduled tasks (ID 109993)
+100008-dnsserver_parent.xml              # DNS Server (ID 109992)
+100009-dnsserver_analytic_parent.xml     # DNS Server Analytical (ID 109991)
+100010-other_builtin_parent.xml          # LDAP, LSA, TerminalServices, SMB, AppLocker, Mitigations (IDs 109984-109990)
+100011-appxdeployment_parent.xml         # AppX package deployment (ID 109983)
+
+# Embedded in Windows rule files
 200000-* (in Windows files)   # PowerShell parents (4 rules)
 200100-* (in Windows files)   # Event ID parents (4 rules)
+
+# Embedded in Linux rule file
 210000-* (in Linux file)      # Auditd parents (7 rules)
 ```
 
@@ -164,13 +198,19 @@ sudo ./deploy_cdb_lists.sh localhost
 
 #### 1. Copy Rules
 ```bash
+# Copy parent rules (Sysmon + Built-in channels)
+sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
+sudo cp 1000[01][01]-*.xml /var/ossec/etc/rules/  # Built-in channel parents (100001-100011)
+
+# Copy Sigma rules
 sudo cp 200400-sigma_windows_part*.xml /var/ossec/etc/rules/
 sudo cp 210007-sigma_linux.xml /var/ossec/etc/rules/
 sudo cp 220000-sigma_azure.xml /var/ossec/etc/rules/
 sudo cp 230000-sigma_m365.xml /var/ossec/etc/rules/
-sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
-sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml
-sudo chmod 640 /var/ossec/etc/rules/*sigma*.xml
+
+# Set permissions
+sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml
+sudo chmod 640 /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml
 ```
 
 #### 2. Copy CDB Lists
@@ -180,11 +220,22 @@ sudo chown wazuh:wazuh /var/ossec/etc/lists/sigma_*
 sudo chmod 640 /var/ossec/etc/lists/sigma_*
 ```
 
-#### 3. Update ossec.conf
+#### 3. Update ossec.conf (Wazuh Manager)
 ```xml
 <ruleset>
-  <!-- Sysmon Extended Events -->
+  <!-- Parent Rules -->
   <include>100000-sysmon_new_events.xml</include>
+  <include>100001-driverframeworks_parent.xml</include>
+  <include>100002-codeintegrity_parent.xml</include>
+  <include>100003-firewall_parent.xml</include>
+  <include>100004-bitsclient_parent.xml</include>
+  <include>100005-dnsclient_parent.xml</include>
+  <include>100006-ntlm_parent.xml</include>
+  <include>100007-taskscheduler_parent.xml</include>
+  <include>100008-dnsserver_parent.xml</include>
+  <include>100009-dnsserver_analytic_parent.xml</include>
+  <include>100010-other_builtin_parent.xml</include>
+  <include>100011-appxdeployment_parent.xml</include>
 
   <!-- Sigma Rules -->
   <include>200400-sigma_windows_part1.xml</include>
@@ -202,6 +253,8 @@ sudo chmod 640 /var/ossec/etc/lists/sigma_*
 
 <!-- CDB Lists - see WAZUH_CDB_CONFIG.txt for full list -->
 ```
+
+**Note:** See [WINDOWS_SETUP.md](WINDOWS_SETUP.md) for **Wazuh agent configuration** (required to collect built-in channels).
 
 #### 4. Install Linux Decoders (Required for Linux rules)
 ```bash
@@ -224,6 +277,7 @@ sudo /var/ossec/bin/wazuh-logtest  # Test with sample events
 
 | Product | ID Range | Count | Reserved IDs | Purpose |
 |---------|----------|-------|--------------|---------|
+| Built-in Channel Parents | 109983-109999 | 11 | - | AppXDeployment, NTLM, DNS, Firewall, etc. |
 | PowerShell Parents | 200000-200003 | 4 | - | ps_script, ps_module, ps_classic |
 | Event ID Parents | 200100-200103 | 4 | - | EventID-based grouping |
 | **Windows Rules** | 200400-209999 | 3,905 | 200000-200399 | Sigma Windows detections |
@@ -307,7 +361,8 @@ Wazuh:
 ## 📚 Documentation
 
 - **Main README**: This file
-- **Auditd Decoders**: [wazuh-decoders/README.md](wazuh-decoders/README.md)
+- **Windows Setup Guide**: [WINDOWS_SETUP.md](WINDOWS_SETUP.md) - Sysmon installation, channel activation, Wazuh agent config
+- **Auditd Decoders**: [wazuh-decoders/README.md](wazuh-decoders/README.md) - Linux audit decoder documentation
 - **Sigma Docs**: https://sigmahq.io/
 - **Wazuh Docs**: https://documentation.wazuh.com/
 
