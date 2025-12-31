@@ -34,7 +34,8 @@ StoW is **primarily Sysmon-focused** but also supports select Windows built-in e
 |--------|-------|----------------|
 | **Sysmon** | ~3,900 | Install Sysmon (see [WINDOWS_SETUP.md](WINDOWS_SETUP.md)) |
 | **Built-in Channels** | ~50 | Enable channels + Configure Wazuh agent |
-| **Security/System/App** | ❌ Not supported | Event ID-based (no Sigma categories) |
+| **Security** | ✅ ~183 rules | Enable Security channel logging |
+| **System/Application** | ⚠️ Limited support | EventID-based detection only |
 
 **Supported built-in channels:** DriverFrameworks, CodeIntegrity, Firewall, BITS-Client, DNS-Client, NTLM, TaskScheduler, AppXDeployment, and more.
 
