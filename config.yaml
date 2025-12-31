@@ -133,11 +133,7 @@ Wazuh:
     # Maps Sigma categories to specific Wazuh parent rule IDs
     # NOTE: Product-specific mappings below. Use the correct mapping based on logsource.product
     CategoryToWazuhId:
-      # ========================================================================
-      # Windows/Sysmon Category Mappings (Default)
-      # ========================================================================
-      # Used for Sigma rules with logsource: product=windows (without service=security)
-      # ========================================================================
+      # Windows/Sysmon category mappings
       windows:
         process_creation: 61603        # Sysmon Event 1
         file_change: 61604             # Sysmon Event 2
@@ -171,17 +167,6 @@ Wazuh:
         ps_classic_start: 200002       # PowerShell Classic Start (Event 400)
         ps_classic_provider_start: 200003  # PowerShell Classic Provider Start (Event 600)
 
-      # ========================================================================
-      # CONDITIONAL: Windows Security Event Channel Category Mappings
-      # ========================================================================
-      # These mappings override the Windows mappings above for Sigma rules with:
-      # logsource: product=windows + service=security
-      # ========================================================================
-      windows-security:
-        process_creation: 109982       # Security Event 4688 (requires GPO for CommandLine)
-        # Note: Only process_creation implemented for now
-        # Other Security events (network_connection 5156, registry 4657, etc.) could be added later
-
       # Linux/Auditd category mappings - StoW auto-generates parent rules 210000-210006
       linux:
         process_creation: 210001       # auditd-execve (command execution)
@@ -199,14 +184,7 @@ Wazuh:
   # section should match the sigma product field; e.g. windows, linux, mac, apache, check point fw1
   # section/product should be lower case
   FieldMaps:
-    # ============================================================================
-    # Windows FieldMaps (Default - Sysmon + Built-in Channels)
-    # ============================================================================
-    # These are the primary Windows field mappings, used for:
-    # - Sysmon events (all Event IDs)
-    # - Built-in Windows channels (DriverFrameworks, CodeIntegrity, Firewall, etc.)
-    # Note: Conditional mappings below (windows-security) override these for specific services
-    # ============================================================================
+    # Windows field mappings for Sysmon and built-in channels
     Windows:
       Accesses: win.eventdata.accesses
       AccessList: win.eventdata.accessList
@@ -376,35 +354,6 @@ Wazuh:
       UserName: win.eventdata.samAccountName
       Value: win.eventdata.value
       WorkstationName: win.eventdata.workstationName
-
-    # ============================================================================
-    # CONDITIONAL FIELDMAPS: Windows Security Event Channel
-    # ============================================================================
-    # These mappings override the Windows mappings above for Sigma rules with:
-    # logsource: product=windows + service=security
-    #
-    # Reason: Security Event 4688 uses different field names than Sysmon Event 1
-    # Example: Image → newProcessName (not image), ProcessId → newProcessId (hex)
-    # ============================================================================
-    windows-security:
-      # Process Creation (Event 4688) - field name differences from Sysmon
-      Image: win.eventdata.newProcessName          # Sysmon: image, Security: newProcessName
-      ParentImage: win.eventdata.parentProcessName # Sysmon: parentImage, Security: parentProcessName
-      ProcessId: win.eventdata.newProcessId        # Sysmon: processId (decimal), Security: newProcessId (hex)
-      ParentProcessId: win.eventdata.processId     # Sysmon: parentProcessId, Security: processId (creator)
-      User: win.eventdata.subjectUserName          # Sysmon: user, Security: subjectUserName (+subjectDomainName)
-      LogonId: win.eventdata.subjectLogonId        # Sysmon: logonId, Security: subjectLogonId
-      IntegrityLevel: win.eventdata.mandatoryLabel # Sysmon: integrityLevel (Low/Medium/High), Security: mandatoryLabel (SID)
-      CommandLine: win.eventdata.commandLine       # Same in both (but needs GPO enabled in Security)
-      # Note: Security 4688 does NOT have: OriginalFileName, Hashes, ParentCommandLine, ProcessGuid, etc.
-      # Other Security event fields (if needed for other event types)
-      TargetUserName: win.eventdata.targetUserName
-      TargetUserSid: win.eventdata.targetUserSid
-      TargetDomainName: win.eventdata.targetDomainName
-      SubjectUserName: win.eventdata.subjectUserName
-      SubjectUserSid: win.eventdata.subjectUserSid
-      SubjectDomainName: win.eventdata.subjectDomainName
-      TokenElevationType: win.eventdata.tokenElevationType
     Zeek:
       answers: data.answers
       c-uri: data.c-uri

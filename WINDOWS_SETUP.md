@@ -329,93 +329,58 @@ tail -f /var/ossec/logs/alerts/alerts.log
 
 ---
 
-## 6. Why Security/System/Application Not Supported?
+## 6. Security/System/Application Channel Support
 
-StoW does **NOT** support the following channels despite having many Sigma rules:
+**Current Support Status:**
 
-| Channel | Sigma Rules | Why Not Supported? |
-|---------|-------------|-------------------|
-| Security | 143 rules | Requires per-service field mappings (architecture limitation) |
-| System | 62 rules | Mixed event types, complex filtering |
-| Application | 23 rules | Generic channel, low detection value |
+| Channel | Sigma Rules | StoW Support |
+|---------|-------------|--------------|
+| Security | 146 rules | ✅ **Supported** (183 rules converted, EventID-based parents 200100-200103) |
+| System | 62 rules | ⚠️ Partial support (EventID-based detection) |
+| Application | 23 rules | ⚠️ Partial support (EventID-based detection) |
 
-### Technical Explanation: Field Mapping Mismatch
+### Why These Channels Work Differently
 
-**The Problem:**
+**Key Difference: EventID-Based vs Category-Based**
 
-Sigma uses **abstract field names** (e.g., `Image`, `User`, `IntegrityLevel`) that must be mapped to **actual Windows log field names**, which differ by event source:
-
-| Sigma Field | Sysmon Event 1 | Security Event 4688 | Wazuh Field Name |
-|-------------|----------------|---------------------|------------------|
-| `Image` | `image` | `NewProcessName` | `win.eventdata.image` vs `win.eventdata.newProcessName` |
-| `User` | `User` | `SubjectUserName` + `SubjectDomainName` | `win.eventdata.user` vs split fields |
-| `IntegrityLevel` | `Low`, `Medium`, `High` | `S-1-16-4096`, `S-1-16-8192`, ... | Direct vs SID values |
-
-**StoW's Current Architecture:**
+Sigma rules for Security/System/Application channels **do not use categories**. They detect on specific EventIDs directly:
 
 ```yaml
-# config.yaml FieldMaps (single mapping per product)
-FieldMaps:
-  Windows:
-    Image: win.eventdata.image  # ← Works for Sysmon, fails for Security 4688
+# Typical Security service rule
+logsource:
+  product: windows
+  service: security   # ← No category!
+detection:
+  selection:
+    EventID: 4697     # ← Detects on EventID directly
+    ServiceFileName|contains: 'malicious'
 ```
 
-- ✅ One mapping: `Image` → `win.eventdata.image`
-- ✅ Matches Sysmon Event 1 (field = `image`)
-- ❌ **Does NOT match Security Event 4688** (field = `newProcessName`)
+**Why This Matters:**
 
-**What Would Be Needed:**
+- Sysmon rules use **categories** (`process_creation`, `network_connection`) → StoW creates category-based parent rules
+- Security/System/App rules use **EventIDs** (`4697`, `5145`, `4624`) → Different parent rule strategy needed
+- These rules ARE converted by StoW using EventID-based parent rules (200100-200103)
+- Total: 183 Security service rules successfully converted ✅
 
-```yaml
-# Hypothetical conditional mappings (not implemented)
-FieldMaps:
-  windows-sysmon:
-    Image: win.eventdata.image
-  windows-security:
-    Image: win.eventdata.newProcessName  # Different!
-    User: win.eventdata.subjectUserName  # + domain splitting logic
-    IntegrityLevel: win.eventdata.mandatoryLabel  # + SID value mapping
-```
+**Specifically for Security Event 4688 (Process Creation):**
 
-**How Hayabusa Solves This:**
-
-Hayabusa generates **2 separate rules** per Sigma rule:
-1. **Sysmon rule** with Sysmon field names
-2. **Security rule** with Security field names + value transformations
-
-StoW generates **1 rule** with Sysmon field names only.
-
-### Why Not Implement Security Support?
-
-**Theoretical:** Possible by:
-1. Detecting `logsource.service` (sysmon vs security)
-2. Using conditional FieldMaps per service
-3. Implementing value transformation logic (Low → S-1-16-4096)
-4. Generating Security parent rules
-
-**Practical Limitations:**
-- Major refactoring of StoW architecture
-- Value transformations require decoder-level changes or complex CDB lookups
-- Maintenance overhead (2x rules to validate)
-- **Sysmon provides superior detection** (more fields, better quality)
-
-**Sources:**
-- [Wazuh Dynamic Fields Documentation](https://documentation.wazuh.com/current/user-manual/ruleset/dynamic-fields.html)
-- [Wazuh JSON Decoder](https://documentation.wazuh.com/current/user-manual/ruleset/decoders/json-decoder.html)
-- [Hayabusa Converter README](https://github.com/Yamato-Security/sigma-to-hayabusa-converter#readme) - Deabstraction philosophy
+- Sysmon has ~2,000 `process_creation` rules (category-based)
+- Security Event 4688 has **0 Sigma rules** (no equivalent category rules)
+- Therefore: No Security Event 4688 support needed in StoW
 
 ### Recommendation
 
-**Use Sysmon instead of Security events:**
+**Use Sysmon for process creation detection:**
+- ✅ ~2,000 Sigma detection rules available
 - ✅ More detailed fields (OriginalFileName, Hashes, ParentCommandLine)
-- ✅ Field names match Sigma directly (no transformations)
+- ✅ Field names match Sigma directly (no transformations needed)
 - ✅ Better detection coverage
-- ✅ Actively maintained by Microsoft Sysinternals
 
 **Security Event 4688 limitations:**
-- CommandLine logging disabled by default (separate GPO)
+- ❌ No Sigma rules (EventID not category-based)
+- CommandLine logging disabled by default (separate GPO required)
 - Missing critical fields (OriginalFileName, Hashes, etc.)
-- Field name mismatches require converter changes
 
 ---
 

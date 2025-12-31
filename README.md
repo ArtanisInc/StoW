@@ -34,9 +34,7 @@ StoW is **primarily Sysmon-focused** but also supports select Windows built-in e
 |--------|-------|----------------|
 | **Sysmon** | ~3,900 | Install Sysmon (see [WINDOWS_SETUP.md](WINDOWS_SETUP.md)) |
 | **Built-in Channels** | ~50 | Enable channels + Configure Wazuh agent |
-| **Security Event 4688** | ✅ Supported (NEW!) | Enable audit policy + CommandLine GPO |
-| **Security (other)** | ⚠️ Partial | Only process_creation (4688) implemented |
-| **System/Application** | ❌ Not supported | Mixed event types, low detection value |
+| **Security/System/App** | ❌ Not supported | Event ID-based (no Sigma categories) |
 
 **Supported built-in channels:** DriverFrameworks, CodeIntegrity, Firewall, BITS-Client, DNS-Client, NTLM, TaskScheduler, AppXDeployment, and more.
 
@@ -52,7 +50,6 @@ StoW is **primarily Sysmon-focused** but also supports select Windows built-in e
 - ✅ **PowerShell Category Parents** - Dedicated parent rules (200000-200003)
 - ✅ **Sysmon Extended Events** - Support for Events 6, 17-22, 25 via 100000-sysmon_new_events.xml
 - ✅ **Built-in Channel Parents** - 11 parent rules for Windows channels (100001-100011, IDs 109983-109999)
-- ✅ **Security Event 4688 Support** - NEW! Conditional FieldMaps enable Security channel process_creation (ID 109982)
 
 ### Performance & Scalability
 - ✅ **Intelligent File Splitting** - Splits into 500-rule chunks for optimal Wazuh performance
@@ -145,7 +142,7 @@ Wazuh:
 # Sysmon Extended Events
 100000-sysmon_new_events.xml  # Sysmon Events 6, 17-22, 25
 
-# Windows Built-in Channel Parents (100001-100012, ~50 rules + Security 4688)
+# Windows Built-in Channel Parents (100001-100011, ~50 rules)
 100001-driverframeworks_parent.xml       # USB detection, drivers (ID 109999)
 100002-codeintegrity_parent.xml          # Code integrity violations (ID 109998)
 100003-firewall_parent.xml               # Firewall events (ID 109997)
@@ -157,7 +154,6 @@ Wazuh:
 100009-dnsserver_analytic_parent.xml     # DNS Server Analytical (ID 109991)
 100010-other_builtin_parent.xml          # LDAP, LSA, TerminalServices, SMB, AppLocker, Mitigations (IDs 109984-109990)
 100011-appxdeployment_parent.xml         # AppX package deployment (ID 109983)
-100012-security_process_creation_parent.xml  # Security Event 4688 - Process Creation (ID 109982) [NEW!]
 
 # Embedded in Windows rule files
 200000-* (in Windows files)   # PowerShell parents (4 rules)
@@ -202,9 +198,9 @@ sudo ./deploy_cdb_lists.sh localhost
 
 #### 1. Copy Rules
 ```bash
-# Copy parent rules (Sysmon + Built-in channels + Security 4688)
+# Copy parent rules (Sysmon + Built-in channels)
 sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
-sudo cp 1000[01][012]-*.xml /var/ossec/etc/rules/  # Built-in channel parents (100001-100012)
+sudo cp 1000[01][01]-*.xml /var/ossec/etc/rules/  # Built-in channel parents (100001-100011)
 
 # Copy Sigma rules
 sudo cp 200400-sigma_windows_part*.xml /var/ossec/etc/rules/
@@ -240,7 +236,6 @@ sudo chmod 640 /var/ossec/etc/lists/sigma_*
   <include>100009-dnsserver_analytic_parent.xml</include>
   <include>100010-other_builtin_parent.xml</include>
   <include>100011-appxdeployment_parent.xml</include>
-  <include>100012-security_process_creation_parent.xml</include>
 
   <!-- Sigma Rules -->
   <include>200400-sigma_windows_part1.xml</include>
@@ -282,7 +277,7 @@ sudo /var/ossec/bin/wazuh-logtest  # Test with sample events
 
 | Product | ID Range | Count | Reserved IDs | Purpose |
 |---------|----------|-------|--------------|---------|
-| Built-in Channel Parents | 109982-109999 | 12 | - | Security 4688, AppXDeployment, NTLM, DNS, etc. |
+| Built-in Channel Parents | 109983-109999 | 11 | - | AppXDeployment, NTLM, DNS, Firewall, etc. |
 | PowerShell Parents | 200000-200003 | 4 | - | ps_script, ps_module, ps_classic |
 | Event ID Parents | 200100-200103 | 4 | - | EventID-based grouping |
 | **Windows Rules** | 200400-209999 | 3,905 | 200000-200399 | Sigma Windows detections |
