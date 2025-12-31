@@ -964,7 +964,7 @@ func processOversizedFields(ruleFields RuleFields, sigmaID string, c *Config) ([
 	var finalFields []Field
 	var listFields []ListField
 
-	for i, field := range ruleFields.Fields {
+	for _, field := range ruleFields.Fields {
 		if len(field.Value) <= maxFieldLength {
 			finalFields = append(finalFields, field)
 			continue
@@ -980,8 +980,9 @@ func processOversizedFields(ruleFields RuleFields, sigmaID string, c *Config) ([
 			return nil, nil, fmt.Errorf("field value too long and cannot be extracted")
 		}
 
-		// Create a CDB list name using Sigma ID
-		listName := fmt.Sprintf("sigma_%s_%d_%s", strings.ReplaceAll(sigmaID, "-", ""), i, sanitizeFieldName(field.Name))
+		// Create a CDB list name using Sigma ID and field name (deterministic, no index)
+		// This ensures the same CDB list name is generated across multiple runs
+		listName := fmt.Sprintf("sigma_%s_%s", strings.ReplaceAll(sigmaID, "-", ""), sanitizeFieldName(field.Name))
 
 		// Store the values for later CDB generation
 		c.CDBLists[listName] = values
@@ -2123,7 +2124,7 @@ func WriteDeploymentInstructions(c *Config) {
 	scriptFile.WriteString("WAZUH_SERVER=\"${1:-localhost}\"\n")
 	scriptFile.WriteString("WAZUH_USER=\"${2:-root}\"\n\n")
 	scriptFile.WriteString("echo \"=======================================\"\n")
-	scriptFile.WriteString("echo \"Wazuh CDB Lists Deployment\"\\n")
+	scriptFile.WriteString("echo \"Wazuh CDB Lists Deployment\"\n")
 	scriptFile.WriteString("echo \"=======================================\"\n")
 	scriptFile.WriteString("echo \"Target server: $WAZUH_SERVER\"\n")
 	scriptFile.WriteString("echo \"User: $WAZUH_USER\"\n")
@@ -2138,19 +2139,19 @@ func WriteDeploymentInstructions(c *Config) {
 	scriptFile.WriteString("# Step 2: Copy XML rule files\n")
 	scriptFile.WriteString("echo \"[2/4] Copying Sigma rule files...\"\n")
 	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
-	scriptFile.WriteString("  cp -v sigma_*.xml /var/ossec/etc/rules/\n")
+	scriptFile.WriteString("  cp -v *-sigma_*.xml *-sysmon_*.xml /var/ossec/etc/rules/\n")
 	scriptFile.WriteString("else\n")
-	scriptFile.WriteString("  scp sigma_*.xml $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/rules/\n")
+	scriptFile.WriteString("  scp *-sigma_*.xml *-sysmon_*.xml $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/rules/\n")
 	scriptFile.WriteString("fi\n\n")
 	scriptFile.WriteString("# Step 3: Set permissions\n")
 	scriptFile.WriteString("echo \"[3/4] Setting permissions...\"\n")
 	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
 	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/lists/sigma_*\n")
-	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/rules/sigma_*.xml\n")
+	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml\n")
 	scriptFile.WriteString("  chmod 640 /var/ossec/etc/lists/sigma_*\n")
-	scriptFile.WriteString("  chmod 640 /var/ossec/etc/rules/sigma_*.xml\n")
+	scriptFile.WriteString("  chmod 640 /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml\n")
 	scriptFile.WriteString("else\n")
-	scriptFile.WriteString("  ssh $WAZUH_USER@$WAZUH_SERVER \"chown wazuh:wazuh /var/ossec/etc/lists/sigma_* && chown wazuh:wazuh /var/ossec/etc/rules/sigma_*.xml && chmod 640 /var/ossec/etc/lists/sigma_* && chmod 640 /var/ossec/etc/rules/sigma_*.xml\"\n")
+	scriptFile.WriteString("  ssh $WAZUH_USER@$WAZUH_SERVER \"chown wazuh:wazuh /var/ossec/etc/lists/sigma_* && chown wazuh:wazuh /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml && chmod 640 /var/ossec/etc/lists/sigma_* && chmod 640 /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml\"\n")
 	scriptFile.WriteString("fi\n\n")
 	scriptFile.WriteString("echo \"[4/4] CDB lists will be compiled automatically on Wazuh restart\"\n")
 	scriptFile.WriteString("echo \"\"\n")
@@ -2163,14 +2164,22 @@ func WriteDeploymentInstructions(c *Config) {
 	scriptFile.WriteString("echo \"2. Add the Sigma rule files to ossec.conf:\"\n")
 	scriptFile.WriteString("echo \"   <ruleset>\"\n")
 
-	// Find all generated sigma XML files (including part files)
-	xmlFiles, err := filepath.Glob("sigma_*.xml")
+	// Find all generated sigma and sysmon XML files (including part files)
+	xmlFiles, err := filepath.Glob("*-sigma_*.xml")
 	if err != nil {
-		LogIt(ERROR, "Failed to find generated XML files", err, c.Info, c.Debug)
-	} else {
-		// Sort for consistent output
-		for _, xmlFile := range xmlFiles {
-			scriptFile.WriteString(fmt.Sprintf("echo \"     <include>%s</include>\"\n", xmlFile))
+		LogIt(ERROR, "Failed to find generated Sigma XML files", err, c.Info, c.Debug)
+	}
+
+	sysmonFiles, err2 := filepath.Glob("*-sysmon_*.xml")
+	if err2 != nil {
+		LogIt(ERROR, "Failed to find generated Sysmon XML files", err2, c.Info, c.Debug)
+	}
+
+	// Combine and sort for consistent output
+	allXMLFiles := append(xmlFiles, sysmonFiles...)
+	if len(allXMLFiles) > 0 {
+		for _, xmlFile := range allXMLFiles {
+			scriptFile.WriteString(fmt.Sprintf("echo \"     <include>%s</include>\"\n", filepath.Base(xmlFile)))
 		}
 	}
 

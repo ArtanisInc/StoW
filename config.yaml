@@ -242,13 +242,13 @@ Wazuh:
       Param1: win.eventdata.param1
       Param2: win.eventdata.param2
       Param3: win.eventdata.param3
-      Param4: win.eventdata.Param4
+      Param4: win.eventdata.param4
       Param5: win.eventdata.param5
       Param6: win.eventdata.param6
       Param7: win.eventdata.param7
-      Param8: win.eventdata.Param8
-      Param9: win.eventdata.Param9
-      Param10: win.eventdata.Param10
+      Param8: win.eventdata.param8
+      Param9: win.eventdata.param9
+      Param10: win.eventdata.param10
       ParentCommandLine: win.eventdata.parentCommandLine
       ParentImage: win.eventdata.parentImage
       ParentIntegrityLevel: win.eventdata.parentIntegrityLevel
