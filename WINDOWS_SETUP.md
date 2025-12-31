@@ -335,22 +335,87 @@ StoW does **NOT** support the following channels despite having many Sigma rules
 
 | Channel | Sigma Rules | Why Not Supported? |
 |---------|-------------|-------------------|
-| Security | 143 rules | Requires field transformations (`Image`→`NewProcessName`) |
+| Security | 143 rules | Requires per-service field mappings (architecture limitation) |
 | System | 62 rules | Mixed event types, complex filtering |
 | Application | 23 rules | Generic channel, low detection value |
 
-**Reason:** These channels require **field and value transformations** that Wazuh's decoder architecture cannot perform dynamically:
+### Technical Explanation: Field Mapping Mismatch
 
-- **Field transformations:** Sigma `Image` → Windows `NewProcessName`
-- **Value transformations:** Sigma `"Low"` → Windows `"S-1-16-4096"`
-- **Domain splitting:** Sigma `User: "DOMAIN\Admin"` → `SubjectUserName: "Admin"` + `SubjectDomainName: "DOMAIN"`
+**The Problem:**
 
-**Recommendation:** Use **Sysmon** instead of Security events. Sysmon provides:
-- More detailed fields (OriginalFileName, Hashes, ParentCommandLine)
-- No transformations needed (fields already in Sigma format)
-- Better detection coverage
+Sigma uses **abstract field names** (e.g., `Image`, `User`, `IntegrityLevel`) that must be mapped to **actual Windows log field names**, which differ by event source:
 
-See [Hayabusa README](https://github.com/Yamato-Security/sigma-to-hayabusa-converter#readme) for detailed explanation of this design choice.
+| Sigma Field | Sysmon Event 1 | Security Event 4688 | Wazuh Field Name |
+|-------------|----------------|---------------------|------------------|
+| `Image` | `image` | `NewProcessName` | `win.eventdata.image` vs `win.eventdata.newProcessName` |
+| `User` | `User` | `SubjectUserName` + `SubjectDomainName` | `win.eventdata.user` vs split fields |
+| `IntegrityLevel` | `Low`, `Medium`, `High` | `S-1-16-4096`, `S-1-16-8192`, ... | Direct vs SID values |
+
+**StoW's Current Architecture:**
+
+```yaml
+# config.yaml FieldMaps (single mapping per product)
+FieldMaps:
+  Windows:
+    Image: win.eventdata.image  # ← Works for Sysmon, fails for Security 4688
+```
+
+- ✅ One mapping: `Image` → `win.eventdata.image`
+- ✅ Matches Sysmon Event 1 (field = `image`)
+- ❌ **Does NOT match Security Event 4688** (field = `newProcessName`)
+
+**What Would Be Needed:**
+
+```yaml
+# Hypothetical conditional mappings (not implemented)
+FieldMaps:
+  windows-sysmon:
+    Image: win.eventdata.image
+  windows-security:
+    Image: win.eventdata.newProcessName  # Different!
+    User: win.eventdata.subjectUserName  # + domain splitting logic
+    IntegrityLevel: win.eventdata.mandatoryLabel  # + SID value mapping
+```
+
+**How Hayabusa Solves This:**
+
+Hayabusa generates **2 separate rules** per Sigma rule:
+1. **Sysmon rule** with Sysmon field names
+2. **Security rule** with Security field names + value transformations
+
+StoW generates **1 rule** with Sysmon field names only.
+
+### Why Not Implement Security Support?
+
+**Theoretical:** Possible by:
+1. Detecting `logsource.service` (sysmon vs security)
+2. Using conditional FieldMaps per service
+3. Implementing value transformation logic (Low → S-1-16-4096)
+4. Generating Security parent rules
+
+**Practical Limitations:**
+- Major refactoring of StoW architecture
+- Value transformations require decoder-level changes or complex CDB lookups
+- Maintenance overhead (2x rules to validate)
+- **Sysmon provides superior detection** (more fields, better quality)
+
+**Sources:**
+- [Wazuh Dynamic Fields Documentation](https://documentation.wazuh.com/current/user-manual/ruleset/dynamic-fields.html)
+- [Wazuh JSON Decoder](https://documentation.wazuh.com/current/user-manual/ruleset/decoders/json-decoder.html)
+- [Hayabusa Converter README](https://github.com/Yamato-Security/sigma-to-hayabusa-converter#readme) - Deabstraction philosophy
+
+### Recommendation
+
+**Use Sysmon instead of Security events:**
+- ✅ More detailed fields (OriginalFileName, Hashes, ParentCommandLine)
+- ✅ Field names match Sigma directly (no transformations)
+- ✅ Better detection coverage
+- ✅ Actively maintained by Microsoft Sysinternals
+
+**Security Event 4688 limitations:**
+- CommandLine logging disabled by default (separate GPO)
+- Missing critical fields (OriginalFileName, Hashes, etc.)
+- Field name mismatches require converter changes
 
 ---
 
