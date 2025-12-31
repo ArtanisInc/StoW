@@ -99,20 +99,26 @@ Wazuh:
       application: 60003
       security: 60001
       system: 60002
-      # Windows Built-in Event Channels - requires parent rule files (100002-100009)
+      # Windows Built-in Event Channels - requires parent rule files (100002-100010)
+      # CORRECTIONS from official Sigma service-to-channel mappings:
+      # - ldap_debug (not "ldap")
+      # - smbclient-connectivity (not "smbserver-connectivity")
+      # - dns-server vs dns-server-analytic are SEPARATE services!
       codeintegrity-operational: 109998  # Code Integrity events
       firewall-as: 109997                # Windows Firewall Advanced Security
       bits-client: 109996                # BITS Client transfers
       dns-client: 109995                 # DNS Client queries
       ntlm: 109994                       # NTLM authentication
       taskscheduler: 109993              # Task Scheduler events
-      dns-server: 109992                 # DNS Server events
-      ldap: 109991                       # LDAP Client events
-      lsa-server: 109990                 # LSA Server events
-      terminalservices-localsessionmanager: 109989  # Terminal Services
-      smbclient-security: 109988         # SMB Client security
-      smbserver-connectivity: 109987     # SMB Server connectivity
-      applocker: 109986                  # AppLocker events
+      dns-server: 109992                 # DNS Server (channel: "DNS Server")
+      dns-server-analytic: 109991        # DNS Server Analytical (separate service! channel: Microsoft-Windows-DNS-Server/Analytical)
+      ldap_debug: 109990                 # LDAP Client debug (note: service name is ldap_debug not ldap!)
+      lsa-server: 109989                 # LSA Server events
+      terminalservices-localsessionmanager: 109988  # Terminal Services
+      smbclient-security: 109987         # SMB Client security
+      smbclient-connectivity: 109986     # SMB Client connectivity (note: smbclient not smbserver!)
+      applocker: 109985                  # AppLocker events
+      security-mitigations: 109984       # Security Mitigations events
     ######################################################
     # Sigma logsource.category mapping (checked after service, before product)
     # Maps Sigma categories to specific Wazuh parent rule IDs

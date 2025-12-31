@@ -6,58 +6,69 @@
 
   All channels require explicit enablement via wevtutil commands.
 
-  Rule ID Range: 109991-109985
+  Rule ID Range: 109990-109984
 -->
 
 <group name="windows,builtin,">
 
-  <!-- LDAP Client Events - Rule ID: 109991 -->
-  <rule id="109991" level="3">
+  <!-- LDAP Client Debug Events - Rule ID: 109990 -->
+  <!-- IMPORTANT: Service name is "ldap_debug" (not "ldap") -->
+  <rule id="109990" level="3">
     <field name="win.system.channel">Microsoft-Windows-LDAP-Client/Debug</field>
-    <description>Windows LDAP Client Event</description>
+    <description>Windows LDAP Client Debug Event</description>
     <options>no_full_log</options>
-    <group>windows,ldap,</group>
+    <group>windows,ldap_debug,</group>
   </rule>
 
-  <!-- LSA Server Events - Rule ID: 109990 -->
-  <rule id="109990" level="3">
+  <!-- LSA Server Events - Rule ID: 109989 -->
+  <rule id="109989" level="3">
     <field name="win.system.channel">Microsoft-Windows-LSA/Operational</field>
     <description>Windows LSA Server Event</description>
     <options>no_full_log</options>
     <group>windows,lsa-server,</group>
   </rule>
 
-  <!-- Terminal Services Events - Rule ID: 109989 -->
-  <rule id="109989" level="3">
+  <!-- Terminal Services Events - Rule ID: 109988 -->
+  <rule id="109988" level="3">
     <field name="win.system.channel">Microsoft-Windows-TerminalServices-LocalSessionManager/Operational</field>
     <description>Windows Terminal Services Event</description>
     <options>no_full_log</options>
     <group>windows,terminalservices-localsessionmanager,</group>
   </rule>
 
-  <!-- SMB Client Security Events - Rule ID: 109988 -->
-  <rule id="109988" level="3">
+  <!-- SMB Client Security Events - Rule ID: 109987 -->
+  <rule id="109987" level="3">
     <field name="win.system.channel">Microsoft-Windows-SmbClient/Security</field>
     <description>Windows SMB Client Security Event</description>
     <options>no_full_log</options>
     <group>windows,smbclient-security,</group>
   </rule>
 
-  <!-- SMB Server Connectivity Events - Rule ID: 109987 -->
-  <rule id="109987" level="3">
-    <field name="win.system.channel">Microsoft-Windows-SMBServer/Connectivity</field>
-    <description>Windows SMB Server Connectivity Event</description>
+  <!-- SMB Client Connectivity Events - Rule ID: 109986 -->
+  <!-- IMPORTANT: Service name is "smbclient-connectivity" (not "smbserver-connectivity")
+       and channel is SmbClient (not SMBServer) -->
+  <rule id="109986" level="3">
+    <field name="win.system.channel">Microsoft-Windows-SmbClient/Connectivity</field>
+    <description>Windows SMB Client Connectivity Event</description>
     <options>no_full_log</options>
-    <group>windows,smbserver-connectivity,</group>
+    <group>windows,smbclient-connectivity,</group>
   </rule>
 
-  <!-- AppLocker Events - Rule ID: 109986 -->
+  <!-- AppLocker Events - Rule ID: 109985 -->
   <!-- Note: AppLocker uses multiple channels (EXE/DLL, MSI/Script, Packaged app-Deployment, Packaged app-Execution) -->
-  <rule id="109986" level="3">
+  <rule id="109985" level="3">
     <field name="win.system.channel" type="pcre2">Microsoft-Windows-AppLocker/</field>
     <description>Windows AppLocker Event</description>
     <options>no_full_log</options>
     <group>windows,applocker,</group>
+  </rule>
+
+  <!-- Security Mitigations Events - Rule ID: 109984 -->
+  <rule id="109984" level="3">
+    <field name="win.system.channel" type="pcre2">Microsoft-Windows-Security-Mitigations</field>
+    <description>Windows Security Mitigations Event</description>
+    <options>no_full_log</options>
+    <group>windows,security-mitigations,</group>
   </rule>
 
 </group>
