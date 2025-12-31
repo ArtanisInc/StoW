@@ -30,12 +30,13 @@ CDB Lists:   15 files with 10,930 optimized entries
 
 StoW is **primarily Sysmon-focused** but also supports select Windows built-in event channels:
 
-| Source | Rules | Setup Required |
-|--------|-------|----------------|
-| **Sysmon** | ~3,900 | Install Sysmon (see [WINDOWS_SETUP.md](WINDOWS_SETUP.md)) |
-| **Built-in Channels** | ~50 | Enable channels + Configure Wazuh agent |
-| **Security** | ✅ ~183 rules | Enable Security channel logging |
-| **System/Application** | ⚠️ Limited support | EventID-based detection only |
+| Source | Rules | Detection Method |
+|--------|-------|------------------|
+| **Sysmon** | ~3,900 | Category-based (process_creation, network_connection, etc.) |
+| **Built-in Channels** | ~50 | Category-based (driver-framework, ntlm, dns-client, etc.) |
+| **Security** | ✅ ~183 rules | EventID-based (4697, 5145, 4624, etc.) |
+| **System** | ✅ ~91 rules | EventID-based (7045, etc.) |
+| **Application** | ✅ ~21 rules | EventID-based |
 
 **Supported built-in channels:** DriverFrameworks, CodeIntegrity, Firewall, BITS-Client, DNS-Client, NTLM, TaskScheduler, AppXDeployment, and more.
 
