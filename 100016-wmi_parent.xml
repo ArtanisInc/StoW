@@ -1,0 +1,17 @@
+<!--
+  StoW - Sigma to Wazuh Converter
+  Parent rule for WMI Activity events
+
+  Channel: Microsoft-Windows-WMI-Activity/Operational
+  Sigma Rules: 2 rules
+  Rule ID: 109978
+-->
+
+<group name="windows,wmi,">
+  <rule id="109978" level="3">
+    <field name="win.system.channel">Microsoft-Windows-WMI-Activity/Operational</field>
+    <description>WMI Activity Event</description>
+    <options>no_full_log</options>
+    <group>windows,wmi,</group>
+  </rule>
+</group>

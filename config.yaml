@@ -97,7 +97,6 @@ Wazuh:
       # ========================================================================
       # Legacy Windows Services (Wazuh built-in parent rules)
       # ========================================================================
-      windows: 60000, 60001, 60002, 60003, 60004, 60006, 60007, 60008, 60009, 60010, 60011, 60012
       windefend: 60005
       application: 60003
       security: 60001
@@ -128,6 +127,24 @@ Wazuh:
       applocker: 109985                  # AppLocker events
       security-mitigations: 109984       # Security Mitigations events
       appxdeployment-server: 109983      # AppX Package Deployment (malicious packages, policy blocks)
+
+      # ========================================================================
+      # Rare/Niche Windows Channels (Custom parent rules 100013-100024)
+      # ========================================================================
+      # Previously used fallback (windows: 60000-60012), now have dedicated parents
+      # ========================================================================
+      msexchange-management: 109981      # Exchange Server Management (8 rules)
+      iis-configuration: 109980          # IIS Web Server Configuration (4 rules)
+      ldap: 109979                       # LDAP Client (different from ldap_debug!) (3 rules)
+      wmi: 109978                        # WMI Activity (2 rules)
+      shell-core: 109977                 # Windows Shell Core (2 rules)
+      openssh: 109976                    # OpenSSH Server (1 rule)
+      appmodel-runtime: 109975           # AppModel Runtime (1 rule)
+      appxpackaging-om: 109974           # AppX Packaging OM (1 rule)
+      diagnosis-scripted: 109973         # Windows Diagnostics Scripted (1 rule)
+      capi2: 109972                      # Crypto API 2.0 (1 rule)
+      microsoft-servicebus-client: 109971 # Service Bus Client (1 rule)
+      certificateservicesclient-lifecycle-system: 109970 # Certificate Services Client (1 rule)
     ######################################################
     # Sigma logsource.category mapping (checked after service, before product)
     # Maps Sigma categories to specific Wazuh parent rule IDs

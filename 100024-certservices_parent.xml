@@ -1,0 +1,17 @@
+<!--
+  StoW - Sigma to Wazuh Converter
+  Parent rule for Certificate Services Client Lifecycle events
+
+  Channel: Microsoft-Windows-CertificateServicesClient-Lifecycle-System/Operational
+  Sigma Rules: 1 rule
+  Rule ID: 109970
+-->
+
+<group name="windows,certificateservices,">
+  <rule id="109970" level="3">
+    <field name="win.system.channel">Microsoft-Windows-CertificateServicesClient-Lifecycle-System/Operational</field>
+    <description>Certificate Services Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,certificateservices,</group>
+  </rule>
+</group>

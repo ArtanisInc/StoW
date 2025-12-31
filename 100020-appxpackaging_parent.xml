@@ -1,0 +1,17 @@
+<!--
+  StoW - Sigma to Wazuh Converter
+  Parent rule for AppX Packaging OM events
+
+  Channel: Microsoft-Windows-AppxPackaging/Operational
+  Sigma Rules: 1 rule
+  Rule ID: 109974
+-->
+
+<group name="windows,appxpackaging,">
+  <rule id="109974" level="3">
+    <field name="win.system.channel">Microsoft-Windows-AppxPackaging/Operational</field>
+    <description>AppX Packaging Event</description>
+    <options>no_full_log</options>
+    <group>windows,appxpackaging,</group>
+  </rule>
+</group>

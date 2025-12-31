@@ -1,0 +1,17 @@
+<!--
+  StoW - Sigma to Wazuh Converter
+  Parent rule for IIS Configuration events
+
+  Channel: Microsoft-Windows-IIS-Configuration/Operational
+  Sigma Rules: 4 rules
+  Rule ID: 109980
+-->
+
+<group name="windows,iis,">
+  <rule id="109980" level="3">
+    <field name="win.system.channel">Microsoft-Windows-IIS-Configuration/Operational</field>
+    <description>IIS Configuration Event</description>
+    <options>no_full_log</options>
+    <group>windows,iis,</group>
+  </rule>
+</group>
