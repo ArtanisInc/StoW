@@ -192,7 +192,7 @@ type WazuhGroup struct {
 type Field struct {
 	Name   string `xml:"name,attr"`
 	Negate string `xml:"negate,attr,omitempty"`
-	Type   string `xml:"type,attr"`
+	Type   string `xml:"type,attr,omitempty"`
 	Value  string `xml:",chardata"`
 }
 
@@ -224,7 +224,7 @@ type WazuhRule struct {
 	ID      string   `xml:"id,attr"`
 	Level   string   `xml:"level,attr"`
 	Info    struct {
-		Type  string `xml:"type,attr"`
+		Type  string `xml:"type,attr,omitempty"`
 		Value string `xml:",chardata"`
 	} `xml:"info,omitempty"`
 	Author           xml.Comment `xml:",comment"`
