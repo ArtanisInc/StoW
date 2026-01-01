@@ -27,8 +27,6 @@ Sigma:
   ConvertProducts:
     - windows
     - linux
-    - azure
-    - m365
 
   SkipProducts:
   SkipServices:
