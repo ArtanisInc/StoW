@@ -73,23 +73,42 @@ func (m *IntelligentFieldMapper) GuessWazuhField(fieldName string, fieldValue st
 
 	// Clean the value for analysis
 	value := strings.TrimSpace(fieldValue)
-	value = strings.Trim(value, "(?i)")  // Remove case-insensitive prefix
-	value = strings.Trim(value, "^$")     // Remove anchors
+
+	// Remove common regex markers
+	value = strings.TrimPrefix(value, "(?i)")  // Remove case-insensitive prefix
+	value = strings.TrimPrefix(value, "^")      // Remove start anchor
+	value = strings.TrimSuffix(value, "$")      // Remove end anchor
+
+	// Extract first alternative from regex groups like (?:init|telinit) -> init
+	// This helps detect commands hidden in regex patterns
+	value = extractFirstAlternative(value)
 
 	// Special handling for anonymous fields (empty fieldName from Sigma modifiers like |all)
 	// This is common in Linux auditd rules where Sigma doesn't specify exact field names
 	if fieldName == "" {
 		// Try to guess from value content for process-related events
+
+		// Check for command arguments first (of=, if=, --flag=value)
+		if isCommandArgument(value) {
+			return "audit.execve.a1"
+		}
+
+		// Check for command flags (-s, --flag)
+		if isCommandFlag(value) {
+			return "audit.execve.a1"
+		}
+
+		// Check for file paths (including hidden files like .bash_history)
+		if isFilePath(value) {
+			return "audit.file.name"
+		}
+
+		// Check if it's a known command
 		commandName := extractCommandName(value)
 		if _, isCommand := commonLinuxCommands[commandName]; isCommand {
 			return "audit.execve.a0"
 		}
-		if isCommandFlag(value) {
-			return "audit.execve.a1"
-		}
-		if isFilePath(value) {
-			return "audit.file.name"
-		}
+
 		// If we can't guess, return empty to fall back to full_log
 		return ""
 	}
@@ -175,6 +194,13 @@ func isCommandFlag(value string) bool {
 	return matched
 }
 
+func isCommandArgument(value string) bool {
+	// Match dd/iptables style arguments: if=, of=, --to-ports, etc.
+	// Also match key=value patterns
+	matched, _ := regexp.MatchString(`^[a-z_]+=|^--[a-z-]+=`, value)
+	return matched
+}
+
 func extractCommandName(value string) string {
 	// Extract command name from path or direct name
 	// Examples: /bin/bash -> bash, chmod -> chmod
@@ -194,7 +220,7 @@ func extractCommandName(value string) string {
 
 func isFilePath(value string) bool {
 	// Check for common path patterns
-	return strings.HasPrefix(value, "/") ||
+	if strings.HasPrefix(value, "/") ||
 		strings.HasPrefix(value, "./") ||
 		strings.HasPrefix(value, "../") ||
 		strings.Contains(value, "/etc/") ||
@@ -204,12 +230,64 @@ func isFilePath(value string) bool {
 		strings.Contains(value, "/home/") ||
 		strings.Contains(value, "/root/") ||
 		strings.Contains(value, "/opt/") ||
-		strings.HasPrefix(value, "~")
+		strings.HasPrefix(value, "~") {
+		return true
+	}
+
+	// Check for hidden files (dotfiles) - common in history tampering
+	if strings.HasPrefix(value, ".") {
+		// Common history files and config files
+		historyFiles := []string{
+			".bash_history", ".zsh_history", ".history", ".sh_history",
+			".zhistory", ".fish_history", ".mysql_history", ".psql_history",
+			".bash_profile", ".bashrc", ".zshrc", ".profile",
+		}
+		lowerValue := strings.ToLower(value)
+		for _, histFile := range historyFiles {
+			if strings.Contains(lowerValue, histFile) {
+				return true
+			}
+		}
+	}
+
+	// Check for file extensions
+	fileExtensions := []string{".log", ".conf", ".config", ".txt", ".sh", ".py", ".pl"}
+	for _, ext := range fileExtensions {
+		if strings.HasSuffix(value, ext) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func isNumeric(value string) bool {
 	matched, _ := regexp.MatchString(`^\d+$`, value)
 	return matched
+}
+
+func extractFirstAlternative(value string) string {
+	// Extract first alternative from regex patterns like:
+	// (?:init|telinit) -> init
+	// (?:execve|execveat) -> execve
+	// (?:.bash_history|.zsh_history) -> .bash_history
+
+	// Remove non-capturing group prefix (?:
+	if strings.HasPrefix(value, "(?:") {
+		value = strings.TrimPrefix(value, "(?:")
+		// Remove closing parenthesis
+		value = strings.TrimSuffix(value, ")")
+	}
+
+	// Take first alternative before pipe |
+	if strings.Contains(value, "|") {
+		parts := strings.Split(value, "|")
+		if len(parts) > 0 {
+			return strings.TrimSpace(parts[0])
+		}
+	}
+
+	return value
 }
 
 func parseNumber(value string) int {
