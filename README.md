@@ -26,9 +26,9 @@ CDB Lists:   13 files with optimized entries
 
 Field Mapping Optimization:
   Linux:   78.3% specific fields (223/285) - OPTIMIZED ✅
-  Windows: 68.8% specific fields (7,168/10,416)
+  Windows: 94.0% specific fields (9,853/10,484) - OPTIMIZED ✅
 
-Intelligent Mappings: 141 (Linux auditd)
+Both platforms now achieve professional-grade field mapping quality!
 ```
 
 ### Windows Event Sources
@@ -345,24 +345,34 @@ StoW implements intelligent field mapping to maximize performance and minimize f
 
 **Result:** Linux rules now achieve **professional-grade quality** comparable to manually crafted rules.
 
-### Windows Field Mapping (Current Status)
+### Windows Field Mapping (Optimized: 2026-01-01)
 
-| Metric | Value | Status |
-|--------|-------|--------|
-| **Total Fields** | 10,416 | - |
-| **Specific Fields** | 7,168 (68.8%) | ✅ Good |
-| **full_log Usage** | 3,248 (31.2%) | 🟡 Acceptable |
+**Same Critical Bug Fixed:** Case-sensitivity issue in config loader affecting ALL CamelCase fields
 
-**Analysis:**
-- Windows already uses specific fields effectively (68.8%)
-- 100+ field mappings in config (CommandLine, Image, ParentImage, etc.)
-- No case-sensitivity issues (Sigma uses consistent camelCase)
-- EventID-based optimization working well
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| **Total Fields** | 10,416 | 10,484 | +68 |
+| **Specific Fields** | 7,168 (68.8%) | **9,853 (94.0%)** | **+25.2%** ⭐ |
+| **full_log Usage** | 3,248 (31.2%) | 631 (6.0%) | **-80.6%** 🚀 |
 
-**Recommendation:** Current Windows implementation is production-ready. Further optimization would have lower ROI due to:
-- Already good baseline (68.8% vs Linux's initial 39.6%)
-- 36x larger volume requiring 36x more effort
-- Estimated gain: +6-9% vs Linux's +38.7%
+**Root Cause:**
+- Config loader only normalized product names (Windows → windows)
+- Did NOT normalize field names (EventID, QueryName stayed CamelCase)
+- Strategy code converted Sigma fields to lowercase (EventID → eventid)
+- Map lookup failed: `eventid` not found in map with key `EventID`
+- **Result:** 2,617 fields fell back to full_log unnecessarily
+
+**Changes Made:**
+- ✅ Extended normalization in config.go to lowercase ALL field names
+- ✅ Now both product AND field names are normalized on config load
+- ✅ Strategy lookups now succeed: eventid matches eventid ✓
+
+**Examples Fixed:**
+- `EventID: 3008` → `win.system.eventID` (was full_log)
+- `QueryName: .anonfiles.com` → `win.eventdata.queryName` (was full_log)
+- `CommandLine`, `Image`, `ParentImage` - all 100+ CamelCase fields now work
+
+**Result:** Windows rules now achieve **94.0% specific field usage** - even better than Linux!
 
 ### Benefits of Specific Field Mapping
 
