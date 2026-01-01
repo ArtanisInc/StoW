@@ -164,13 +164,28 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 	// Handle 'all' modifier - create separate field for each value
 	if mods.HasAll {
 		for _, v := range values {
+			// For |all groups with anonymous fields, apply intelligent mapping to EACH value individually
+			// This allows different values to map to different fields (e.g., command to a0, flag to a1)
+			valueWazuhField := wazuhField
+			if sigma != nil && fieldName == "" {
+				// Re-apply intelligent mapping for each value in the |all group
+				guessedField := intelligentFieldMapping(fieldName, v, sigma, c)
+				if guessedField != "" {
+					valueWazuhField = guessedField
+					fmt.Printf("✓ Intelligent mapping applied (|all): fieldName='%s', value='%s' → %s\n", fieldName, v, valueWazuhField)
+					utils.LogIt(utils.INFO, fmt.Sprintf("Intelligent mapping (|all): '%s'='%s' → %s", fieldName, v, valueWazuhField), nil, c.Info, c.Debug)
+				}
+			}
+
 			newField := field
+			newField.Name = valueWazuhField  // Use the individually mapped field!
+
 			// Use exact matching if possible
 			if canUseExact && len(values) == 1 {
 				newField.Type = ""
 				newField.Value = v
 			} else {
-				newField.Value = BuildFieldValue(v, mods, wazuhField, sigma.LogSource.Product)
+				newField.Value = BuildFieldValue(v, mods, valueWazuhField, sigma.LogSource.Product)
 			}
 			*fields = append(*fields, newField)
 			utils.LogIt(utils.INFO, fmt.Sprintf("processDetectionField appended field: %v", newField), nil, c.Info, c.Debug)
