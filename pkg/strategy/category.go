@@ -28,15 +28,17 @@ func (s *CategoryStrategy) GetName() string {
 
 func (s *CategoryStrategy) GetWazuhField(fieldName string, sigma *types.SigmaRule) string {
 	product := strings.ToLower(s.product)
-	
-	// Try product-level FieldMaps
+
+	// Try product-level FieldMaps first
 	if fieldMap, ok := s.config.Wazuh.FieldMaps[product]; ok {
 		if wazuhField, ok := fieldMap[fieldName]; ok {
 			return wazuhField
 		}
 	}
-	
+
 	// Fallback to full_log
+	// Note: Intelligent mapping is now applied in processDetectionField
+	// where we have access to field values for better guessing
 	return "full_log"
 }
 

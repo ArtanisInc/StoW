@@ -299,6 +299,7 @@ func printStats(c *types.Config, sigmaRuleIds []string) {
 	fmt.Printf("       Number of Sigma CONFIG rules skipped: %d\n", c.TrackSkips.HardSkipped)
 	fmt.Printf("   Number of Sigma FIELD TOO LONG skipped: %d\n", c.TrackSkips.FieldTooLong)
 	fmt.Printf("Number of Sigma rules CONVERTED TO CDB: %d\n", c.TrackSkips.ConvertedToCDB)
+	fmt.Printf("   Number of INTELLIGENT FIELD MAPPINGS: %d\n", c.TrackSkips.IntelligentMappings)
 	fmt.Printf("        Number of Sigma ERROR rules skipped: %d\n", c.TrackSkips.ErrorCount)
 	fmt.Printf("---------------------------------------------------------------------------\n")
 	fmt.Printf("                  Total Sigma rules skipped: %d\n", c.TrackSkips.RulesSkipped)

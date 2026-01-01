@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/theflakes/StoW/pkg/bridge"
+	"github.com/theflakes/StoW/pkg/strategy"
 	"github.com/theflakes/StoW/pkg/types"
 	"github.com/theflakes/StoW/pkg/utils"
 )
@@ -110,6 +111,25 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 	mods, value := ParseFieldModifiers(parts, value)
 
 	wazuhField := bridge.ConvertFieldName(fieldName, sigma, c)
+
+	// Apply intelligent field mapping if we got "full_log" as fallback
+	// and we have enough context to make a better guess
+	if wazuhField == "full_log" && sigma != nil {
+		values := getFieldValues(value, fieldName, c)
+		utils.LogIt(utils.DEBUG, fmt.Sprintf("[Intelligent Mapping] wazuhField=%s, fieldName='%s', values=%v, product=%s, category=%s",
+			wazuhField, fieldName, values, sigma.LogSource.Product, sigma.LogSource.Category), nil, c.Info, c.Debug)
+
+		if len(values) > 0 {
+			// Try intelligent mapping with the first value
+			guessedField := intelligentFieldMapping(fieldName, values[0], sigma, c)
+			if guessedField != "" {
+				wazuhField = guessedField
+				// Use WARN to ensure it's always visible
+				fmt.Printf("✓ Intelligent mapping applied: fieldName='%s', value='%s' → %s\n", fieldName, values[0], wazuhField)
+				utils.LogIt(utils.INFO, fmt.Sprintf("Intelligent mapping: '%s'='%s' → %s", fieldName, values[0], wazuhField), nil, c.Info, c.Debug)
+			}
+		}
+	}
 
 	field := types.Field{
 		Name: wazuhField,
@@ -839,4 +859,26 @@ func buildAndStoreRules(detectionSets []map[string]any, selectionNegations map[s
 		}
 		c.Wazuh.XmlRules[product].Rules = append(c.Wazuh.XmlRules[product].Rules, rule)
 	}
+}
+
+// intelligentFieldMapping applies intelligent field mapping for unmapped Sigma fields
+// This is particularly useful for Linux auditd where Sigma doesn't specify exact fields
+func intelligentFieldMapping(fieldName string, fieldValue string, sigma *types.SigmaRule, c *types.Config) string {
+	// Create intelligent mapper with context
+	mapper := strategy.IntelligentFieldMapper{
+		Config:   c,
+		Product:  sigma.LogSource.Product,
+		Category: sigma.LogSource.Category,
+	}
+
+	// Try to guess the field
+	guessedField := mapper.GuessWazuhField(fieldName, fieldValue, sigma)
+
+	if guessedField != "" {
+		c.TrackSkips.IntelligentMappings++
+		utils.LogIt(utils.INFO, fmt.Sprintf("Intelligent field mapping: %s='%s' → %s (product=%s, category=%s)",
+			fieldName, fieldValue, guessedField, sigma.LogSource.Product, sigma.LogSource.Category), nil, c.Info, c.Debug)
+	}
+
+	return guessedField
 }
