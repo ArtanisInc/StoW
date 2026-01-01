@@ -36,3 +36,4 @@ WAZUH_CDB_CONFIG.txt
 # Test files
 sigma/
 sigma_core.zip
+*.bak
