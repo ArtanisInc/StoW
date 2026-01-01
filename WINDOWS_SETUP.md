@@ -1,20 +1,18 @@
-# Windows Event Channel Setup for StoW
+# Windows Setup Guide for StoW
 
-This guide covers the setup required on **Windows endpoints** to enable all event channels used by StoW Sigma rules.
-
----
+Complete setup guide for Windows endpoints to enable Sigma rule detection.
 
 ## Overview
 
-StoW converts Sigma rules for **multiple Windows event sources**:
+StoW converts Sigma rules for multiple Windows event sources:
 
-| Source Type | Rules Count | Status | Setup Required |
-|-------------|-------------|--------|----------------|
-| **Sysmon** | ~3,900 rules | Primary focus | ✅ Install Sysmon |
-| **Built-in Channels** | ~50 rules | Secondary | ⚙️ Enable channels + Configure Wazuh agent |
-| **Security/System/Application** | ~240 rules | ❌ Not supported | N/A (requires field transformations) |
+| Source | Rules | Setup |
+|--------|-------|-------|
+| **Sysmon** | ~3,900 | Install Sysmon (required) |
+| **Built-in Channels** | ~50 | Enable channels + Configure agent |
+| **Security/System/App** | ~240 | EventID-based (183 Security rules supported) |
 
-**Important:** StoW is **primarily Sysmon-focused** but supports select built-in channels that don't require field transformations.
+**Primary focus:** Sysmon for comprehensive detection coverage.
 
 ---
 
@@ -329,58 +327,23 @@ tail -f /var/ossec/logs/alerts/alerts.log
 
 ---
 
-## 6. Security/System/Application Channel Support
+## 6. Security/System/Application Support
 
-**Current Support Status:**
+**Current Status:**
 
-| Channel | Sigma Rules | StoW Support |
-|---------|-------------|--------------|
-| Security | 146 rules | ✅ **Supported** (183 rules converted, EventID-based parents 200100-200103) |
-| System | 62 rules | ⚠️ Partial support (EventID-based detection) |
-| Application | 23 rules | ⚠️ Partial support (EventID-based detection) |
+| Channel | Rules Converted | Method |
+|---------|-----------------|--------|
+| Security | 183 | EventID-based parents (200100-200103) |
+| System | Partial | EventID-based detection |
+| Application | Partial | EventID-based detection |
 
-### Why These Channels Work Differently
+**Why Sysmon is Recommended:**
+- 2,000+ process creation rules (vs 0 for Event 4688)
+- Richer fields (OriginalFileName, Hashes, ParentCommandLine)
+- No field transformations needed
+- Better detection coverage
 
-**Key Difference: EventID-Based vs Category-Based**
-
-Sigma rules for Security/System/Application channels **do not use categories**. They detect on specific EventIDs directly:
-
-```yaml
-# Typical Security service rule
-logsource:
-  product: windows
-  service: security   # ← No category!
-detection:
-  selection:
-    EventID: 4697     # ← Detects on EventID directly
-    ServiceFileName|contains: 'malicious'
-```
-
-**Why This Matters:**
-
-- Sysmon rules use **categories** (`process_creation`, `network_connection`) → StoW creates category-based parent rules
-- Security/System/App rules use **EventIDs** (`4697`, `5145`, `4624`) → Different parent rule strategy needed
-- These rules ARE converted by StoW using EventID-based parent rules (200100-200103)
-- Total: 183 Security service rules successfully converted ✅
-
-**Specifically for Security Event 4688 (Process Creation):**
-
-- Sysmon has ~2,000 `process_creation` rules (category-based)
-- Security Event 4688 has **0 Sigma rules** (no equivalent category rules)
-- Therefore: No Security Event 4688 support needed in StoW
-
-### Recommendation
-
-**Use Sysmon for process creation detection:**
-- ✅ ~2,000 Sigma detection rules available
-- ✅ More detailed fields (OriginalFileName, Hashes, ParentCommandLine)
-- ✅ Field names match Sigma directly (no transformations needed)
-- ✅ Better detection coverage
-
-**Security Event 4688 limitations:**
-- ❌ No Sigma rules (EventID not category-based)
-- CommandLine logging disabled by default (separate GPO required)
-- Missing critical fields (OriginalFileName, Hashes, etc.)
+**Note:** Security Event 4688 requires separate GPO for CommandLine logging and lacks critical detection fields.
 
 ---
 

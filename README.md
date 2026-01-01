@@ -360,6 +360,37 @@ Wazuh:
 
 ---
 
+## 🏗️ Architecture
+
+StoW uses a modular package-based architecture for maintainability and extensibility:
+
+```
+pkg/
+├── types/           Core type definitions (Config, SigmaRule, WazuhRule, etc.)
+├── strategy/        Strategy pattern for field mapping and parent rules
+│   ├── category.go  Sysmon/category-based channels
+│   ├── eventid.go   Security/System/Application (EventID-based)
+│   ├── service.go   Service-specific (msexchange, iis, wmi, etc.)
+│   └── product.go   Generic product-level fallback
+├── config/          Configuration loading and validation
+├── parser/          Sigma YAML parsing
+├── converter/       Rule conversion logic
+│   ├── builder.go   BuildRule, ProcessDnfSets, metadata
+│   ├── fields.go    Field modifiers and transformations
+│   └── dnf.go       Boolean expression parsing to DNF
+├── generator/       Output generation (XML, CDB lists, deployment)
+├── utils/           Logging and shared utilities
+└── bridge/          Compatibility layer for gradual migration
+```
+
+**Key Features:**
+- ✅ **Strategy Pattern** - Clean abstraction for conversion logic
+- ✅ **Separation of Concerns** - Each package has single responsibility
+- ✅ **Testable** - All packages independently testable
+- ✅ **Extensible** - Easy to add new strategies or output formats
+
+---
+
 ## 📚 Documentation
 
 - **Main README**: This file
