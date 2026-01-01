@@ -2,8 +2,9 @@ package strategy
 
 import (
 	"fmt"
-	"stow/pkg/types"
 	"strings"
+
+	"github.com/theflakes/StoW/pkg/types"
 )
 
 // ProductStrategy is a fallback strategy for product-level rules

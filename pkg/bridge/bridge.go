@@ -4,8 +4,8 @@ package bridge
 // This allows gradual migration without breaking existing functionality
 
 import (
-	"stow/pkg/strategy"
-	"stow/pkg/types"
+	"github.com/theflakes/StoW/pkg/strategy"
+	"github.com/theflakes/StoW/pkg/types"
 )
 
 // GetFieldMapper returns a strategy for field mapping

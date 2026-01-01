@@ -2,8 +2,9 @@ package strategy
 
 import (
 	"fmt"
-	"stow/pkg/types"
 	"strings"
+
+	"github.com/theflakes/StoW/pkg/types"
 )
 
 // EventIDStrategy handles Security/System/Application channels that use EventID-based detection

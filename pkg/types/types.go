@@ -1,6 +1,9 @@
 package types
 
-import "os"
+import (
+	"encoding/xml"
+	"os"
+)
 
 // Config holds all configuration for StoW converter
 type Config struct {
@@ -98,56 +101,60 @@ type WazuhGroup struct {
 
 // Field represents a Wazuh rule field
 type Field struct {
-	Name    string
-	Value   string
-	Type    string
-	Negate  bool
-	Comment string
+	Name   string `xml:"name,attr"`
+	Negate string `xml:"negate,attr,omitempty"`
+	Type   string `xml:"type,attr,omitempty"`
+	Value  string `xml:",chardata"`
 }
 
-// IPField represents an IP-related field (source or destination)
+// IPField represents srcip or dstip elements with optional negation
 type IPField struct {
-	Name   string
-	Value  string
-	IsSrc  bool
-	IsDst  bool
-	Negate bool
+	Negate string `xml:"negate,attr,omitempty"`
+	Value  string `xml:",chardata"`
 }
 
-// ListField represents a field that should become a CDB list
+// ListField represents a list lookup field
 type ListField struct {
-	Name   string
-	Values []string
-	Negate bool
+	Field  string `xml:"field,attr"`
+	Lookup string `xml:"lookup,attr"`
+	Negate string `xml:"negate,attr,omitempty"`
+	Value  string `xml:",chardata"` // Path to CDB list file
 }
 
-// RuleFields holds all fields for a Wazuh rule
+// RuleFields contains all field types that can be extracted from Sigma rules
 type RuleFields struct {
-	Fields    []Field
-	SrcIps    []IPField
-	DstIps    []IPField
+	Fields     []Field
+	SrcIps     []IPField
+	DstIps     []IPField
 	ListFields []ListField
 }
 
 // WazuhRule represents a complete Wazuh detection rule
 type WazuhRule struct {
-	ID          int
-	Level       int
-	IfSid       string
-	IfGroup     string
-	SigmaID     string
-	URL         string
-	Description string
-	Info        []string
-	Options     []string
-	Author      string
-	Date        string
-	Modified    string
-	Status      string
-	Mitre       []string
-	Group       string
-	Fields      []Field
-	SrcIps      []IPField
-	DstIps      []IPField
-	ListFields  []ListField
+	XMLName          xml.Name `xml:"rule"`
+	ID               string   `xml:"id,attr"`
+	Level            string   `xml:"level,attr"`
+	Info             struct {
+		Type  string `xml:"type,attr,omitempty"`
+		Value string `xml:",chardata"`
+	} `xml:"info,omitempty"`
+	Author           xml.Comment `xml:",comment"`
+	SigmaDescription xml.Comment `xml:",comment"`
+	Date             xml.Comment `xml:",comment"`
+	Modified         xml.Comment `xml:",comment"`
+	Status           xml.Comment `xml:",comment"`
+	SigmaID          xml.Comment `xml:",comment"`
+	Mitre            *struct {
+		IDs []string `xml:"id,omitempty"`
+	} `xml:"mitre,omitempty"`
+	Description string      `xml:"description"`
+	DecodedAs   string      `xml:"decoded_as,omitempty"`
+	Options     []string    `xml:"options,omitempty"`
+	Groups      string      `xml:"group,omitempty"`
+	IfSid       string      `xml:"if_sid,omitempty"`
+	IfGroup     string      `xml:"if_group,omitempty"`
+	SrcIps      []IPField   `xml:"srcip,omitempty"`
+	DstIps      []IPField   `xml:"dstip,omitempty"`
+	Lists       []ListField `xml:"list,omitempty"`
+	Fields      []Field     `xml:"field,omitempty"`
 }

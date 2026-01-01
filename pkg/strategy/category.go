@@ -2,8 +2,9 @@ package strategy
 
 import (
 	"fmt"
-	"stow/pkg/types"
 	"strings"
+
+	"github.com/theflakes/StoW/pkg/types"
 )
 
 // CategoryStrategy handles Sysmon and category-based built-in channels

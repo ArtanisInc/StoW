@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"stow/pkg/types"
-	
-	"gopkg.in/yaml.v2"
+
+	"github.com/theflakes/StoW/pkg/types"
+	"gopkg.in/yaml.v3"
 )
 
 // ParseSigmaFile reads and parses a single Sigma YAML file

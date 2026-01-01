@@ -2,7 +2,8 @@ package strategy
 
 import (
 	"strings"
-	"stow/pkg/types"
+
+	"github.com/theflakes/StoW/pkg/types"
 )
 
 // ConversionStrategy defines the interface for different rule conversion strategies

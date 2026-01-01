@@ -3,9 +3,9 @@ package config
 import (
 	"os"
 	"strings"
-	"stow/pkg/types"
-	
-	"gopkg.in/yaml.v2"
+
+	"github.com/theflakes/StoW/pkg/types"
+	"gopkg.in/yaml.v3"
 )
 
 // Load reads and parses the config.yaml file
