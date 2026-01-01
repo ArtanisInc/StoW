@@ -1,0 +1,327 @@
+<!--
+  Consolidated Windows Built-in Event Channel Parent Rules
+
+  This file contains all parent rules for Windows built-in event channels.
+  Previously split across 23+ files (100001-100024), now consolidated for easier deployment.
+
+  Coverage:
+  - Main Built-in Channels: DriverFrameworks, CodeIntegrity, Firewall, BITS, DNS, NTLM, etc.
+  - Rare/Niche Channels: Exchange, IIS, WMI, OpenSSH, AppLocker, Certificate Services, etc.
+
+  Rule ID Range: 109970-109999 (30 parent rules)
+
+  Required:
+  - Most channels must be enabled on Windows endpoints via wevtutil or GPO
+  - See WINDOWS_SETUP.md for detailed channel enablement instructions
+
+  Deployment:
+  1. Copy to Wazuh Manager: sudo cp 100001-windows_builtin_channels_parent.xml /var/ossec/etc/rules/
+  2. Add to ossec.conf: <include>100001-windows_builtin_channels_parent.xml</include>
+  3. Restart Wazuh Manager: systemctl restart wazuh-manager
+-->
+
+<group name="windows,builtin-channels,">
+
+  <!-- ========================================================================
+       MAIN BUILT-IN EVENT CHANNELS (IDs 109983-109999)
+       ======================================================================== -->
+
+  <!-- DriverFrameworks Events - Rule ID: 109999 -->
+  <!-- Channel: Microsoft-Windows-DriverFrameworks-UserMode/Operational -->
+  <!-- Events: USB detection (2003), Driver installation (2100, 2102) -->
+  <rule id="109999" level="3">
+    <field name="win.system.channel">Microsoft-Windows-DriverFrameworks-UserMode/Operational</field>
+    <description>Windows DriverFrameworks Event</description>
+    <options>no_full_log</options>
+    <group>windows,driverframeworks,</group>
+  </rule>
+
+  <!-- Code Integrity Events - Rule ID: 109998 -->
+  <!-- Channel: Microsoft-Windows-CodeIntegrity/Operational -->
+  <!-- Events: Unsigned drivers (3001), Policy violations (3076-3099), Revoked certs (3023) -->
+  <rule id="109998" level="3">
+    <field name="win.system.channel">Microsoft-Windows-CodeIntegrity/Operational</field>
+    <description>Windows Code Integrity Event</description>
+    <options>no_full_log</options>
+    <group>windows,codeintegrity-operational,</group>
+  </rule>
+
+  <!-- Windows Firewall Advanced Security Events - Rule ID: 109997 -->
+  <!-- Channel: Microsoft-Windows-Windows Firewall With Advanced Security/Firewall -->
+  <!-- Events: Rule changes (2004, 2005), Policy changes (2009), Failures (2011) -->
+  <rule id="109997" level="3">
+    <field name="win.system.channel">Microsoft-Windows-Windows Firewall With Advanced Security/Firewall</field>
+    <description>Windows Firewall Advanced Security Event</description>
+    <options>no_full_log</options>
+    <group>windows,firewall-as,</group>
+  </rule>
+
+  <!-- BITS Client Events - Rule ID: 109996 -->
+  <!-- Channel: Microsoft-Windows-Bits-Client/Operational -->
+  <!-- Events: File transfers, Job creation/completion -->
+  <rule id="109996" level="3">
+    <field name="win.system.channel">Microsoft-Windows-Bits-Client/Operational</field>
+    <description>Windows BITS Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,bits-client,</group>
+  </rule>
+
+  <!-- DNS Client Events - Rule ID: 109995 -->
+  <!-- Channel: Microsoft-Windows-DNS Client Events/Operational -->
+  <!-- Events: DNS query responses, Cache events -->
+  <rule id="109995" level="3">
+    <field name="win.system.channel">Microsoft-Windows-DNS Client Events/Operational</field>
+    <description>Windows DNS Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,dns-client,</group>
+  </rule>
+
+  <!-- NTLM Authentication Events - Rule ID: 109994 -->
+  <!-- Channel: Microsoft-Windows-NTLM/Operational -->
+  <!-- Events: NTLM authentication, Blocklist/audit mode events -->
+  <rule id="109994" level="3">
+    <field name="win.system.channel">Microsoft-Windows-NTLM/Operational</field>
+    <description>Windows NTLM Authentication Event</description>
+    <options>no_full_log</options>
+    <group>windows,ntlm,</group>
+  </rule>
+
+  <!-- Task Scheduler Events - Rule ID: 109993 -->
+  <!-- Channel: Microsoft-Windows-TaskScheduler/Operational -->
+  <!-- Events: Task registration (106), Launch (129), Completion (102) -->
+  <rule id="109993" level="3">
+    <field name="win.system.channel">Microsoft-Windows-TaskScheduler/Operational</field>
+    <description>Windows Task Scheduler Event</description>
+    <options>no_full_log</options>
+    <group>windows,taskscheduler,</group>
+  </rule>
+
+  <!-- DNS Server Events - Rule ID: 109992 -->
+  <!-- Channel: Microsoft-Windows-DNS-Server/(Analytical|Audit) -->
+  <!-- Events: DNS server queries, Zone transfers, Dynamic updates -->
+  <rule id="109992" level="3">
+    <field name="win.system.channel" type="pcre2">Microsoft-Windows-DNS-Server/(Analytical|Audit)</field>
+    <description>Windows DNS Server Event</description>
+    <options>no_full_log</options>
+    <group>windows,dns-server,</group>
+  </rule>
+
+  <!-- DNS Server Analytical Events - Rule ID: 109991 -->
+  <!-- Channel: Microsoft-Windows-DNS-Server/Analytical -->
+  <!-- IMPORTANT: Separate from dns-server (109992) - different channel! -->
+  <!-- Events: High-volume query analytics -->
+  <rule id="109991" level="3">
+    <field name="win.system.channel">Microsoft-Windows-DNS-Server/Analytical</field>
+    <description>Windows DNS Server Analytical Event</description>
+    <options>no_full_log</options>
+    <group>windows,dns-server-analytic,</group>
+  </rule>
+
+  <!-- LDAP Client Debug Events - Rule ID: 109990 -->
+  <!-- Channel: Microsoft-Windows-LDAP-Client/Debug -->
+  <!-- IMPORTANT: Service name is "ldap_debug" (not "ldap") in config.yaml -->
+  <!-- Events: LDAP queries, Binds, Search operations -->
+  <rule id="109990" level="3">
+    <field name="win.system.channel">Microsoft-Windows-LDAP-Client/Debug</field>
+    <description>Windows LDAP Client Debug Event</description>
+    <options>no_full_log</options>
+    <group>windows,ldap_debug,</group>
+  </rule>
+
+  <!-- LSA Server Events - Rule ID: 109989 -->
+  <!-- Channel: Microsoft-Windows-LSA/Operational -->
+  <!-- Events: Authentication package loads, Trust validation -->
+  <rule id="109989" level="3">
+    <field name="win.system.channel">Microsoft-Windows-LSA/Operational</field>
+    <description>Windows LSA Server Event</description>
+    <options>no_full_log</options>
+    <group>windows,lsa-server,</group>
+  </rule>
+
+  <!-- Terminal Services Events - Rule ID: 109988 -->
+  <!-- Channel: Microsoft-Windows-TerminalServices-LocalSessionManager/Operational -->
+  <!-- Events: RDP sessions (21-25), Logon/Logoff, Reconnections -->
+  <rule id="109988" level="3">
+    <field name="win.system.channel">Microsoft-Windows-TerminalServices-LocalSessionManager/Operational</field>
+    <description>Windows Terminal Services Event</description>
+    <options>no_full_log</options>
+    <group>windows,terminalservices-localsessionmanager,</group>
+  </rule>
+
+  <!-- SMB Client Security Events - Rule ID: 109987 -->
+  <!-- Channel: Microsoft-Windows-SmbClient/Security -->
+  <!-- Events: SMB share access, Authentication failures -->
+  <rule id="109987" level="3">
+    <field name="win.system.channel">Microsoft-Windows-SmbClient/Security</field>
+    <description>Windows SMB Client Security Event</description>
+    <options>no_full_log</options>
+    <group>windows,smbclient-security,</group>
+  </rule>
+
+  <!-- SMB Client Connectivity Events - Rule ID: 109986 -->
+  <!-- Channel: Microsoft-Windows-SmbClient/Connectivity -->
+  <!-- IMPORTANT: Service name is "smbclient-connectivity" (not "smbserver-connectivity") -->
+  <!-- Events: Connection attempts, Network errors -->
+  <rule id="109986" level="3">
+    <field name="win.system.channel">Microsoft-Windows-SmbClient/Connectivity</field>
+    <description>Windows SMB Client Connectivity Event</description>
+    <options>no_full_log</options>
+    <group>windows,smbclient-connectivity,</group>
+  </rule>
+
+  <!-- AppLocker Events - Rule ID: 109985 -->
+  <!-- Channels: Multiple AppLocker channels (EXE/DLL, MSI/Script, Packaged app, etc.) -->
+  <!-- Events: Blocked executables, Allowed/audited applications -->
+  <rule id="109985" level="3">
+    <field name="win.system.channel" type="pcre2">Microsoft-Windows-AppLocker/</field>
+    <description>Windows AppLocker Event</description>
+    <options>no_full_log</options>
+    <group>windows,applocker,</group>
+  </rule>
+
+  <!-- Security Mitigations Events - Rule ID: 109984 -->
+  <!-- Channels: Multiple Security-Mitigations channels (KernelMode, UserMode) -->
+  <!-- Events: DEP violations, CFG blocks, ASLR events -->
+  <rule id="109984" level="3">
+    <field name="win.system.channel" type="pcre2">Microsoft-Windows-Security-Mitigations</field>
+    <description>Windows Security Mitigations Event</description>
+    <options>no_full_log</options>
+    <group>windows,security-mitigations,</group>
+  </rule>
+
+  <!-- AppX Deployment Events - Rule ID: 109983 -->
+  <!-- Channel: Microsoft-Windows-AppXDeploymentServer/Operational -->
+  <!-- Events: Package installation, Deployment failures, Policy blocks -->
+  <rule id="109983" level="3">
+    <field name="win.system.channel">Microsoft-Windows-AppXDeploymentServer/Operational</field>
+    <description>Windows AppXDeploymentServer Event</description>
+    <options>no_full_log</options>
+    <group>windows,appxdeployment-server,</group>
+  </rule>
+
+  <!-- ========================================================================
+       RARE/NICHE EVENT CHANNELS (IDs 109970-109981)
+       Used by 1-8 Sigma rules each
+       ======================================================================== -->
+
+  <!-- Exchange Management Events - Rule ID: 109981 -->
+  <!-- Channel: MSExchange Management -->
+  <!-- Events: Exchange cmdlet executions, Configuration changes (8 Sigma rules) -->
+  <rule id="109981" level="3">
+    <field name="win.system.channel">MSExchange Management</field>
+    <description>Microsoft Exchange Management Event</description>
+    <options>no_full_log</options>
+    <group>windows,msexchange-management,</group>
+  </rule>
+
+  <!-- IIS Configuration Events - Rule ID: 109980 -->
+  <!-- Channel: Microsoft-Windows-IIS-Configuration/Operational -->
+  <!-- Events: IIS config changes, Module loads (4 Sigma rules) -->
+  <rule id="109980" level="3">
+    <field name="win.system.channel">Microsoft-Windows-IIS-Configuration/Operational</field>
+    <description>IIS Configuration Event</description>
+    <options>no_full_log</options>
+    <group>windows,iis-configuration,</group>
+  </rule>
+
+  <!-- LDAP Client Events - Rule ID: 109979 -->
+  <!-- Channel: Microsoft-Windows-LDAP-Client/Operational -->
+  <!-- IMPORTANT: Different from ldap_debug (109990) - separate service! (3 Sigma rules) -->
+  <rule id="109979" level="3">
+    <field name="win.system.channel">Microsoft-Windows-LDAP-Client/Operational</field>
+    <description>LDAP Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,ldap,</group>
+  </rule>
+
+  <!-- WMI Activity Events - Rule ID: 109978 -->
+  <!-- Channel: Microsoft-Windows-WMI-Activity/Operational -->
+  <!-- Events: WMI queries, Provider operations (2 Sigma rules) -->
+  <rule id="109978" level="3">
+    <field name="win.system.channel">Microsoft-Windows-WMI-Activity/Operational</field>
+    <description>WMI Activity Event</description>
+    <options>no_full_log</options>
+    <group>windows,wmi,</group>
+  </rule>
+
+  <!-- Windows Shell Core Events - Rule ID: 109977 -->
+  <!-- Channel: Microsoft-Windows-Shell-Core/Operational -->
+  <!-- Events: Shell operations, AppResolver events (2 Sigma rules) -->
+  <rule id="109977" level="3">
+    <field name="win.system.channel">Microsoft-Windows-Shell-Core/Operational</field>
+    <description>Windows Shell Core Event</description>
+    <options>no_full_log</options>
+    <group>windows,shell-core,</group>
+  </rule>
+
+  <!-- OpenSSH Server Events - Rule ID: 109976 -->
+  <!-- Channel: OpenSSH/Operational -->
+  <!-- Events: SSH connections, Authentication (1 Sigma rule) -->
+  <rule id="109976" level="3">
+    <field name="win.system.channel">OpenSSH/Operational</field>
+    <description>OpenSSH Server Event</description>
+    <options>no_full_log</options>
+    <group>windows,openssh,</group>
+  </rule>
+
+  <!-- AppModel Runtime Events - Rule ID: 109975 -->
+  <!-- Channel: Microsoft-Windows-AppModel-Runtime/Admin -->
+  <!-- Events: UWP app lifecycle, Suspension/resumption (1 Sigma rule) -->
+  <rule id="109975" level="3">
+    <field name="win.system.channel">Microsoft-Windows-AppModel-Runtime/Admin</field>
+    <description>AppModel Runtime Event</description>
+    <options>no_full_log</options>
+    <group>windows,appmodel-runtime,</group>
+  </rule>
+
+  <!-- AppX Packaging Events - Rule ID: 109974 -->
+  <!-- Channel: Microsoft-Windows-AppxPackaging/Operational -->
+  <!-- Events: Package integrity, Signature validation (1 Sigma rule) -->
+  <rule id="109974" level="3">
+    <field name="win.system.channel">Microsoft-Windows-AppxPackaging/Operational</field>
+    <description>AppX Packaging Event</description>
+    <options>no_full_log</options>
+    <group>windows,appxpackaging-om,</group>
+  </rule>
+
+  <!-- Windows Diagnostics Scripted Events - Rule ID: 109973 -->
+  <!-- Channel: Microsoft-Windows-Diagnosis-Scripted/Operational -->
+  <!-- Events: Diagnostic package executions (1 Sigma rule) -->
+  <rule id="109973" level="3">
+    <field name="win.system.channel">Microsoft-Windows-Diagnosis-Scripted/Operational</field>
+    <description>Windows Diagnostics Scripted Event</description>
+    <options>no_full_log</options>
+    <group>windows,diagnosis-scripted,</group>
+  </rule>
+
+  <!-- Crypto API 2.0 Events - Rule ID: 109972 -->
+  <!-- Channel: Microsoft-Windows-CAPI2/Operational -->
+  <!-- Events: Certificate validation, Trust failures (1 Sigma rule) -->
+  <rule id="109972" level="3">
+    <field name="win.system.channel">Microsoft-Windows-CAPI2/Operational</field>
+    <description>Crypto API 2.0 Event</description>
+    <options>no_full_log</options>
+    <group>windows,capi2,</group>
+  </rule>
+
+  <!-- Service Bus Client Events - Rule ID: 109971 -->
+  <!-- Channel: Microsoft-ServiceBus-Client -->
+  <!-- Events: Service Bus messaging operations (1 Sigma rule) -->
+  <rule id="109971" level="3">
+    <field name="win.system.channel">Microsoft-ServiceBus-Client</field>
+    <description>Service Bus Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,microsoft-servicebus-client,</group>
+  </rule>
+
+  <!-- Certificate Services Client Events - Rule ID: 109970 -->
+  <!-- Channel: Microsoft-Windows-CertificateServicesClient-Lifecycle-System/Operational -->
+  <!-- Events: Certificate enrollment, Renewal, Revocation (1 Sigma rule) -->
+  <rule id="109970" level="3">
+    <field name="win.system.channel">Microsoft-Windows-CertificateServicesClient-Lifecycle-System/Operational</field>
+    <description>Certificate Services Client Event</description>
+    <options>no_full_log</options>
+    <group>windows,certificateservicesclient-lifecycle-system,</group>
+  </rule>
+
+</group>
