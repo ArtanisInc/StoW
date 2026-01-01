@@ -1,4 +1,4 @@
-module github.com/theflakes/StoW
+module github.com/ArtanisInc/StoW
 
 go 1.18
 

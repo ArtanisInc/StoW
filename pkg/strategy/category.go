@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/types"
 )
 
 // CategoryStrategy handles Sysmon and category-based built-in channels

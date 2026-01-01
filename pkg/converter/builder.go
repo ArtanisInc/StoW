@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/bridge"
-	"github.com/theflakes/StoW/pkg/strategy"
-	"github.com/theflakes/StoW/pkg/types"
-	"github.com/theflakes/StoW/pkg/utils"
+	"github.com/ArtanisInc/StoW/pkg/bridge"
+	"github.com/ArtanisInc/StoW/pkg/strategy"
+	"github.com/ArtanisInc/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/utils"
 )
 
 // BuildRule constructs a Wazuh rule from a Sigma rule detection

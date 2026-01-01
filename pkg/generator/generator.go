@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/theflakes/StoW/pkg/types"
-	"github.com/theflakes/StoW/pkg/utils"
+	"github.com/ArtanisInc/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/utils"
 )
 
 // WriteWazuhXmlRules writes all generated Wazuh rules to XML files

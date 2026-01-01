@@ -10,11 +10,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/config"
-	"github.com/theflakes/StoW/pkg/converter"
-	"github.com/theflakes/StoW/pkg/generator"
-	"github.com/theflakes/StoW/pkg/types"
-	"github.com/theflakes/StoW/pkg/utils"
+	"github.com/ArtanisInc/StoW/pkg/config"
+	"github.com/ArtanisInc/StoW/pkg/converter"
+	"github.com/ArtanisInc/StoW/pkg/generator"
+	"github.com/ArtanisInc/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/utils"
 	"gopkg.in/yaml.v3"
 )
 

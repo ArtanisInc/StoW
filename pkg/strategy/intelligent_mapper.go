@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/types"
 )
 
 // IntelligentFieldMapper provides smart field mapping for unmapped Sigma fields

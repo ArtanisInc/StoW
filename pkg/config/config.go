@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/types"
 	"gopkg.in/yaml.v3"
 )
 
