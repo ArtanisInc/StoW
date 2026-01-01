@@ -46,6 +46,9 @@ func main() {
 	// Write XML rule files (one per product)
 	generator.WriteWazuhXmlRules(c)
 
+	// Write Windows Built-in Channel parent rules (separate file)
+	generator.WriteWindowsBuiltinChannelParentRules(c)
+
 	// Write CDB list files
 	generator.WriteCDBLists(c)
 

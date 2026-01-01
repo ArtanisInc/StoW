@@ -58,7 +58,7 @@ StoW is **primarily Sysmon-focused** but also supports select Windows built-in e
 - ✅ **Windows Event ID Parents** - Auto-generates parent rules (200100-200103)
 - ✅ **PowerShell Category Parents** - Dedicated parent rules (200000-200003)
 - ✅ **Sysmon Extended Events** - Support for Events 6, 17-22, 25 via 100000-sysmon_new_events.xml
-- ✅ **Built-in Channel Parents** - 11 parent rules for Windows channels (100001-100011, IDs 109983-109999)
+- ✅ **Built-in Channel Parents** - 30 parent rules for Windows channels (single file, IDs 109970-109999)
 
 ### Performance & Scalability
 - ✅ **Intelligent File Splitting** - Splits into 500-rule chunks for optimal Wazuh performance
@@ -149,18 +149,12 @@ Wazuh:
 # Sysmon Extended Events
 100000-sysmon_new_events.xml  # Sysmon Events 6, 17-22, 25
 
-# Windows Built-in Channel Parents (100001-100011, ~50 rules)
-100001-driverframeworks_parent.xml       # USB detection, drivers (ID 109999)
-100002-codeintegrity_parent.xml          # Code integrity violations (ID 109998)
-100003-firewall_parent.xml               # Firewall events (ID 109997)
-100004-bitsclient_parent.xml             # BITS transfers (ID 109996)
-100005-dnsclient_parent.xml              # DNS queries (ID 109995)
-100006-ntlm_parent.xml                   # NTLM authentication (ID 109994)
-100007-taskscheduler_parent.xml          # Scheduled tasks (ID 109993)
-100008-dnsserver_parent.xml              # DNS Server (ID 109992)
-100009-dnsserver_analytic_parent.xml     # DNS Server Analytical (ID 109991)
-100010-other_builtin_parent.xml          # LDAP, LSA, TerminalServices, SMB, AppLocker, Mitigations (IDs 109984-109990)
-100011-appxdeployment_parent.xml         # AppX package deployment (ID 109983)
+# Windows Built-in Channel Parents (single consolidated file, 30 rules)
+100001-windows_builtin_channels_parent.xml  # All Windows built-in channels (IDs 109970-109999)
+                                            # Includes: DriverFrameworks, CodeIntegrity, Firewall, BITS,
+                                            # DNS Client/Server, NTLM, TaskScheduler, LDAP, LSA,
+                                            # TerminalServices, SMB, AppLocker, Security Mitigations,
+                                            # AppX Deployment, Exchange, IIS, WMI, OpenSSH, and more
 
 # Embedded in Windows rule files
 200000-* (in Windows files)   # PowerShell parents (4 rules)
@@ -207,7 +201,7 @@ sudo ./deploy_cdb_lists.sh localhost
 ```bash
 # Copy parent rules (Sysmon + Built-in channels)
 sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
-sudo cp 1000[01][01]-*.xml /var/ossec/etc/rules/  # Built-in channel parents (100001-100011)
+sudo cp 100001-windows_builtin_channels_parent.xml /var/ossec/etc/rules/
 
 # Copy Sigma rules
 sudo cp 200400-sigma_windows_part*.xml /var/ossec/etc/rules/
@@ -230,17 +224,7 @@ sudo chmod 640 /var/ossec/etc/lists/sigma_*
 <ruleset>
   <!-- Parent Rules -->
   <include>100000-sysmon_new_events.xml</include>
-  <include>100001-driverframeworks_parent.xml</include>
-  <include>100002-codeintegrity_parent.xml</include>
-  <include>100003-firewall_parent.xml</include>
-  <include>100004-bitsclient_parent.xml</include>
-  <include>100005-dnsclient_parent.xml</include>
-  <include>100006-ntlm_parent.xml</include>
-  <include>100007-taskscheduler_parent.xml</include>
-  <include>100008-dnsserver_parent.xml</include>
-  <include>100009-dnsserver_analytic_parent.xml</include>
-  <include>100010-other_builtin_parent.xml</include>
-  <include>100011-appxdeployment_parent.xml</include>
+  <include>100001-windows_builtin_channels_parent.xml</include>
 
   <!-- Sigma Rules -->
   <include>200400-sigma_windows_part1.xml</include>
@@ -279,7 +263,7 @@ sudo /var/ossec/bin/wazuh-logtest  # Test with sample events
 
 | Product | ID Range | Count | Reserved IDs | Purpose |
 |---------|----------|-------|--------------|---------|
-| Built-in Channel Parents | 109983-109999 | 11 | - | AppXDeployment, NTLM, DNS, Firewall, etc. |
+| Built-in Channel Parents | 109970-109999 | 30 | - | All Windows built-in channels (consolidated) |
 | PowerShell Parents | 200000-200003 | 4 | - | ps_script, ps_module, ps_classic |
 | Event ID Parents | 200100-200103 | 4 | - | EventID-based grouping |
 | **Windows Rules** | 200400-209999 | ~1,996 | 200000-200399 | Sigma Windows detections |

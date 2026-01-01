@@ -99,6 +99,32 @@ func WriteWazuhXmlRules(c *types.Config) {
 	}
 }
 
+// WriteWindowsBuiltinChannelParentRules writes the Windows Built-in Channel parent rules to a separate file
+func WriteWindowsBuiltinChannelParentRules(c *types.Config) {
+	utils.LogIt(utils.DEBUG, "", nil, c.Info, c.Debug)
+
+	// Generate the built-in channel parent rules
+	parentRules := GenerateWindowsBuiltinChannelParentRules()
+
+	// Create WazuhGroup
+	xmlRules := &types.WazuhGroup{
+		Rules: parentRules,
+	}
+
+	// Write to file: 100001-windows_builtin_channels_parent.xml
+	filename := "100001-windows_builtin_channels_parent.xml"
+
+	if err := writeXmlFile(filename, xmlRules, c); err != nil {
+		utils.LogIt(utils.ERROR, fmt.Sprintf("Failed to write %s", filename), err, c.Info, c.Debug)
+		return
+	}
+
+	fmt.Printf("\n==============================================================================\n")
+	fmt.Printf("Created %s with %d parent rules (IDs 109970-109999)\n", filename, len(parentRules))
+	fmt.Printf("This file consolidates all Windows Built-in Channel parent rules\n")
+	fmt.Printf("==============================================================================\n\n")
+}
+
 // writeXmlFile writes a WazuhGroup to an XML file
 func writeXmlFile(filename string, xmlRules *types.WazuhGroup, c *types.Config) error {
 	// Create the file
@@ -507,6 +533,309 @@ func GenerateWindowsEventParentRules() []types.WazuhRule {
 			Fields: []types.Field{
 				{Name: "win.system.eventID", Value: "4624", Type: ""},
 				{Name: "win.system.channel", Value: "Security", Type: ""},
+			},
+		},
+	}
+}
+
+// GenerateWindowsBuiltinChannelParentRules creates parent rules for Windows built-in event channels
+// These are written to a separate file: 100001-windows_builtin_channels_parent.xml
+func GenerateWindowsBuiltinChannelParentRules() []types.WazuhRule {
+	return []types.WazuhRule{
+		// ========================================================================
+		// Windows Built-in Event Channels (IDs 109983-109999)
+		// ========================================================================
+		{
+			ID:          "109999",
+			Level:       "3",
+			Description: "Windows DriverFrameworks: USB and driver events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,driverframeworks,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-DriverFrameworks-UserMode/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109998",
+			Level:       "3",
+			Description: "Windows CodeIntegrity: Code integrity violations",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,codeintegrity,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-CodeIntegrity/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109997",
+			Level:       "3",
+			Description: "Windows Firewall: Advanced Security events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,firewall,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-Windows Firewall With Advanced Security/Firewall", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109996",
+			Level:       "3",
+			Description: "Windows BITS: Background Intelligent Transfer Service",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,bits,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-Bits-Client/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109995",
+			Level:       "3",
+			Description: "Windows DNS Client: DNS query events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,dns-client,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-DNS-Client/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109994",
+			Level:       "3",
+			Description: "Windows NTLM: NTLM authentication events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,ntlm,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-NTLM/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109993",
+			Level:       "3",
+			Description: "Windows TaskScheduler: Scheduled task events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,taskscheduler,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-TaskScheduler/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109992",
+			Level:       "3",
+			Description: "Windows DNS Server: DNS server events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,dns-server,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "DNS Server", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109991",
+			Level:       "3",
+			Description: "Windows DNS Server Analytic: DNS server analytical events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,dns-server-analytic,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-DNS-Server/Analytical", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109990",
+			Level:       "3",
+			Description: "Windows LDAP Debug: LDAP client debug events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,ldap_debug,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-LDAP-Client/Debug", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109989",
+			Level:       "3",
+			Description: "Windows LSA Server: LSA server events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,lsa-server,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-LSA/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109988",
+			Level:       "3",
+			Description: "Windows Terminal Services: Local session manager events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,terminalservices,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-TerminalServices-LocalSessionManager/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109987",
+			Level:       "3",
+			Description: "Windows SMB Client: Security events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,smbclient,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-SmbClient/Security", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109986",
+			Level:       "3",
+			Description: "Windows SMB Client: Connectivity events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,smbclient,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-SmbClient/Connectivity", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109985",
+			Level:       "3",
+			Description: "Windows AppLocker: Application control events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,applocker,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-AppLocker/", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109984",
+			Level:       "3",
+			Description: "Windows Security Mitigations: Exploit protection events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,security-mitigations,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-Security-Mitigations/", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109983",
+			Level:       "3",
+			Description: "Windows AppX Deployment: Package deployment events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,appxdeployment,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-AppXDeploymentServer/Operational", Type: "pcre2"},
+			},
+		},
+		// ========================================================================
+		// Rare/Niche Windows Channels (IDs 109970-109981)
+		// ========================================================================
+		{
+			ID:          "109981",
+			Level:       "3",
+			Description: "Windows Exchange: Exchange Server management events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,msexchange,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "MSExchange Management", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109980",
+			Level:       "3",
+			Description: "Windows IIS: Web server configuration events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,iis,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-IIS-Configuration/", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109979",
+			Level:       "3",
+			Description: "Windows LDAP: LDAP client events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,ldap,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-LDAP-Client/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109978",
+			Level:       "3",
+			Description: "Windows WMI: WMI Activity events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,wmi,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-WMI-Activity/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109977",
+			Level:       "3",
+			Description: "Windows Shell: Shell Core events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,shell,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-Shell-Core/", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109976",
+			Level:       "3",
+			Description: "Windows OpenSSH: OpenSSH server events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,openssh,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "OpenSSH/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109975",
+			Level:       "3",
+			Description: "Windows AppModel: Application Model Runtime events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,appmodel,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-AppModel-Runtime/", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109974",
+			Level:       "3",
+			Description: "Windows AppX Packaging: AppX packaging events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,appxpackaging,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-AppxPackaging/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109973",
+			Level:       "3",
+			Description: "Windows Diagnostics: Scripted diagnostics events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,diagnostics,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-Diagnosis-Scripted/", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109972",
+			Level:       "3",
+			Description: "Windows CAPI2: Crypto API 2.0 events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,capi2,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-CAPI2/Operational", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109971",
+			Level:       "3",
+			Description: "Windows Service Bus: Service Bus Client events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,servicebus,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-ServiceBus-Client", Type: "pcre2"},
+			},
+		},
+		{
+			ID:          "109970",
+			Level:       "3",
+			Description: "Windows Certificate Services: Certificate lifecycle events",
+			Options:     []string{"no_full_log"},
+			Groups:      "windows,certificateservices,",
+			Fields: []types.Field{
+				{Name: "win.system.channel", Value: "Microsoft-Windows-CertificateServicesClient-Lifecycle-System/Operational", Type: "pcre2"},
 			},
 		},
 	}

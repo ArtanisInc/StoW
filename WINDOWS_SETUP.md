@@ -444,8 +444,8 @@ On **Wazuh Manager**:
 # Check rule compilation errors
 grep -i "error\|warning" /var/ossec/logs/ossec.log | grep -i sigma
 
-# Verify parent rules loaded
-grep -r "id=\"109" /var/ossec/etc/rules/ | grep -E "(109983|109984|109990|109999)"
+# Verify parent rules loaded (should show 30 rules from IDs 109970-109999)
+grep -r "id=\"109" /var/ossec/etc/rules/100001-windows_builtin_channels_parent.xml | wc -l
 ```
 
 ### High CPU/Memory on Agent
@@ -466,7 +466,7 @@ grep -r "id=\"109" /var/ossec/etc/rules/ | grep -E "(109983|109984|109990|109999
 - [ ] Verify event flow to manager
 
 **On Wazuh Manager:**
-- [ ] Deploy parent rule files (100001-100011)
+- [ ] Deploy parent rule file (100001-windows_builtin_channels_parent.xml)
 - [ ] Deploy Sigma rule files (200400-*)
 - [ ] Update `ossec.conf` ruleset includes
 - [ ] Restart Wazuh manager
