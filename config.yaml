@@ -1,103 +1,81 @@
 Title: Sigma to Wazuh Converter Config
-Info: false # Print out verbose information
-Debug: false # Print out debug information
+Info: false
+Debug: false
+
 Sigma:
-  # root of the Sigma rules URL
   BaseUrl: https://github.com/SigmaHQ/sigma/tree/master/rules
-  # Sigma rules location
   RulesRoot: ../sigma/rules
-  # Convert only rules with status, comment out status' you don't want converted
+
+  # Convert only rules with these statuses
   RuleStatus:
     - stable
     - test
-  #  - experimental
-  #  - deprecated
-  #  - unsupported
-  # Sigma rule IDs to never try and convert (list)
+
+  # Sigma rule IDs to skip (Sysmon Events 16, 27-29 not supported)
   SkipIds:
-    - 8ac03a65-6c84-4116-acad-dc1558ff7a77  # Sysmon Event 16 - Configuration State Changed
-    - 23b71bc5-953e-4971-be4c-c896cda73fc2  # Sysmon Event 27 - File Block Executable
-    - c3e5c1b1-45e9-4632-b242-27939c170239  # Sysmon Event 28 - File Block Shredding
-    - 693a44e9-7f26-4cb6-b787-214867672d3a  # Sysmon Event 29 - File Executable Detected
-  # Ignore all "convert only's" and convert all rules (yes|no), overides all other convert_only's
-  # skip* will still be skipped
-  # rule status will also be considered when converting all
+    - 8ac03a65-6c84-4116-acad-dc1558ff7a77  # Event 16
+    - 23b71bc5-953e-4971-be4c-c896cda73fc2  # Event 27
+    - c3e5c1b1-45e9-4632-b242-27939c170239  # Event 28
+    - 693a44e9-7f26-4cb6-b787-214867672d3a  # Event 29
+
+  # Convert all rules (overrides ConvertCategories/Services/Products)
   ConvertAll: false
-  # Convert only these Sigma categories (list)
+
+  # Filter by category, service, or product
   ConvertCategories:
-  # Convert only these Sigma services (list)
   ConvertServices:
-  # Convert only Sigma rules targeting these explicit products (list)
   ConvertProducts:
     - windows
     - linux
     - azure
     - m365
-  # skip stuff (list)
+
   SkipProducts:
   SkipServices:
   SkipCategories:
+
 Wazuh:
-  # file that Wazuh rules will be written to
   RulesFile: ./sigma.xml
-  # where to start rule ID numbering
-  # if you change this variable and want existing rules renumbered,
-  #   then delete the file specified by rule_id_file before the next run
   RuleIdStart: 200000
-  # file to track Wazuh rule id to Sigma rule ID use
   RuleIdFile: ./rule_ids.json
-  # Maximum number of rules per XML file (split large files into multiple parts)
-  # Set to 0 to disable splitting
-  # Recommended: 500-1000 rules per file for optimal performance
+
+  # Split large files (0 = disabled, recommended: 500)
   MaxRulesPerFile: 500
-  # Product-specific rule ID starting points (10000 IDs per product range)
-  # Note: Windows starts at 200400 to reserve:
-  #   - 200000-200003 for PowerShell parent rules (Phase 5)
-  #   - 200100-200103 for Windows Event ID parent rules (Phase 7)
-  # Note: Linux starts at 210007 to reserve 210000-210006 for auditd parent rules
+
+  # Product-specific ID ranges (10000 IDs per product)
+  # Windows: 200400+ (reserves 200000-200399 for parents)
+  # Linux: 210007+ (reserves 210000-210006 for parents)
   ProductRuleIdStart:
     windows: 200400
     linux: 210007
     azure: 220000
     m365: 230000
-  # Convert Sigma rule levels to Wazuh levels
+
+  # Sigma level to Wazuh level mapping
   Levels:
     informational: 5
     low: 7
     medium: 10
     high: 12
     critical: 15
-  # Wazuh rule settings
+
   Options:
-    # do not include the full log in the wazuh alert (true|false)
     NoFullLog: true
-    # enable Wazuh email per Sigma GUID (list)
-    SigmaIdEmail:
-    # have wazuh send an alert email (true|false)
     EmailAlert: false
-    # at what levels do we want to enable Wazuh email alerts (list)
-    # disabled if SigmaIDEmail field above is false
+    SigmaIdEmail:
     EmailLevels:
       - critical
       - high
-  ######################################################
-  # Map Sigma GUID or [logsource][product] to Wazuh if_sid dependencies
-  #
-  # NOTE: This can cause Wazuh to go Out of Memory due to the number of associations between rules using if_group
-  #
-  # if_group takes precedence over if_sid below
+
+  # Parent rule mappings
   SidGrpMaps:
     SigmaIdToWazuhGroup:
     SigmaIdToWazuhId:
     ProductServiceToWazuhGroup:
     CategoryToWazuhGroup:
-    ######################################################
-    # Sigma logsource.service will be matched before logsource.product
+
+    # Service-specific parent rules
     ProductServiceToWazuhId:
-      # ========================================================================
-      # Legacy Windows Services (Wazuh built-in parent rules)
-      # ========================================================================
-      windefend: 60005
       application: 60003
       security: 60001
       system: 60002
