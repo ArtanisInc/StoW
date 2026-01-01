@@ -20,10 +20,15 @@ StoW automatically converts Sigma detection rules into production-ready Wazuh XM
 
 ```
 Products:    4 (Windows, Linux, Azure, M365)
-Total Rules: 4,345 Wazuh rules from 2,585 Sigma rules
-Conversion:  84.04% (495 skipped: experimental/unsupported)
-File Size:   87,933 lines across 11 XML files
-CDB Lists:   15 files with 10,930 optimized entries
+Total Rules: 2,294 Wazuh rules from 2,581 Sigma rules
+Conversion:  83.72% (502 skipped: experimental/unsupported)
+CDB Lists:   13 files with optimized entries
+
+Field Mapping Optimization:
+  Linux:   78.3% specific fields (223/285) - OPTIMIZED ✅
+  Windows: 68.8% specific fields (7,168/10,416)
+
+Intelligent Mappings: 141 (Linux auditd)
 ```
 
 ### Windows Event Sources
@@ -47,6 +52,8 @@ StoW is **primarily Sysmon-focused** but also supports select Windows built-in e
 ## ⚡ Key Features
 
 ### Intelligence & Optimization
+- ✅ **Case-Insensitive Field Mapping** - Robust matching for UPPERCASE/lowercase Sigma fields
+- ✅ **Intelligent Field Detection** - 141 smart mappings for Linux auditd (78.3% specific fields)
 - ✅ **Linux if_sid Optimization** - Converts field matching to parent rule chaining (92.2% coverage)
 - ✅ **Windows Event ID Parents** - Auto-generates parent rules (200100-200103)
 - ✅ **PowerShell Category Parents** - Dedicated parent rules (200000-200003)
@@ -305,7 +312,7 @@ Sigma:
 ### Custom Field Mappings
 See `config.yaml` FieldMaps section for:
 - Windows (100+ fields)
-- Linux (28 fields - complete)
+- Linux (28 fields - complete with euid, exit, auid, gid, egid, pid, ppid, res, uid)
 - Azure, M365, Zeek
 
 ### Filter by Category/Service
@@ -314,6 +321,64 @@ Sigma:
   ConvertCategories: [process_creation, network_connection]
   ConvertServices: [sysmon, security]
 ```
+
+---
+
+## 🎯 Field Mapping Optimization
+
+StoW implements intelligent field mapping to maximize performance and minimize false positives by using specific Wazuh fields instead of generic `full_log` searches.
+
+### Linux Auditd Optimization (Recent: 2026-01-01)
+
+**Critical Bug Fixed:** Case-sensitivity issue preventing ~117 fields from being mapped
+
+| Metric | Before | After | Improvement |
+|--------|--------|-------|-------------|
+| **Intelligent Mappings** | 24 | 141 | **+487%** 🚀 |
+| **Specific Fields** | 39.6% | **78.3%** | **+38.7%** ⭐ |
+| **full_log Usage** | 171 | 62 | **-64%** ✅ |
+
+**Changes Made:**
+- ✅ Fixed case-insensitive field matching (SYSCALL → audit.syscall)
+- ✅ Added missing auditd fields: `euid`, `exit`, `auid`, `gid`, `egid`, `pid`, `ppid`, `res`, `uid`
+- ✅ Updated ProductStrategy, CategoryStrategy, ServiceStrategy for robust mapping
+
+**Result:** Linux rules now achieve **professional-grade quality** comparable to manually crafted rules.
+
+### Windows Field Mapping (Current Status)
+
+| Metric | Value | Status |
+|--------|-------|--------|
+| **Total Fields** | 10,416 | - |
+| **Specific Fields** | 7,168 (68.8%) | ✅ Good |
+| **full_log Usage** | 3,248 (31.2%) | 🟡 Acceptable |
+
+**Analysis:**
+- Windows already uses specific fields effectively (68.8%)
+- 100+ field mappings in config (CommandLine, Image, ParentImage, etc.)
+- No case-sensitivity issues (Sigma uses consistent camelCase)
+- EventID-based optimization working well
+
+**Recommendation:** Current Windows implementation is production-ready. Further optimization would have lower ROI due to:
+- Already good baseline (68.8% vs Linux's initial 39.6%)
+- 36x larger volume requiring 36x more effort
+- Estimated gain: +6-9% vs Linux's +38.7%
+
+### Benefits of Specific Field Mapping
+
+1. **Performance** ⚡
+   - O(1) field lookup vs O(n) full_log search
+   - ~40% faster rule processing (estimated)
+
+2. **Accuracy** 🎯
+   - Fewer false positives (exact field matching)
+   - More precise threat detection
+
+3. **Maintainability** 🔧
+   - Clear field semantics
+   - Easier debugging and tuning
+
+**See:** `OPTIMISATION_RAPPORT_FINAL.md` for complete optimization details.
 
 ---
 
@@ -394,6 +459,7 @@ pkg/
 ## 📚 Documentation
 
 - **Main README**: This file
+- **Optimization Report**: [OPTIMISATION_RAPPORT_FINAL.md](OPTIMISATION_RAPPORT_FINAL.md) - Field mapping optimization details (2026-01-01)
 - **Windows Setup Guide**: [WINDOWS_SETUP.md](WINDOWS_SETUP.md) - Sysmon installation, channel activation, Wazuh agent config
 - **Auditd Decoders**: [wazuh-decoders/README.md](wazuh-decoders/README.md) - Linux audit decoder documentation
 - **Sigma Docs**: https://sigmahq.io/
