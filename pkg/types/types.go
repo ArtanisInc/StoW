@@ -95,8 +95,10 @@ type SigmaRule struct {
 
 // WazuhGroup represents a group of Wazuh rules
 type WazuhGroup struct {
-	Name  string
-	Rules []WazuhRule
+	XMLName xml.Name    `xml:"group"`
+	Name    string      `xml:"name,attr"`
+	Header  xml.Comment `xml:",comment"`
+	Rules   []WazuhRule `xml:"rule"`
 }
 
 // Field represents a Wazuh rule field
