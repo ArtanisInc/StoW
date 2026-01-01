@@ -38,7 +38,7 @@ Wazuh:
   RuleIdFile: ./rule_ids.json
 
   # Split large files (0 = disabled, recommended: 500)
-  MaxRulesPerFile: 500
+  MaxRulesPerFile: 300
 
   # Product-specific ID ranges (10000 IDs per product)
   # Windows: 200400+ (reserves 200000-200399 for parents)
@@ -397,14 +397,23 @@ Wazuh:
       a5: audit.execve.a5
       a6: audit.execve.a6
       a7: audit.execve.a7
+      auid: audit.auid
       comm: audit.command
+      egid: audit.egid
+      euid: audit.euid
       exe: audit.exe
+      exit: audit.exit
+      gid: audit.gid
       key: audit.key
       name: audit.directory.name
       nametype: audit.directory.nametype
+      pid: audit.pid
+      ppid: audit.ppid
       proctitle: audit.proctitle
+      res: audit.res
       syscall: audit.syscall
       type: audit.type
+      uid: audit.uid
       unit: audit.unit
     Azure:
       ActivityDetails: azure.properties.activityDetails

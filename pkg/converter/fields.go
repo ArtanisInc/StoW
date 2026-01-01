@@ -4,8 +4,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/strategy"
-	"github.com/theflakes/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/strategy"
+	"github.com/ArtanisInc/StoW/pkg/types"
 )
 
 // FieldModifiers holds field transformation modifiers

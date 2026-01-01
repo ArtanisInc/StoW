@@ -8,9 +8,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/bridge"
-	"github.com/theflakes/StoW/pkg/types"
-	"github.com/theflakes/StoW/pkg/utils"
+	"github.com/ArtanisInc/StoW/pkg/bridge"
+	"github.com/ArtanisInc/StoW/pkg/strategy"
+	"github.com/ArtanisInc/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/utils"
 )
 
 // BuildRule constructs a Wazuh rule from a Sigma rule detection
@@ -111,6 +112,25 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 
 	wazuhField := bridge.ConvertFieldName(fieldName, sigma, c)
 
+	// Apply intelligent field mapping if we got "full_log" as fallback
+	// and we have enough context to make a better guess
+	if wazuhField == "full_log" && sigma != nil {
+		values := getFieldValues(value, fieldName, c)
+		utils.LogIt(utils.DEBUG, fmt.Sprintf("[Intelligent Mapping] wazuhField=%s, fieldName='%s', values=%v, product=%s, category=%s",
+			wazuhField, fieldName, values, sigma.LogSource.Product, sigma.LogSource.Category), nil, c.Info, c.Debug)
+
+		if len(values) > 0 {
+			// Try intelligent mapping with the first value
+			guessedField := intelligentFieldMapping(fieldName, values[0], sigma, c)
+			if guessedField != "" {
+				wazuhField = guessedField
+				// Use WARN to ensure it's always visible
+				fmt.Printf("✓ Intelligent mapping applied: fieldName='%s', value='%s' → %s\n", fieldName, values[0], wazuhField)
+				utils.LogIt(utils.INFO, fmt.Sprintf("Intelligent mapping: '%s'='%s' → %s", fieldName, values[0], wazuhField), nil, c.Info, c.Debug)
+			}
+		}
+	}
+
 	field := types.Field{
 		Name: wazuhField,
 		Type: "pcre2",
@@ -144,13 +164,28 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 	// Handle 'all' modifier - create separate field for each value
 	if mods.HasAll {
 		for _, v := range values {
+			// For |all groups with anonymous fields, apply intelligent mapping to EACH value individually
+			// This allows different values to map to different fields (e.g., command to a0, flag to a1)
+			valueWazuhField := wazuhField
+			if sigma != nil && fieldName == "" {
+				// Re-apply intelligent mapping for each value in the |all group
+				guessedField := intelligentFieldMapping(fieldName, v, sigma, c)
+				if guessedField != "" {
+					valueWazuhField = guessedField
+					fmt.Printf("✓ Intelligent mapping applied (|all): fieldName='%s', value='%s' → %s\n", fieldName, v, valueWazuhField)
+					utils.LogIt(utils.INFO, fmt.Sprintf("Intelligent mapping (|all): '%s'='%s' → %s", fieldName, v, valueWazuhField), nil, c.Info, c.Debug)
+				}
+			}
+
 			newField := field
+			newField.Name = valueWazuhField  // Use the individually mapped field!
+
 			// Use exact matching if possible
 			if canUseExact && len(values) == 1 {
 				newField.Type = ""
 				newField.Value = v
 			} else {
-				newField.Value = BuildFieldValue(v, mods, wazuhField, sigma.LogSource.Product)
+				newField.Value = BuildFieldValue(v, mods, valueWazuhField, sigma.LogSource.Product)
 			}
 			*fields = append(*fields, newField)
 			utils.LogIt(utils.INFO, fmt.Sprintf("processDetectionField appended field: %v", newField), nil, c.Info, c.Debug)
@@ -839,4 +874,26 @@ func buildAndStoreRules(detectionSets []map[string]any, selectionNegations map[s
 		}
 		c.Wazuh.XmlRules[product].Rules = append(c.Wazuh.XmlRules[product].Rules, rule)
 	}
+}
+
+// intelligentFieldMapping applies intelligent field mapping for unmapped Sigma fields
+// This is particularly useful for Linux auditd where Sigma doesn't specify exact fields
+func intelligentFieldMapping(fieldName string, fieldValue string, sigma *types.SigmaRule, c *types.Config) string {
+	// Create intelligent mapper with context
+	mapper := strategy.IntelligentFieldMapper{
+		Config:   c,
+		Product:  sigma.LogSource.Product,
+		Category: sigma.LogSource.Category,
+	}
+
+	// Try to guess the field
+	guessedField := mapper.GuessWazuhField(fieldName, fieldValue, sigma)
+
+	if guessedField != "" {
+		c.TrackSkips.IntelligentMappings++
+		utils.LogIt(utils.INFO, fmt.Sprintf("Intelligent field mapping: %s='%s' → %s (product=%s, category=%s)",
+			fieldName, fieldValue, guessedField, sigma.LogSource.Product, sigma.LogSource.Category), nil, c.Info, c.Debug)
+	}
+
+	return guessedField
 }

@@ -59,16 +59,17 @@ type Config struct {
 		SigmaToWazuh map[string][]int `yaml:"SigmaToWazuh"`
 	}
 	TrackSkips struct {
-		NearSkips         int
-		Cidr              int
-		ParenSkips        int
-		TimeframeSkips    int
-		ExperimentalSkips int
-		HardSkipped       int
-		RulesSkipped      int
-		ErrorCount        int
-		FieldTooLong      int
-		ConvertedToCDB    int
+		NearSkips           int
+		Cidr                int
+		ParenSkips          int
+		TimeframeSkips      int
+		ExperimentalSkips   int
+		HardSkipped         int
+		RulesSkipped        int
+		ErrorCount          int
+		FieldTooLong        int
+		ConvertedToCDB      int
+		IntelligentMappings int
 	}
 	CDBLists map[string][]string
 }

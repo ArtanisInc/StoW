@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/theflakes/StoW/pkg/types"
+	"github.com/ArtanisInc/StoW/pkg/types"
 	"gopkg.in/yaml.v3"
 )
 
@@ -50,9 +50,15 @@ func loadStowConfig(c *types.Config) error {
 	}
 	
 	// Lowercase the FieldMaps keys for case-insensitive matching
+	// This normalizes both product names AND field names
 	lowerFieldMaps := make(map[string]map[string]string)
 	for product, fields := range c.Wazuh.FieldMaps {
-		lowerFieldMaps[strings.ToLower(product)] = fields
+		lowerFields := make(map[string]string)
+		for fieldName, wazuhField := range fields {
+			// Normalize field name to lowercase (e.g., "EventID" → "eventid")
+			lowerFields[strings.ToLower(fieldName)] = wazuhField
+		}
+		lowerFieldMaps[strings.ToLower(product)] = lowerFields
 	}
 	c.Wazuh.FieldMaps = lowerFieldMaps
 	
