@@ -27,18 +27,22 @@ func (s *CategoryStrategy) GetName() string {
 }
 
 func (s *CategoryStrategy) GetWazuhField(fieldName string, sigma *types.SigmaRule) string {
-	product := strings.ToLower(s.product)
+	// Normalize field name to lowercase for case-insensitive matching
+	// This allows Sigma fields like "SYSCALL" to match config mappings like "syscall"
+	fieldNameLower := strings.ToLower(fieldName)
 
-	// Try product-level FieldMaps first
-	if fieldMap, ok := s.config.Wazuh.FieldMaps[product]; ok {
-		if wazuhField, ok := fieldMap[fieldName]; ok {
-			return wazuhField
+	// Try both original case and lowercase for product (config may use "Linux" or "linux")
+	products := []string{s.product, strings.ToLower(s.product), strings.Title(strings.ToLower(s.product))}
+
+	for _, product := range products {
+		if fieldMap, ok := s.config.Wazuh.FieldMaps[product]; ok {
+			if wazuhField, ok := fieldMap[fieldNameLower]; ok {
+				return wazuhField
+			}
 		}
 	}
 
 	// Fallback to full_log
-	// Note: Intelligent mapping is now applied in processDetectionField
-	// where we have access to field values for better guessing
 	return "full_log"
 }
 
