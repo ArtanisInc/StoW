@@ -27,8 +27,6 @@ Sigma:
   ConvertProducts:
     - windows
     - linux
-    - azure
-    - m365
 
   SkipProducts:
   SkipServices:
@@ -40,7 +38,7 @@ Wazuh:
   RuleIdFile: ./rule_ids.json
 
   # Split large files (0 = disabled, recommended: 500)
-  MaxRulesPerFile: 500
+  MaxRulesPerFile: 300
 
   # Product-specific ID ranges (10000 IDs per product)
   # Windows: 200400+ (reserves 200000-200399 for parents)

@@ -13,22 +13,22 @@
 StoW automatically converts Sigma detection rules into production-ready Wazuh XML rules with:
 - **Smart parent rule chaining** for 92.2% of Linux rules (auditd optimization)
 - **Event ID-based optimization** for Windows rules
-- **Automatic CDB list generation** for large field sets (10,930 entries)
-- **Multi-product support** (Windows, Linux, Azure, M365)
+- **Automatic CDB list generation** for large field sets
+- **Multi-product support** (Windows, Linux)
 
 ### Current Statistics
 
 ```
-Products:    4 (Windows, Linux, Azure, M365)
-Total Rules: 2,294 Wazuh rules from 2,581 Sigma rules
-Conversion:  83.72% (502 skipped: experimental/unsupported)
+Products:    2 (Windows, Linux)
+Total Rules: 2,150 Wazuh rules from 2,581 Sigma rules
+Conversion:  ~83% (experimental/unsupported skipped)
 CDB Lists:   13 files with optimized entries
 
 Field Mapping Optimization:
   Linux:   78.3% specific fields (223/285) - OPTIMIZED ✅
   Windows: 94.0% specific fields (9,853/10,484) - OPTIMIZED ✅
 
-Both platforms now achieve professional-grade field mapping quality!
+Both platforms achieve professional-grade field mapping quality!
 ```
 
 ### Windows Event Sources
@@ -110,10 +110,10 @@ Edit `config.yaml` - key settings:
 Sigma:
   RulesRoot: ../sigma/rules
   RuleStatus: [stable, test]  # Skip experimental
-  ConvertProducts: [windows, linux, azure, m365]
+  ConvertProducts: [windows, linux]
 
 Wazuh:
-  MaxRulesPerFile: 500
+  MaxRulesPerFile: 300
   EmailAlert: false  # Disable email alerts
 
   ProductRuleIdStart:
@@ -127,10 +127,10 @@ Wazuh:
 ./stow -c config.yaml
 
 # Output:
-# Created 200400-sigma_windows_part1.xml (500 rules)
-# Created 200400-sigma_windows_part2.xml (500 rules)
+# Created 200400-sigma_windows_part1.xml (300 rules)
+# Created 200400-sigma_windows_part2.xml (300 rules)
 # ...
-# Total: 4,345 Wazuh rules (84.04% conversion)
+# Total: ~2,150 Wazuh rules (~83% conversion)
 ```
 
 ---
@@ -139,10 +139,8 @@ Wazuh:
 
 ### XML Rule Files
 ```
-200400-sigma_windows_part[1-8].xml  # 3,905 Windows rules
-210007-sigma_linux.xml              # 289 Linux rules
-220000-sigma_azure.xml              # 134 Azure rules
-230000-sigma_m365.xml               # 17 M365 rules
+200400-sigma_windows_part[1-7].xml  # ~1,996 Windows rules (split into 300-rule files)
+210007-sigma_linux.xml              # 154 Linux rules
 ```
 
 ### Parent Rule Files
@@ -214,8 +212,6 @@ sudo cp 1000[01][01]-*.xml /var/ossec/etc/rules/  # Built-in channel parents (10
 # Copy Sigma rules
 sudo cp 200400-sigma_windows_part*.xml /var/ossec/etc/rules/
 sudo cp 210007-sigma_linux.xml /var/ossec/etc/rules/
-sudo cp 220000-sigma_azure.xml /var/ossec/etc/rules/
-sudo cp 230000-sigma_m365.xml /var/ossec/etc/rules/
 
 # Set permissions
 sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml
@@ -254,10 +250,7 @@ sudo chmod 640 /var/ossec/etc/lists/sigma_*
   <include>200400-sigma_windows_part5.xml</include>
   <include>200400-sigma_windows_part6.xml</include>
   <include>200400-sigma_windows_part7.xml</include>
-  <include>200400-sigma_windows_part8.xml</include>
   <include>210007-sigma_linux.xml</include>
-  <include>220000-sigma_azure.xml</include>
-  <include>230000-sigma_m365.xml</include>
 </ruleset>
 
 <!-- CDB Lists - see WAZUH_CDB_CONFIG.txt for full list -->
@@ -289,11 +282,9 @@ sudo /var/ossec/bin/wazuh-logtest  # Test with sample events
 | Built-in Channel Parents | 109983-109999 | 11 | - | AppXDeployment, NTLM, DNS, Firewall, etc. |
 | PowerShell Parents | 200000-200003 | 4 | - | ps_script, ps_module, ps_classic |
 | Event ID Parents | 200100-200103 | 4 | - | EventID-based grouping |
-| **Windows Rules** | 200400-209999 | 3,905 | 200000-200399 | Sigma Windows detections |
+| **Windows Rules** | 200400-209999 | ~1,996 | 200000-200399 | Sigma Windows detections |
 | Auditd Parents | 210000-210006 | 7 | - | SYSCALL, EXECVE, PATH, etc. |
-| **Linux Rules** | 210007-219999 | 289 | 210000-210006 | Sigma Linux detections |
-| **Azure Rules** | 220000-229999 | 134 | - | Sigma Azure detections |
-| **M365 Rules** | 230000-239999 | 17 | - | Sigma M365 detections |
+| **Linux Rules** | 210007-219999 | 154 | 210000-210006 | Sigma Linux detections |
 
 ---
 
@@ -311,9 +302,8 @@ Sigma:
 
 ### Custom Field Mappings
 See `config.yaml` FieldMaps section for:
-- Windows (100+ fields)
-- Linux (28 fields - complete with euid, exit, auid, gid, egid, pid, ppid, res, uid)
-- Azure, M365, Zeek
+- Windows (100+ fields) - Optimized with case-insensitive matching
+- Linux (28 fields) - Complete auditd field coverage (euid, exit, auid, gid, egid, pid, ppid, res, uid)
 
 ### Filter by Category/Service
 ```yaml
@@ -387,8 +377,6 @@ StoW implements intelligent field mapping to maximize performance and minimize f
 3. **Maintainability** 🔧
    - Clear field semantics
    - Easier debugging and tuning
-
-**See:** `OPTIMISATION_RAPPORT_FINAL.md` for complete optimization details.
 
 ---
 
@@ -469,7 +457,6 @@ pkg/
 ## 📚 Documentation
 
 - **Main README**: This file
-- **Optimization Report**: [OPTIMISATION_RAPPORT_FINAL.md](OPTIMISATION_RAPPORT_FINAL.md) - Field mapping optimization details (2026-01-01)
 - **Windows Setup Guide**: [WINDOWS_SETUP.md](WINDOWS_SETUP.md) - Sysmon installation, channel activation, Wazuh agent config
 - **Auditd Decoders**: [wazuh-decoders/README.md](wazuh-decoders/README.md) - Linux audit decoder documentation
 - **Sigma Docs**: https://sigmahq.io/
