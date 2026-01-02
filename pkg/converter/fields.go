@@ -54,9 +54,22 @@ func ParseFieldModifiers(parts []string, value any) (FieldModifiers, any) {
 // BuildFieldValue constructs the final field value with modifiers
 func BuildFieldValue(v string, mods FieldModifiers, fieldName string, product string) string {
 	value := v
-	
+
+	// If this is already a regex (|re modifier), use it as-is
+	if mods.IsRegex {
+		// Add case-insensitive if needed
+		if needsCaseInsensitive(fieldName, product) {
+			value = "(?i)" + value
+		}
+		return value
+	}
+
+	// Convert Sigma wildcards to PCRE2 regex
+	value = convertSigmaWildcardsToPCRE2(value)
+
 	// Apply transformations based on modifiers
 	if mods.Contains {
+		// Already converted wildcards above
 		value = value
 	}
 	if mods.StartsWith {
@@ -65,13 +78,82 @@ func BuildFieldValue(v string, mods FieldModifiers, fieldName string, product st
 	if mods.EndsWith {
 		value = value + "$"
 	}
-	
+
 	// Add case-insensitive prefix if needed
-	if needsCaseInsensitive(fieldName, product) && !mods.IsRegex {
+	if needsCaseInsensitive(fieldName, product) {
 		value = "(?i)" + value
 	}
 
 	return value
+}
+
+// convertSigmaWildcardsToPCRE2 converts Sigma wildcards (* and ?) to PCRE2 regex
+// while escaping regex special characters
+func convertSigmaWildcardsToPCRE2(value string) string {
+	// If no wildcards, escape and return
+	if !strings.ContainsAny(value, "*?") {
+		return escapeRegexSpecialChars(value)
+	}
+
+	var result strings.Builder
+	for i := 0; i < len(value); i++ {
+		ch := value[i]
+		switch ch {
+		case '*':
+			// Sigma * = zero or more characters = .* in PCRE2
+			result.WriteString(".*")
+		case '?':
+			// Sigma ? = exactly one character = . in PCRE2
+			result.WriteRune('.')
+		case '\\':
+			// Handle escape sequences
+			if i+1 < len(value) {
+				next := value[i+1]
+				if next == '*' || next == '?' {
+					// Escaped wildcard - treat as literal
+					result.WriteRune('\\')
+					result.WriteByte(next)
+					i++ // skip next char
+				} else {
+					// Other backslash - escape it
+					result.WriteString("\\\\")
+				}
+			} else {
+				result.WriteString("\\\\")
+			}
+		default:
+			// Escape regex special characters (except wildcards already handled)
+			if isRegexSpecialChar(ch) {
+				result.WriteRune('\\')
+			}
+			result.WriteByte(ch)
+		}
+	}
+	return result.String()
+}
+
+// escapeRegexSpecialChars escapes PCRE2 special characters
+func escapeRegexSpecialChars(value string) string {
+	var result strings.Builder
+	for i := 0; i < len(value); i++ {
+		ch := value[i]
+		if isRegexSpecialChar(ch) {
+			result.WriteRune('\\')
+		}
+		result.WriteByte(ch)
+	}
+	return result.String()
+}
+
+// isRegexSpecialChar checks if a character is a PCRE2 special character
+func isRegexSpecialChar(ch byte) bool {
+	// PCRE2 special characters that need escaping
+	// Note: * and ? are handled separately as Sigma wildcards
+	switch ch {
+	case '.', '+', '^', '$', '(', ')', '[', ']', '{', '}', '|', '\\':
+		return true
+	}
+	return false
 }
 
 // IsSimpleValue checks if a value is simple enough for exact field matching
