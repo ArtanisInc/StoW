@@ -1,0 +1,105 @@
+<!--
+  Windows PowerShell Parent Rules
+
+  Base parent rules for PowerShell logging events. These rules group PowerShell
+  events by their Event ID and channel, and are required for all PowerShell
+  Sigma rule conversions.
+
+  Rule ID Range: 200000-200004 (5 parent rules)
+
+  Required:
+  - PowerShell logging must be enabled via GPO:
+    * Script Block Logging (Event 4104)
+    * Module Logging (Event 4103)
+    * Classic PowerShell logging (Events 400, 403, 600)
+
+  PowerShell Logging Configuration:
+  1. Script Block Logging:
+     Computer Configuration > Administrative Templates > Windows Components >
+     Windows PowerShell > Turn on PowerShell Script Block Logging
+
+  2. Module Logging:
+     Computer Configuration > Administrative Templates > Windows Components >
+     Windows PowerShell > Turn on Module Logging
+
+  3. Classic PowerShell Logging:
+     Automatically enabled on older systems or via registry
+
+  Deployment:
+  1. Copy to Wazuh Manager: sudo cp 200000-windows_powershell_parent.xml /var/ossec/etc/rules/
+  2. Add to ossec.conf: <include>200000-windows_powershell_parent.xml</include>
+  3. Restart Wazuh Manager: systemctl restart wazuh-manager
+
+  Coverage:
+  - Used by ~150+ PowerShell-related Sigma rules
+  - Covers ps_script, ps_module, ps_classic, and ps_classic_provider_start categories
+-->
+
+<group name="windows,powershell,">
+
+  <!-- PowerShell Script Block Logging - Rule ID: 200000 -->
+  <!-- Event ID: 4104 -->
+  <!-- Channel: Microsoft-Windows-PowerShell/Operational -->
+  <!-- Most comprehensive PowerShell logging - captures full script blocks -->
+  <!-- Used by Sigma category: ps_script -->
+  <rule id="200000" level="3">
+    <field name="win.system.eventID">4104</field>
+    <field name="win.system.channel">Microsoft-Windows-PowerShell/Operational</field>
+    <description>PowerShell: Script Block Logging (Event 4104)</description>
+    <options>no_full_log</options>
+    <group>windows,powershell,ps_script,</group>
+  </rule>
+
+  <!-- PowerShell Module Logging - Rule ID: 200001 -->
+  <!-- Event ID: 4103 -->
+  <!-- Channel: Microsoft-Windows-PowerShell/Operational -->
+  <!-- Logs PowerShell module execution and pipeline output -->
+  <!-- Used by Sigma category: ps_module -->
+  <rule id="200001" level="3">
+    <field name="win.system.eventID">4103</field>
+    <field name="win.system.channel">Microsoft-Windows-PowerShell/Operational</field>
+    <description>PowerShell: Module Logging (Event 4103)</description>
+    <options>no_full_log</options>
+    <group>windows,powershell,ps_module,</group>
+  </rule>
+
+  <!-- PowerShell Classic Provider Start - Rule ID: 200002 -->
+  <!-- Event ID: 400 -->
+  <!-- Channel: Windows PowerShell -->
+  <!-- Legacy PowerShell engine start event -->
+  <!-- Used by Sigma category: ps_classic_start -->
+  <rule id="200002" level="3">
+    <field name="win.system.eventID">400</field>
+    <field name="win.system.channel">Windows PowerShell</field>
+    <description>PowerShell: Classic Provider Start (Event 400)</description>
+    <options>no_full_log</options>
+    <group>windows,powershell,ps_classic,</group>
+  </rule>
+
+  <!-- PowerShell Classic Provider Stop - Rule ID: 200003 -->
+  <!-- Event ID: 403 -->
+  <!-- Channel: Windows PowerShell -->
+  <!-- Legacy PowerShell engine stop event -->
+  <!-- Used by Sigma category: ps_classic (rare) -->
+  <rule id="200003" level="3">
+    <field name="win.system.eventID">403</field>
+    <field name="win.system.channel">Windows PowerShell</field>
+    <description>PowerShell: Classic Provider Stop (Event 403)</description>
+    <options>no_full_log</options>
+    <group>windows,powershell,ps_classic,</group>
+  </rule>
+
+  <!-- PowerShell Classic Command Start - Rule ID: 200004 -->
+  <!-- Event ID: 600 -->
+  <!-- Channel: Windows PowerShell -->
+  <!-- Legacy PowerShell command execution event -->
+  <!-- Used by Sigma category: ps_classic_provider_start -->
+  <rule id="200004" level="5">
+    <field name="win.system.eventID">600</field>
+    <field name="win.system.channel">Windows PowerShell</field>
+    <description>PowerShell: Classic Command Start (Event 600)</description>
+    <options>no_full_log</options>
+    <group>windows,powershell,ps_classic,</group>
+  </rule>
+
+</group>
