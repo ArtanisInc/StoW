@@ -181,9 +181,18 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 			newField.Name = valueWazuhField  // Use the individually mapped field!
 
 			// Use exact matching if possible
+			// Note: Windows needs case-insensitive matching, which osmatch doesn't support
+			// So we use pcre2 with (?i) for Windows, osmatch for Linux/other
 			if canUseExact && len(values) == 1 {
-				newField.Type = "osmatch"  // Use osmatch (sregex) for fast exact string matching
-				newField.Value = v
+				if needsCaseInsensitive(valueWazuhField, sigma.LogSource.Product) {
+					// Windows: use pcre2 with (?i) for case-insensitive exact match
+					newField.Type = "pcre2"
+					newField.Value = "(?i)^" + escapeRegexSpecialChars(v) + "$"
+				} else {
+					// Linux/other: use osmatch for fast exact string matching
+					newField.Type = "osmatch"
+					newField.Value = v
+				}
 			} else {
 				newField.Value = BuildFieldValue(v, mods, valueWazuhField, sigma.LogSource.Product)
 			}
@@ -222,10 +231,20 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 	}
 
 	// Use exact matching for simple single values with no modifiers
+	// Note: Windows needs case-insensitive matching, which osmatch doesn't support
+	// So we use pcre2 with (?i) for Windows, osmatch for Linux/other
 	if canUseExact && len(values) == 1 {
-		field.Type = "osmatch"  // Use osmatch (sregex) for fast exact string matching
-		field.Value = values[0]
-		utils.LogIt(utils.INFO, fmt.Sprintf("Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
+		if needsCaseInsensitive(wazuhField, sigma.LogSource.Product) {
+			// Windows: use pcre2 with (?i) for case-insensitive exact match
+			field.Type = "pcre2"
+			field.Value = "(?i)^" + escapeRegexSpecialChars(values[0]) + "$"
+			utils.LogIt(utils.INFO, fmt.Sprintf("Using case-insensitive exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
+		} else {
+			// Linux/other: use osmatch for fast exact string matching
+			field.Type = "osmatch"
+			field.Value = values[0]
+			utils.LogIt(utils.INFO, fmt.Sprintf("Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
+		}
 	}
 
 	*fields = append(*fields, field)
