@@ -547,19 +547,19 @@ func getGroups(sigma *types.SigmaRule, c *types.Config) string {
 }
 
 // getOptions determines Wazuh rule options based on configuration
-func getOptions(sigma *types.SigmaRule, c *types.Config) []string {
+func getOptions(sigma *types.SigmaRule, c *types.Config) string {
 	utils.LogIt(utils.DEBUG, "", nil, c.Info, c.Debug)
 	var options []string
 	if c.Wazuh.Options.NoFullLog {
 		options = append(options, "no_full_log")
-
 	}
 	if c.Wazuh.Options.EmailAlert &&
 		(slices.Contains(c.Wazuh.Options.SigmaIdEmail, sigma.ID) ||
 			slices.Contains(c.Wazuh.Options.EmailLevels, sigma.Level)) {
 		options = append(options, "alert_by_email")
 	}
-	return options
+	// Return comma-separated string for single <options> element
+	return strings.Join(options, ",")
 }
 
 // HandleB64Offsets encodes a value with base64 offsets for matching

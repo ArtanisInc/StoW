@@ -137,27 +137,30 @@ type WazuhRule struct {
 	XMLName          xml.Name `xml:"rule"`
 	ID               string   `xml:"id,attr"`
 	Level            string   `xml:"level,attr"`
-	Info             struct {
-		Type  string `xml:"type,attr,omitempty"`
-		Value string `xml:",chardata"`
-	} `xml:"info,omitempty"`
+	// Metadata comments (optional)
 	Author           xml.Comment `xml:",comment"`
 	SigmaDescription xml.Comment `xml:",comment"`
 	Date             xml.Comment `xml:",comment"`
 	Modified         xml.Comment `xml:",comment"`
 	Status           xml.Comment `xml:",comment"`
 	SigmaID          xml.Comment `xml:",comment"`
-	Mitre            *struct {
-		IDs []string `xml:"id,omitempty"`
-	} `xml:"mitre,omitempty"`
-	Description string      `xml:"description"`
+	// Matching criteria (should come before description per Wazuh conventions)
 	DecodedAs   string      `xml:"decoded_as,omitempty"`
-	Options     []string    `xml:"options,omitempty"`
-	Groups      string      `xml:"group,omitempty"`
 	IfSid       string      `xml:"if_sid,omitempty"`
 	IfGroup     string      `xml:"if_group,omitempty"`
+	Fields      []Field     `xml:"field,omitempty"`
 	SrcIps      []IPField   `xml:"srcip,omitempty"`
 	DstIps      []IPField   `xml:"dstip,omitempty"`
 	Lists       []ListField `xml:"list,omitempty"`
-	Fields      []Field     `xml:"field,omitempty"`
+	// Description and metadata
+	Description string `xml:"description"`
+	Options     string `xml:"options,omitempty"` // Single element with comma-separated values
+	Groups      string `xml:"group,omitempty"`
+	Info        struct {
+		Type  string `xml:"type,attr,omitempty"`
+		Value string `xml:",chardata"`
+	} `xml:"info,omitempty"`
+	Mitre *struct {
+		IDs []string `xml:"id,omitempty"`
+	} `xml:"mitre,omitempty"`
 }
