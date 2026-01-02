@@ -50,28 +50,165 @@ func Tokenize(expr string) []Token {
 	return tokens
 }
 
+// BoolExpr represents a node in the boolean expression tree
+type BoolExpr interface {
+	ToDNF() [][]string
+}
+
+// Literal represents a selection name
+type Literal struct {
+	Value string
+}
+
+func (l Literal) ToDNF() [][]string {
+	return [][]string{{l.Value}}
+}
+
+// And represents AND operation
+type And struct {
+	Left, Right BoolExpr
+}
+
+func (a And) ToDNF() [][]string {
+	leftDNF := a.Left.ToDNF()
+	rightDNF := a.Right.ToDNF()
+
+	var result [][]string
+	// Cartesian product of AND clauses
+	for _, leftClause := range leftDNF {
+		for _, rightClause := range rightDNF {
+			combined := append([]string{}, leftClause...)
+			combined = append(combined, rightClause...)
+			result = append(result, combined)
+		}
+	}
+	return result
+}
+
+// Or represents OR operation
+type Or struct {
+	Left, Right BoolExpr
+}
+
+func (o Or) ToDNF() [][]string {
+	leftDNF := o.Left.ToDNF()
+	rightDNF := o.Right.ToDNF()
+
+	// Concatenate OR clauses
+	result := append([][]string{}, leftDNF...)
+	result = append(result, rightDNF...)
+	return result
+}
+
+// Not represents NOT operation
+type Not struct {
+	Expr BoolExpr
+}
+
+func (n Not) ToDNF() [][]string {
+	// For each clause in the DNF, prepend "not " to each literal
+	dnf := n.Expr.ToDNF()
+	var result [][]string
+
+	for _, clause := range dnf {
+		negatedClause := make([]string, len(clause))
+		for i, literal := range clause {
+			negatedClause[i] = "not " + literal
+		}
+		result = append(result, negatedClause)
+	}
+
+	return result
+}
+
+// parseExpression parses boolean expressions with precedence
+func parseExpression(tokens []Token, pos int) (BoolExpr, int) {
+	return parseOr(tokens, pos)
+}
+
+// parseOr handles OR operations (lowest precedence)
+func parseOr(tokens []Token, pos int) (BoolExpr, int) {
+	left, pos := parseAnd(tokens, pos)
+
+	for pos < len(tokens) && tokens[pos].Type == "OR" {
+		pos++ // skip OR
+		right, newPos := parseAnd(tokens, pos)
+		left = Or{Left: left, Right: right}
+		pos = newPos
+	}
+
+	return left, pos
+}
+
+// parseAnd handles AND operations (higher precedence than OR)
+func parseAnd(tokens []Token, pos int) (BoolExpr, int) {
+	left, pos := parseNot(tokens, pos)
+
+	for pos < len(tokens) && tokens[pos].Type == "AND" {
+		pos++ // skip AND
+		right, newPos := parseNot(tokens, pos)
+		left = And{Left: left, Right: right}
+		pos = newPos
+	}
+
+	return left, pos
+}
+
+// parseNot handles NOT operations (highest precedence)
+func parseNot(tokens []Token, pos int) (BoolExpr, int) {
+	if pos < len(tokens) && tokens[pos].Type == "NOT" {
+		pos++ // skip NOT
+		expr, pos := parsePrimary(tokens, pos)
+		return Not{Expr: expr}, pos
+	}
+
+	return parsePrimary(tokens, pos)
+}
+
+// parsePrimary handles literals and parenthesized expressions
+func parsePrimary(tokens []Token, pos int) (BoolExpr, int) {
+	if pos >= len(tokens) {
+		return Literal{Value: ""}, pos
+	}
+
+	if tokens[pos].Type == "LPAREN" {
+		pos++ // skip (
+		expr, pos := parseExpression(tokens, pos)
+		if pos < len(tokens) && tokens[pos].Type == "RPAREN" {
+			pos++ // skip )
+		}
+		return expr, pos
+	}
+
+	if tokens[pos].Type == "LITERAL" {
+		return Literal{Value: tokens[pos].Value}, pos + 1
+	}
+
+	return Literal{Value: ""}, pos
+}
+
 // Parse converts tokens to DNF (Disjunctive Normal Form)
 // Returns a list of AND clauses (each clause is a list of literals)
 func Parse(tokens []Token) [][]string {
-	// Simplified parser - returns DNF sets
-	// In reality this would be more complex
-
-	var result [][]string
-	var current []string
-
-	for _, token := range tokens {
-		if token.Type == "LITERAL" {
-			current = append(current, token.Value)
-		} else if token.Type == "OR" {
-			if len(current) > 0 {
-				result = append(result, current)
-				current = []string{}
-			}
-		}
+	if len(tokens) == 0 {
+		return [][]string{{}}
 	}
 
-	if len(current) > 0 {
-		result = append(result, current)
+	expr, _ := parseExpression(tokens, 0)
+	dnf := expr.ToDNF()
+
+	// Filter out empty clauses and empty literals
+	var result [][]string
+	for _, clause := range dnf {
+		var filteredClause []string
+		for _, literal := range clause {
+			if literal != "" {
+				filteredClause = append(filteredClause, literal)
+			}
+		}
+		if len(filteredClause) > 0 {
+			result = append(result, filteredClause)
+		}
 	}
 
 	// If no result, return single empty set
