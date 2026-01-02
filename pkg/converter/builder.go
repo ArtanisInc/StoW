@@ -182,7 +182,7 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 
 			// Use exact matching if possible
 			if canUseExact && len(values) == 1 {
-				newField.Type = ""
+				newField.Type = "osmatch"  // Use osmatch (sregex) for fast exact string matching
 				newField.Value = v
 			} else {
 				newField.Value = BuildFieldValue(v, mods, valueWazuhField, sigma.LogSource.Product)
@@ -223,7 +223,7 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 
 	// Use exact matching for simple single values with no modifiers
 	if canUseExact && len(values) == 1 {
-		field.Type = ""
+		field.Type = "osmatch"  // Use osmatch (sregex) for fast exact string matching
 		field.Value = values[0]
 		utils.LogIt(utils.INFO, fmt.Sprintf("Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
 	}
@@ -614,7 +614,7 @@ func optimizeLinuxRule(rule *types.WazuhRule) {
 	var auditTypeIndex int = -1
 
 	for i, field := range rule.Fields {
-		if field.Name == "audit.type" && field.Type == "" {
+		if field.Name == "audit.type" && (field.Type == "" || field.Type == "osmatch") {
 			// Found exact match audit.type field (not pcre2)
 			auditTypeValue = strings.ToLower(field.Value) // Normalize to lowercase
 			auditTypeIndex = i
@@ -742,7 +742,7 @@ func optimizeWindowsEventRule(rule *types.WazuhRule) {
 	var eventIDIndex int = -1
 
 	for i, field := range rule.Fields {
-		if field.Name == "win.system.eventID" && field.Type == "" {
+		if field.Name == "win.system.eventID" && (field.Type == "" || field.Type == "osmatch") {
 			// Found exact match EventID field (not pcre2)
 			eventIDValue = field.Value
 			eventIDIndex = i
