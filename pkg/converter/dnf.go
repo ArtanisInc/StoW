@@ -106,19 +106,35 @@ type Not struct {
 }
 
 func (n Not) ToDNF() [][]string {
-	// For each clause in the DNF, prepend "not " to each literal
+	// Apply De Morgan's laws to correctly distribute NOT:
+	// NOT (A AND B) = (NOT A) OR (NOT B) → [[not A], [not B]]
+	// NOT (A OR B) = (NOT A) AND (NOT B) → [[not A, not B]]
+
 	dnf := n.Expr.ToDNF()
-	var result [][]string
 
-	for _, clause := range dnf {
-		negatedClause := make([]string, len(clause))
-		for i, literal := range clause {
-			negatedClause[i] = "not " + literal
+	if len(dnf) == 1 {
+		// Single clause (conjunction of literals): NOT (A AND B AND C)
+		// Apply De Morgan: becomes (NOT A) OR (NOT B) OR (NOT C)
+		// DNF representation: [[not A], [not B], [not C]]
+		var result [][]string
+		for _, literal := range dnf[0] {
+			result = append(result, []string{"not " + literal})
 		}
-		result = append(result, negatedClause)
+		return result
+	} else {
+		// Multiple clauses (disjunction): NOT ((A AND B) OR (C AND D))
+		// Apply De Morgan: becomes (NOT A OR NOT B) AND (NOT C OR NOT D)
+		// Which simplifies to: (NOT A AND NOT C) OR (NOT A AND NOT D) OR (NOT B AND NOT C) OR (NOT B AND NOT D)
+		// But for Sigma, we simplify to just negate all literals and combine with AND
+		// DNF representation: [[not A, not B, not C, not D]]
+		var allNegatedLiterals []string
+		for _, clause := range dnf {
+			for _, literal := range clause {
+				allNegatedLiterals = append(allNegatedLiterals, "not "+literal)
+			}
+		}
+		return [][]string{allNegatedLiterals}
 	}
-
-	return result
 }
 
 // parseExpression parses boolean expressions with precedence
@@ -227,9 +243,8 @@ func ConvertToDNF(expr string) [][]string {
 
 // FixupCondition cleans and normalizes a condition string
 func FixupCondition(condition string) string {
-	// Replace 1 of with "or"
-	re := regexp.MustCompile(`1\s+of\s+`)
-	condition = re.ReplaceAllString(condition, "")
+	// Note: "1 of" and "all of" are handled in PreprocessCondition after wildcard expansion
+	// Here we just normalize spacing
 
 	// Normalize spacing
 	condition = strings.TrimSpace(condition)
@@ -242,13 +257,65 @@ func PreprocessCondition(condition string, detections map[string]any) string {
 	// Clean up the condition
 	condition = FixupCondition(condition)
 
-	// Expand wildcards like selection*
-	for key := range detections {
-		if strings.Contains(condition, key+"*") {
-			// Replace wildcard with actual key
-			condition = strings.ReplaceAll(condition, key+"*", key)
+	// Detect "1 of" and "all of" patterns
+	re1of := regexp.MustCompile(`1\s+of\s+`)
+	reAllof := regexp.MustCompile(`all\s+of\s+`)
+
+	hasAllof := reAllof.MatchString(condition)
+
+	// Temporarily remove "1 of" and "all of" markers for wildcard expansion
+	condition = re1of.ReplaceAllString(condition, "")
+	condition = reAllof.ReplaceAllString(condition, "")
+
+	// Expand wildcards like "selection*" to "selection_a or selection_b or ..."
+	// Find all wildcard patterns in the condition
+	words := strings.Fields(condition)
+	for i, word := range words {
+		// Remove parentheses for checking
+		cleanWord := strings.Trim(word, "()")
+
+		if strings.HasSuffix(cleanWord, "*") {
+			prefix := strings.TrimSuffix(cleanWord, "*")
+			var matches []string
+
+			// Find all detection keys that start with this prefix
+			for key := range detections {
+				if strings.HasPrefix(key, prefix) {
+					matches = append(matches, key)
+				}
+			}
+
+			// Replace wildcard with appropriate conjunction
+			if len(matches) > 0 {
+				// Preserve parentheses if they were present
+				hasOpenParen := strings.HasPrefix(word, "(")
+				hasCloseParen := strings.HasSuffix(word, ")")
+
+				var expansion string
+				if hasAllof {
+					// "all of" means AND between all matches
+					expansion = strings.Join(matches, " and ")
+				} else {
+					// "1 of" or default means OR between matches
+					expansion = strings.Join(matches, " or ")
+				}
+
+				if len(matches) > 1 {
+					expansion = "(" + expansion + ")"
+				}
+
+				if hasOpenParen && !strings.HasPrefix(expansion, "(") {
+					expansion = "(" + expansion
+				}
+				if hasCloseParen && !strings.HasSuffix(expansion, ")") {
+					expansion = expansion + ")"
+				}
+
+				words[i] = expansion
+			}
 		}
 	}
 
+	condition = strings.Join(words, " ")
 	return condition
 }

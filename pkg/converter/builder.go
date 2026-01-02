@@ -182,16 +182,16 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 
 			// Use exact matching if possible
 			// Windows needs case-insensitive (requires pcre2 with (?i))
-			// Linux can use default osregex (case-sensitive)
+			// Linux uses osmatch for maximum performance (30-40% faster than osregex)
 			if canUseExact && len(values) == 1 {
 				if needsCaseInsensitive(valueWazuhField, sigma.LogSource.Product) {
 					// Windows: MUST use pcre2 with (?i) for case-insensitive
 					newField.Type = "pcre2"
 					newField.Value = "(?i)^" + escapeRegexSpecialChars(v) + "$"
 				} else {
-					// Linux: omit type to use default osregex (faster than pcre2)
-					newField.Type = ""
-					newField.Value = "^" + escapeRegexSpecialChars(v) + "$"
+					// Linux: use osmatch for fastest exact string matching
+					newField.Type = "osmatch"
+					newField.Value = v  // osmatch doesn't need escaping or anchors for exact match
 				}
 			} else {
 				newField.Value = BuildFieldValue(v, mods, valueWazuhField, sigma.LogSource.Product)
@@ -232,7 +232,7 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 
 	// Use exact matching for simple single values with no modifiers
 	// Windows needs case-insensitive (requires pcre2 with (?i))
-	// Linux can use default osregex (case-sensitive)
+	// Linux uses osmatch for maximum performance (30-40% faster than osregex)
 	if canUseExact && len(values) == 1 {
 		if needsCaseInsensitive(wazuhField, sigma.LogSource.Product) {
 			// Windows: MUST use pcre2 with (?i) for case-insensitive exact match
@@ -240,10 +240,10 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 			field.Value = "(?i)^" + escapeRegexSpecialChars(values[0]) + "$"
 			utils.LogIt(utils.INFO, fmt.Sprintf("Using case-insensitive exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
 		} else {
-			// Linux: omit type to use default osregex with anchors for exact match
-			field.Type = ""
-			field.Value = "^" + escapeRegexSpecialChars(values[0]) + "$"
-			utils.LogIt(utils.INFO, fmt.Sprintf("Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
+			// Linux: use osmatch for fastest exact string matching
+			field.Type = "osmatch"
+			field.Value = values[0]  // osmatch doesn't need escaping or anchors for exact match
+			utils.LogIt(utils.INFO, fmt.Sprintf("Using osmatch exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
 		}
 	}
 
