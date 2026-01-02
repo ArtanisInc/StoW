@@ -181,17 +181,17 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 			newField.Name = valueWazuhField  // Use the individually mapped field!
 
 			// Use exact matching if possible
-			// Note: Windows needs case-insensitive matching, which osmatch doesn't support
-			// So we use pcre2 with (?i) for Windows, osmatch for Linux/other
+			// Windows needs case-insensitive (requires pcre2 with (?i))
+			// Linux can use default osregex (case-sensitive)
 			if canUseExact && len(values) == 1 {
 				if needsCaseInsensitive(valueWazuhField, sigma.LogSource.Product) {
-					// Windows: use pcre2 with (?i) for case-insensitive exact match
+					// Windows: MUST use pcre2 with (?i) for case-insensitive
 					newField.Type = "pcre2"
 					newField.Value = "(?i)^" + escapeRegexSpecialChars(v) + "$"
 				} else {
-					// Linux/other: use osmatch for fast exact string matching
-					newField.Type = "osmatch"
-					newField.Value = v
+					// Linux: omit type to use default osregex (faster than pcre2)
+					newField.Type = ""
+					newField.Value = "^" + escapeRegexSpecialChars(v) + "$"
 				}
 			} else {
 				newField.Value = BuildFieldValue(v, mods, valueWazuhField, sigma.LogSource.Product)
@@ -231,18 +231,18 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 	}
 
 	// Use exact matching for simple single values with no modifiers
-	// Note: Windows needs case-insensitive matching, which osmatch doesn't support
-	// So we use pcre2 with (?i) for Windows, osmatch for Linux/other
+	// Windows needs case-insensitive (requires pcre2 with (?i))
+	// Linux can use default osregex (case-sensitive)
 	if canUseExact && len(values) == 1 {
 		if needsCaseInsensitive(wazuhField, sigma.LogSource.Product) {
-			// Windows: use pcre2 with (?i) for case-insensitive exact match
+			// Windows: MUST use pcre2 with (?i) for case-insensitive exact match
 			field.Type = "pcre2"
 			field.Value = "(?i)^" + escapeRegexSpecialChars(values[0]) + "$"
 			utils.LogIt(utils.INFO, fmt.Sprintf("Using case-insensitive exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
 		} else {
-			// Linux/other: use osmatch for fast exact string matching
-			field.Type = "osmatch"
-			field.Value = values[0]
+			// Linux: omit type to use default osregex with anchors for exact match
+			field.Type = ""
+			field.Value = "^" + escapeRegexSpecialChars(values[0]) + "$"
 			utils.LogIt(utils.INFO, fmt.Sprintf("Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
 		}
 	}
@@ -633,9 +633,13 @@ func optimizeLinuxRule(rule *types.WazuhRule) {
 	var auditTypeIndex int = -1
 
 	for i, field := range rule.Fields {
-		if field.Name == "audit.type" && (field.Type == "" || field.Type == "osmatch") {
-			// Found exact match audit.type field (not pcre2)
-			auditTypeValue = strings.ToLower(field.Value) // Normalize to lowercase
+		if field.Name == "audit.type" && field.Type != "pcre2" {
+			// Found exact match audit.type field (osregex/osmatch, not pcre2)
+			// Remove anchors if present (^value$)
+			value := field.Value
+			value = strings.TrimPrefix(value, "^")
+			value = strings.TrimSuffix(value, "$")
+			auditTypeValue = strings.ToLower(value) // Normalize to lowercase
 			auditTypeIndex = i
 			break
 		}
@@ -761,9 +765,16 @@ func optimizeWindowsEventRule(rule *types.WazuhRule) {
 	var eventIDIndex int = -1
 
 	for i, field := range rule.Fields {
-		if field.Name == "win.system.eventID" && (field.Type == "" || field.Type == "osmatch") {
-			// Found exact match EventID field (not pcre2)
-			eventIDValue = field.Value
+		if field.Name == "win.system.eventID" {
+			// Found EventID field - extract value (may have (?i)^ prefix and $ suffix for pcre2)
+			value := field.Value
+			// Remove case-insensitive modifier if present
+			value = strings.TrimPrefix(value, "(?i)")
+			value = strings.TrimPrefix(value, "^")
+			value = strings.TrimSuffix(value, "$")
+			// Remove escape characters (e.g., \. becomes .)
+			value = strings.ReplaceAll(value, "\\", "")
+			eventIDValue = value
 			eventIDIndex = i
 			break
 		}
