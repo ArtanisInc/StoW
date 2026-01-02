@@ -150,7 +150,7 @@ Wazuh:
 100000-sysmon_new_events.xml  # Sysmon Events 6, 17-22, 25
 
 # Windows Built-in Channel Parents (single consolidated file, 30 rules)
-100001-windows_builtin_channels_parent.xml  # All Windows built-in channels (IDs 109970-109999)
+109970-windows_builtin_channels_parent.xml  # All Windows built-in channels (IDs 109970-109999)
                                             # Includes: DriverFrameworks, CodeIntegrity, Firewall, BITS,
                                             # DNS Client/Server, NTLM, TaskScheduler, LDAP, LSA,
                                             # TerminalServices, SMB, AppLocker, Security Mitigations,
@@ -201,7 +201,7 @@ sudo ./deploy_cdb_lists.sh localhost
 ```bash
 # Copy parent rules
 sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
-sudo cp 100001-windows_builtin_channels_parent.xml /var/ossec/etc/rules/
+sudo cp 109970-windows_builtin_channels_parent.xml /var/ossec/etc/rules/
 sudo cp 200000-windows_powershell_parent.xml /var/ossec/etc/rules/
 sudo cp 200100-windows_eventid_parent.xml /var/ossec/etc/rules/
 sudo cp 210000-linux_auditd_parent.xml /var/ossec/etc/rules/
@@ -227,7 +227,7 @@ sudo chmod 640 /var/ossec/etc/lists/sigma_*
 <ruleset>
   <!-- Parent Rules -->
   <include>100000-sysmon_new_events.xml</include>
-  <include>100001-windows_builtin_channels_parent.xml</include>
+  <include>109970-windows_builtin_channels_parent.xml</include>
   <include>200000-windows_powershell_parent.xml</include>
   <include>200100-windows_eventid_parent.xml</include>
   <include>210000-linux_auditd_parent.xml</include>
