@@ -156,12 +156,12 @@ Wazuh:
                                             # TerminalServices, SMB, AppLocker, Security Mitigations,
                                             # AppX Deployment, Exchange, IIS, WMI, OpenSSH, and more
 
-# Embedded in Windows rule files
-200000-* (in Windows files)   # PowerShell parents (4 rules)
-200100-* (in Windows files)   # Event ID parents (4 rules)
+# Windows Parent Rules (separate files)
+200000-windows_powershell_parent.xml   # PowerShell parents (5 rules: 200000-200004)
+200100-windows_eventid_parent.xml      # Event ID parents (4 rules: 200100-200103)
 
-# Embedded in Linux rule file
-210000-* (in Linux file)      # Auditd parents (7 rules)
+# Linux Parent Rules (separate file)
+210000-linux_auditd_parent.xml         # Auditd parents (7 rules: 210000-210006)
 ```
 
 ### CDB Lists (15 files, 10,930 entries)
@@ -199,17 +199,20 @@ sudo ./deploy_cdb_lists.sh localhost
 
 #### 1. Copy Rules
 ```bash
-# Copy parent rules (Sysmon + Built-in channels)
+# Copy parent rules
 sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
 sudo cp 100001-windows_builtin_channels_parent.xml /var/ossec/etc/rules/
+sudo cp 200000-windows_powershell_parent.xml /var/ossec/etc/rules/
+sudo cp 200100-windows_eventid_parent.xml /var/ossec/etc/rules/
+sudo cp 210000-linux_auditd_parent.xml /var/ossec/etc/rules/
 
 # Copy Sigma rules
 sudo cp 200400-sigma_windows_part*.xml /var/ossec/etc/rules/
 sudo cp 210007-sigma_linux.xml /var/ossec/etc/rules/
 
 # Set permissions
-sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml
-sudo chmod 640 /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml
+sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml
+sudo chmod 640 /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml
 ```
 
 #### 2. Copy CDB Lists
@@ -225,6 +228,9 @@ sudo chmod 640 /var/ossec/etc/lists/sigma_*
   <!-- Parent Rules -->
   <include>100000-sysmon_new_events.xml</include>
   <include>100001-windows_builtin_channels_parent.xml</include>
+  <include>200000-windows_powershell_parent.xml</include>
+  <include>200100-windows_eventid_parent.xml</include>
+  <include>210000-linux_auditd_parent.xml</include>
 
   <!-- Sigma Rules -->
   <include>200400-sigma_windows_part1.xml</include>

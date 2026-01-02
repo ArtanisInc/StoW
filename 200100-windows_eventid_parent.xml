@@ -1,0 +1,82 @@
+<!--
+  Windows Event ID Parent Rules
+
+  Base parent rules for specific Windows Event IDs that require dedicated parents.
+  These rules group common Windows events by Event ID and are used when the event
+  doesn't have a more specific service or category parent.
+
+  Rule ID Range: 200100-200103 (4 parent rules)
+
+  Required:
+  - Windows event logging must be enabled (default on most systems)
+  - Security auditing should be configured for service installation and logon events
+  - Object access auditing for network share access
+
+  Deployment:
+  1. Copy to Wazuh Manager: sudo cp 200100-windows_eventid_parent.xml /var/ossec/etc/rules/
+  2. Add to ossec.conf: <include>200100-windows_eventid_parent.xml</include>
+  3. Restart Wazuh Manager: systemctl restart wazuh-manager
+
+  Use Cases:
+  - Fallback for rules that don't have service-specific or category-specific parents
+  - EventID-based grouping when no better parent exists
+  - Used by rules that focus on specific event IDs across multiple channels
+-->
+
+<group name="windows,eventid-parents,">
+
+  <!-- Windows Security: Service Installation - Rule ID: 200100 -->
+  <!-- Event ID: 4697 -->
+  <!-- Channel: Security -->
+  <!-- Logs when a new service is installed on the system -->
+  <!-- Critical for detecting malware persistence and suspicious service creation -->
+  <rule id="200100" level="3">
+    <field name="win.system.eventID">4697</field>
+    <field name="win.system.channel">Security</field>
+    <description>Windows Security: Service Installation (Event 4697)</description>
+    <options>no_full_log</options>
+    <group>windows,security,service_install,</group>
+  </rule>
+
+  <!-- Windows System: Service Installation - Rule ID: 200101 -->
+  <!-- Event ID: 7045 -->
+  <!-- Channel: System -->
+  <!-- Alternative service installation event from System log -->
+  <!-- Captures service creation with service type, start type, and binary path -->
+  <rule id="200101" level="3">
+    <field name="win.system.eventID">7045</field>
+    <field name="win.system.channel">System</field>
+    <description>Windows System: Service Installation (Event 7045)</description>
+    <options>no_full_log</options>
+    <group>windows,system,service_install,</group>
+  </rule>
+
+  <!-- Windows Security: Network Share Access - Rule ID: 200102 -->
+  <!-- Event ID: 5145 -->
+  <!-- Channel: Security -->
+  <!-- Logs when a network share object is accessed -->
+  <!-- Useful for detecting lateral movement and data exfiltration -->
+  <!-- Requires: Object Access Auditing for File Share -->
+  <rule id="200102" level="3">
+    <field name="win.system.eventID">5145</field>
+    <field name="win.system.channel">Security</field>
+    <description>Windows Security: Network Share Object Access (Event 5145)</description>
+    <options>no_full_log</options>
+    <group>windows,security,share_access,</group>
+  </rule>
+
+  <!-- Windows Security: Successful Logon - Rule ID: 200103 -->
+  <!-- Event ID: 4624 -->
+  <!-- Channel: Security -->
+  <!-- Logs successful account logon (interactive, network, service, etc.) -->
+  <!-- Essential for authentication monitoring and lateral movement detection -->
+  <!-- Logon Types: 2=Interactive, 3=Network, 4=Batch, 5=Service, 7=Unlock, 10=RDP -->
+  <rule id="200103" level="3">
+    <field name="win.system.eventID">4624</field>
+    <field name="win.system.channel">Security</field>
+    <description>Windows Security: Successful Account Logon (Event 4624)</description>
+    <options>no_full_log</options>
+    <group>windows,security,logon,</group>
+  </rule>
+
+</group>

@@ -1,0 +1,114 @@
+<!--
+  Linux Auditd Parent Rules
+
+  Base parent rules for Linux auditd log types. These rules group auditd events
+  by their message type and are required for all Linux Sigma rule conversions.
+
+  Rule ID Range: 210000-210006 (7 parent rules)
+
+  Required:
+  - Auditd must be enabled on Linux endpoints
+  - Wazuh agent must be configured to read auditd logs
+  - Custom auditd decoders must be deployed (see wazuh-decoders/auditd_decoders.xml)
+
+  Deployment:
+  1. Copy to Wazuh Manager: sudo cp 210000-linux_auditd_parent.xml /var/ossec/etc/rules/
+  2. Copy decoders: sudo cp wazuh-decoders/auditd_decoders.xml /var/ossec/etc/decoders/
+  3. Add to ossec.conf: <include>210000-linux_auditd_parent.xml</include>
+  4. Restart Wazuh Manager: systemctl restart wazuh-manager
+
+  Usage Statistics (from 289 converted Linux rules):
+  - 210001 (auditd-execve): 224 rules (77.5%) - Process execution
+  - 210000 (auditd-syscall): 13 rules (4.5%) - System calls
+  - 210002 (auditd-path): 13 rules (4.5%) - File operations
+  - 210003 (auditd-config_change): 10 rules (3.5%) - Configuration changes
+  - 210004 (auditd-user_and_cred): 12 rules (4.2%) - User/credential events
+  - 210005 (auditd-service_stop): 1 rule (0.3%) - Service control
+  - 210006 (auditd-tty): 1 rule (0.3%) - Terminal/keylogging
+
+  Total: 274/289 rules (94.8%) use parent rule chaining via if_sid
+-->
+
+<group name="linux,auditd,">
+
+  <!-- SYSCALL Parent - Rule ID: 210000 -->
+  <!-- Matches: type=SYSCALL audit messages -->
+  <!-- Decoder: auditd-syscall -->
+  <!-- Fields: syscall, arch, success, exit, a0-a3, ppid, pid, auid, uid, gid, euid, suid, fsuid, egid, sgid, fsgid -->
+  <rule id="210000" level="3">
+    <decoded_as>auditd-syscall</decoded_as>
+    <description>Audit: SYSCALL Messages grouped.</description>
+    <options>no_full_log</options>
+    <group>linux,auditd,syscall,</group>
+  </rule>
+
+  <!-- EXECVE Parent - Rule ID: 210001 -->
+  <!-- Matches: type=EXECVE audit messages (command execution) -->
+  <!-- Decoder: auditd-execve -->
+  <!-- Fields: a0-a7 (command arguments) -->
+  <!-- Most commonly used parent (224 rules) -->
+  <rule id="210001" level="3">
+    <decoded_as>auditd-execve</decoded_as>
+    <description>Audit: EXECVE Messages grouped.</description>
+    <options>no_full_log</options>
+    <group>linux,auditd,execve,</group>
+  </rule>
+
+  <!-- PATH Parent - Rule ID: 210002 -->
+  <!-- Matches: type=PATH audit messages (file access) -->
+  <!-- Decoder: auditd-path -->
+  <!-- Fields: name (file path), nametype, mode, ouid, ogid -->
+  <rule id="210002" level="3">
+    <decoded_as>auditd-path</decoded_as>
+    <description>Audit: PATH Messages grouped.</description>
+    <options>no_full_log</options>
+    <group>linux,auditd,path,</group>
+  </rule>
+
+  <!-- CONFIG_CHANGE Parent - Rule ID: 210003 -->
+  <!-- Matches: type=CONFIG_CHANGE audit messages -->
+  <!-- Decoder: auditd-config_change -->
+  <!-- Fields: auid, ses, op, key, list -->
+  <rule id="210003" level="5">
+    <decoded_as>auditd-config_change</decoded_as>
+    <description>Audit: CONFIG_CHANGE Messages grouped.</description>
+    <options>no_full_log</options>
+    <group>linux,auditd,config_change,</group>
+  </rule>
+
+  <!-- USER Credentials Parent - Rule ID: 210004 -->
+  <!-- Matches: type=USER_* and CRED_* audit messages -->
+  <!-- Decoder: auditd-user_and_cred -->
+  <!-- Fields: pid, uid, auid, ses, msg, acct, exe, hostname, addr, terminal, res -->
+  <!-- Includes: USER_AUTH, USER_ACCT, CRED_ACQ, CRED_DISP, USER_START, USER_END -->
+  <rule id="210004" level="3">
+    <decoded_as>auditd-user_and_cred</decoded_as>
+    <description>Audit: USER credentials Messages grouped.</description>
+    <options>no_full_log</options>
+    <group>linux,auditd,user_and_cred,</group>
+  </rule>
+
+  <!-- SERVICE_STOP Parent - Rule ID: 210005 -->
+  <!-- Matches: type=SERVICE_STOP audit messages -->
+  <!-- Decoder: auditd-service_stop -->
+  <!-- Fields: pid, uid, auid, ses, unit, comm, exe, hostname, addr, terminal, res -->
+  <rule id="210005" level="3">
+    <decoded_as>auditd-service_stop</decoded_as>
+    <description>Audit: SERVICE_STOP Messages grouped.</description>
+    <options>no_full_log</options>
+    <group>linux,auditd,service_stop,</group>
+  </rule>
+
+  <!-- TTY Parent - Rule ID: 210006 -->
+  <!-- Matches: type=TTY and type=USER_TTY audit messages -->
+  <!-- Decoder: auditd-tty -->
+  <!-- Fields: pid, uid, auid, ses, data, comm, exe, hostname, addr, terminal, res -->
+  <!-- Used for detecting keylogging and terminal session monitoring -->
+  <rule id="210006" level="3">
+    <decoded_as>auditd-tty</decoded_as>
+    <description>Audit: TTY/USER_TTY Messages grouped.</description>
+    <options>no_full_log</options>
+    <group>linux,auditd,tty,</group>
+  </rule>
+
+</group>
