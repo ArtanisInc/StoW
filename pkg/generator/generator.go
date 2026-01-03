@@ -47,7 +47,9 @@ func WriteWazuhXmlRules(c *types.Config) {
 
 				// Create a new WazuhGroup for this part
 				partRules := &types.WazuhGroup{
-					Rules: xmlRules.Rules[startIdx:endIdx],
+					Name:   xmlRules.Name,
+					Header: xmlRules.Header,
+					Rules:  xmlRules.Rules[startIdx:endIdx],
 				}
 
 				// Create filename with part number and ID prefix
