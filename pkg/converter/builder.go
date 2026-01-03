@@ -181,9 +181,18 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 			newField.Name = valueWazuhField  // Use the individually mapped field!
 
 			// Use exact matching if possible
+			// Windows needs case-insensitive (requires pcre2 with (?i))
+			// Linux uses osmatch for maximum performance (30-40% faster than osregex)
 			if canUseExact && len(values) == 1 {
-				newField.Type = ""
-				newField.Value = v
+				if needsCaseInsensitive(valueWazuhField, sigma.LogSource.Product) {
+					// Windows: MUST use pcre2 with (?i) for case-insensitive
+					newField.Type = "pcre2"
+					newField.Value = "(?i)^" + escapeRegexSpecialChars(v) + "$"
+				} else {
+					// Linux: use osmatch for fastest exact string matching
+					newField.Type = "osmatch"
+					newField.Value = v  // osmatch doesn't need escaping or anchors for exact match
+				}
 			} else {
 				newField.Value = BuildFieldValue(v, mods, valueWazuhField, sigma.LogSource.Product)
 			}
@@ -222,10 +231,20 @@ func processDetectionField(selectionKey string, key string, value any, sigma *ty
 	}
 
 	// Use exact matching for simple single values with no modifiers
+	// Windows needs case-insensitive (requires pcre2 with (?i))
+	// Linux uses osmatch for maximum performance (30-40% faster than osregex)
 	if canUseExact && len(values) == 1 {
-		field.Type = ""
-		field.Value = values[0]
-		utils.LogIt(utils.INFO, fmt.Sprintf("Using exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
+		if needsCaseInsensitive(wazuhField, sigma.LogSource.Product) {
+			// Windows: MUST use pcre2 with (?i) for case-insensitive exact match
+			field.Type = "pcre2"
+			field.Value = "(?i)^" + escapeRegexSpecialChars(values[0]) + "$"
+			utils.LogIt(utils.INFO, fmt.Sprintf("Using case-insensitive exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
+		} else {
+			// Linux: use osmatch for fastest exact string matching
+			field.Type = "osmatch"
+			field.Value = values[0]  // osmatch doesn't need escaping or anchors for exact match
+			utils.LogIt(utils.INFO, fmt.Sprintf("Using osmatch exact field matching for %s=%s", wazuhField, values[0]), nil, c.Info, c.Debug)
+		}
 	}
 
 	*fields = append(*fields, field)
@@ -614,9 +633,13 @@ func optimizeLinuxRule(rule *types.WazuhRule) {
 	var auditTypeIndex int = -1
 
 	for i, field := range rule.Fields {
-		if field.Name == "audit.type" && field.Type == "" {
-			// Found exact match audit.type field (not pcre2)
-			auditTypeValue = strings.ToLower(field.Value) // Normalize to lowercase
+		if field.Name == "audit.type" && field.Type != "pcre2" {
+			// Found exact match audit.type field (osregex/osmatch, not pcre2)
+			// Remove anchors if present (^value$)
+			value := field.Value
+			value = strings.TrimPrefix(value, "^")
+			value = strings.TrimSuffix(value, "$")
+			auditTypeValue = strings.ToLower(value) // Normalize to lowercase
 			auditTypeIndex = i
 			break
 		}
@@ -742,9 +765,16 @@ func optimizeWindowsEventRule(rule *types.WazuhRule) {
 	var eventIDIndex int = -1
 
 	for i, field := range rule.Fields {
-		if field.Name == "win.system.eventID" && field.Type == "" {
-			// Found exact match EventID field (not pcre2)
-			eventIDValue = field.Value
+		if field.Name == "win.system.eventID" {
+			// Found EventID field - extract value (may have (?i)^ prefix and $ suffix for pcre2)
+			value := field.Value
+			// Remove case-insensitive modifier if present
+			value = strings.TrimPrefix(value, "(?i)")
+			value = strings.TrimPrefix(value, "^")
+			value = strings.TrimSuffix(value, "$")
+			// Remove escape characters (e.g., \. becomes .)
+			value = strings.ReplaceAll(value, "\\", "")
+			eventIDValue = value
 			eventIDIndex = i
 			break
 		}

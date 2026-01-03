@@ -1,0 +1,1802 @@
+
+
+<!DOCTYPE html><html lang="en-US"class="auto-theme">
+  <head>
+    
+    
+    <meta name="robots" content="index" />
+    
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta charset="UTF-8">
+    <meta name="author" content="Wazuh">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta name="color-scheme" content="dark light">
+    <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+<meta content="Regular expressions or ``regex`` are sequences of characters that define a pattern. Learn more about using regular expressions in this section." name="description" />
+<meta property="og:image" content="https://documentation.wazuh.com/current/_static/images/wazuh-docs-card.png">
+    <meta property="og:url" content="https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/regex.html">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Regular Expression Syntax - Ruleset XML syntax · Wazuh documentation">
+    <meta property="og:description" content="User manual, installation and configuration guides. Learn how to get the most out of the Wazuh platform.">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:site" content="@wazuh">
+    <meta name="twitter:creator" content="@wazuh">
+    <meta name="twitter:title" content="Regular Expression Syntax - Ruleset XML syntax · Wazuh documentation">
+    <meta name="twitter:description" content="User manual, installation and configuration guides. Learn how to get the most out of the Wazuh platform.">
+    <meta name="twitter:image" content="https://documentation.wazuh.com/current/_static/images/wazuh-docs-card.png">
+    <title>Regular Expression Syntax - Ruleset XML syntax · Wazuh documentation</title>
+    <style media="prefers-color-scheme: light">
+      html, body {
+        color: black;
+        background-color: #fff;
+      }
+    </style>  
+    <style media="prefers-color-scheme: dark">
+      html, body {
+        background-color: #2b303a!important;
+      }
+    </style>
+    <script>
+    let prefersDarkScheme=window.matchMedia("(prefers-color-scheme: dark)"),currentTheme=document.documentElement.classList.contains("auto-theme")?"":localStorage.getItem("theme");"dark"==currentTheme||"light"!=currentTheme&&prefersDarkScheme.matches?document.documentElement.classList.toggle("dark-theme"):document.documentElement.classList.toggle("light-theme");
+    </script>
+  <style type="text/css">@font-face{font-family:Manrope;font-style:normal;font-weight:400;font-display:swap;src:url("https://fonts.gstatic.com/s/manrope/v8/xn7gYHE41ni1AdIRggmxSuXd.woff2") format("woff2");unicode-range:U+0100-024F,U+0259,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Manrope;font-style:normal;font-weight:400;font-display:swap;src:url("https://fonts.gstatic.com/s/manrope/v8/xn7gYHE41ni1AdIRggexSg.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Manrope;font-style:normal;font-weight:500;font-display:swap;src:url("https://fonts.gstatic.com/s/manrope/v8/xn7gYHE41ni1AdIRggmxSuXd.woff2") format("woff2");unicode-range:U+0100-024F,U+0259,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Manrope;font-style:normal;font-weight:500;font-display:swap;src:url("https://fonts.gstatic.com/s/manrope/v8/xn7gYHE41ni1AdIRggexSg.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:Manrope;font-style:normal;font-weight:600;font-display:swap;src:url("https://fonts.gstatic.com/s/manrope/v8/xn7gYHE41ni1AdIRggmxSuXd.woff2") format("woff2");unicode-range:U+0100-024F,U+0259,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:Manrope;font-style:normal;font-weight:600;font-display:swap;src:url("https://fonts.gstatic.com/s/manrope/v8/xn7gYHE41ni1AdIRggexSg.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Fira Mono";font-style:normal;font-weight:400;font-display:swap;src:url("https://fonts.gstatic.com/s/firamono/v9/N0bX2SlFPv1weGeLZDtgKP7SodY.woff2") format("woff2");unicode-range:U+0100-024F,U+0259,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:"Fira Mono";font-style:normal;font-weight:400;font-display:swap;src:url("https://fonts.gstatic.com/s/firamono/v9/N0bX2SlFPv1weGeLZDtgJv7S.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}@font-face{font-family:"Fira Mono";font-style:normal;font-weight:500;font-display:swap;src:url("https://fonts.gstatic.com/s/firamono/v9/N0bS2SlFPv1weGeLZDto1d3HkPfUWZA.woff2") format("woff2");unicode-range:U+0100-024F,U+0259,U+1E00-1EFF,U+2020,U+20A0-20AB,U+20AD-20CF,U+2113,U+2C60-2C7F,U+A720-A7FF}@font-face{font-family:"Fira Mono";font-style:normal;font-weight:500;font-display:swap;src:url("https://fonts.gstatic.com/s/firamono/v9/N0bS2SlFPv1weGeLZDto1d3HnvfU.woff2") format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}</style>
+    <link rel="search" title="Search" href="../../../search.html"/>
+    <link rel="top" title="Wazuh documentation" href="../../../index.html"/>
+    <link rel="up" title="Ruleset XML syntax" href="index.html"/>
+    <link rel="next" title="Perl-compatible Regular Expressions" href="pcre2.html"/>
+    <link rel="prev" title="Rules Syntax" href="rules.html"/>
+    <link rel="stylesheet" href="../../../_static/css/min/bootstrap.min.css?ver=1764936974.4081888" type="text/css"><link rel="stylesheet" href="../../../_static/wazuh-doc-images/min/wazuh-light-box.min.css" type="text/css"><link rel="stylesheet" href="../../../_static/css/min/wazuh-documentation.min.css?ver=1764936974.4088871" type="text/css"><link rel="icon" href="../../../_static/images/favicon.ico?v=1766601538.6684194"/><!-- Google Tag Manager -->
+    <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-N3CGZND');</script>
+      <!-- End Google Tag Manager -->
+    <link rel="canonical" href="https://documentation.wazuh.com/current/user-manual/ruleset/ruleset-xml-syntax/regex.html">
+    </head><body class="document"  data-path="user-manual/ruleset/ruleset-xml-syntax/regex"><!-- Google Tag Manager (noscript) -->
+    <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N3CGZND"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    <!-- End Google Tag Manager (noscript) -->
+<header id="header">
+  <div class="nav-top">
+    <div class="container">
+      <nav>
+        <ul>
+          <li><a href="https://wazuh.com/blog/" target="_blank" rel="noreferrer noopener">Blog</a></li>
+          <li><a href="https://wazuh.com/community/" target="_blank" rel="noreferrer noopener">Community</a></li>
+          <li><a href="https://wazuh.com/contact-us/" target="_blank" rel="noreferrer noopener">Contact us</a></li>
+        </ul>
+        <ul class="social-links nav">
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on X" aria-label="Wazuh on X" target="_blank" href="https://x.com/wazuh" rel="noreferrer noopener"><svg><use xlink:href="#ico-twitter"></use></svg><span class="visually-hidden">X</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on LinkedIn" aria-label="Wazuh on LinkedIn" target="_blank" href="https://www.linkedin.com/company/wazuh" rel="noreferrer noopener"><svg><use xlink:href="#ico-linkedin"></use></svg><span class="visually-hidden">LinkedIn</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on Reddit" aria-label="Wazuh on Reddit" target="_blank" href="https://www.reddit.com/r/Wazuh/" rel="noreferrer noopener"><svg><use xlink:href="#ico-reddit"></use></svg><span class="visually-hidden">Reddit</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on Github" aria-label="Wazuh on Github" target="_blank" href="https://github.com/wazuh" rel="noreferrer noopener"><svg><use xlink:href="#ico-github"></use></svg><span class="visually-hidden">GitHub</span></a></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Join us on Discord" aria-label="Join us on Discord" target="_blank" href="https://wazuh.com/community/join-us-on-discord/" rel="noreferrer noopener"><svg><use xlink:href="#ico-discord"></use></svg><span class="visually-hidden">Discord</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Join us on Slack" aria-label="Join us on Slack" target="_blank" href="https://wazuh.com/community/join-us-on-slack/" rel="noreferrer noopener"><svg><use xlink:href="#ico-slack"></use></svg><span class="visually-hidden">Slack</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Subscribe to our mailing list" aria-label="Subscribe to our mailing list" target="_blank" href="mailto:wazuh+subscribe@googlegroups.com" rel="noreferrer noopener"><svg><use xlink:href="#ico-mailinglist"></use></svg><span class="visually-hidden">Mailing list</span></a></li>
+        </ul>
+      </nav>
+      <div class="desktop-search-form">
+        <div class="header-search collapsed">
+          <form method="get" action="https://wazuh.com/">
+            <div class="search-input-wrapper-container">
+              <div class="search-input-wrapper">
+                <label aria-label="Search here">
+                  <span class="visually-hidden">Search here</span>
+                  <input autocomplete="off" type="text" class="form-control" name="s" placeholder="Search">
+                  <button type="submit" class="d-block">
+                    <svg width="31" height="31"><use xlink:href="#search-header"></use></svg>
+                  </button>
+                  <button type="button" class="btn-close d-none">
+                    <span class="visually-hidden">Close</span>
+                  </button>
+                </label>
+                <button type="submit" class="d-none">
+                  <span class="visually-hidden">Search</span>
+                  <svg width="31" height="31"><use xlink:href="#search-header"></use></svg>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="nav-main"> 
+    <div class="container">
+      <div class="mobile-primary-header navbar navbar-expand-xl d-flex">
+        <div class="container">
+            <div class="navbar-brand">
+    <a class="logo-link docs d-flex align-items-baseline" href="https://wazuh.com" target="_blank" rel="noreferrer noopener">
+      <span class="visually-hidden">Wazuh</span>
+      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="173" height="36" viewBox="0 0 2214 455" xml:space="preserve">
+        <g transform="matrix(1 0 0 1 1096.56 263)">
+          <g>
+            <g transform="matrix(1 0 0 1 -853.6 5.59)" id="l_w">
+              <polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill-rule: nonzero; opacity: 1;" points="102.79,64.95 29.21,-174.21 -28.88,-174.21 -102.48,64.95 -175.41,-174.37 -242.23,-174.37 -135.72,174.37 -81.5,174.37 0.17,-78.03 81.5,174.37 135.72,174.37 242.23,-174.21 175.74,-174.21 "></polygon>
+            </g>
+            <g transform="matrix(1 0 0 1 -4.02 5.67)" id="l_a">
+              <polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill-rule: nonzero; opacity: 1;" points="-134.41,-113.94 45.34,-113.94 -152.5,163.62 -152.5,174.29 142.83,174.29 142.83,113.94 -45.01,113.94 152.5,-163.31 152.5,-174.29 -134.41,-174.29 "></polygon>
+              </g>
+            <g transform="matrix(1 0 0 1 -405.16 5.95)" id="l_z">
+              <path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill-rule: nonzero; opacity: 1;" transform=" translate(-938.4, -545.95)" d="M 1052.639 408.128 c -29.888 -31.188 -70.664 -47.599 -118.641 -47.599 c -101.53 0 -178.083 79.72 -178.083 185.428 c 0 105.697 76.553 185.405 178.083 185.405 c 47.865 0 88.642 -16.31 118.641 -47.287 v 39.977 h 68.243 V 367.863 h -68.243 V 408.128 z M 940.953 667.143 c -67.02 0 -115.686 -50.965 -115.686 -121.185 c 0 -69.998 48.665 -120.807 115.686 -120.807 c 66.82 0 115.33 50.81 115.33 120.807 C 1056.283 616.178 1007.774 667.143 940.953 667.143 z" stroke-linecap="round"></path>
+            </g>
+            <g transform="matrix(1 0 0 1 371.69 9.61)" id="l_u">
+              <path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill-rule: nonzero; opacity: 1;" transform=" translate(-1715.24, -549.61)" d="M 1809.883 568.668 c 0 62.576 -34.443 98.475 -94.464 98.475 c -60.243 0 -94.797 -35.899 -94.797 -98.475 V 367.863 h -68.265 v 206.294 c 0 116.03 87.842 157.206 163.062 157.206 c 75.064 0 162.706 -41.176 162.706 -157.206 V 367.863 h -68.242 V 568.668 z" stroke-linecap="round"></path>
+            </g>
+            <g transform="matrix(1 0 0 1 775.51 -41.04)" id="l_h">
+              <path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill-rule: nonzero; opacity: 1;" transform=" translate(-2119.06, -498.96)" d="M 2272.846 488.87 c -1.933 -14.211 -5.6 -28.733 -10.977 -43.577 c -5.378 -14.844 -13.177 -28.566 -23.399 -41.154 c -10.222 -12.577 -23.51 -22.744 -39.843 -30.499 c -16.355 -7.744 -36.599 -11.611 -60.687 -11.611 c -31.421 0 -58.198 6.778 -80.353 20.333 c -13.567 8.293 -25.174 18.601 -34.865 30.88 V 277.955 h -60.354 v 442.009 h 68.42 V 538.569 c 0 -20.655 2.311 -38.188 6.933 -52.609 c 4.644 -14.411 10.978 -26.033 19.044 -34.855 c 8.066 -8.822 17.488 -15.222 28.243 -19.199 c 10.755 -3.989 22.155 -5.978 34.221 -5.978 c 18.489 0 33.51 3.766 45.021 11.3 s 20.444 17.422 26.777 29.688 c 6.355 12.266 10.666 25.555 12.911 39.866 c 2.267 14.311 3.4 28.232 3.4 41.788 v 171.395 h 68.42 V 526.303 C 2275.758 515.547 2274.78 503.07 2272.846 488.87 z" stroke-linecap="round"></path>
+            </g>
+            <g transform="matrix(1 0 0 1 1062.43 131.88)" id="l_dot">
+              <circle style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(0,122,255); fill-rule: nonzero; opacity: 1;" cx="0" cy="0" r="55.013"></circle>
+            </g>
+          </g>
+        </g>
+      </svg>
+      
+
+    </a>
+
+  </div>
+          
+          <div class="toggle-buttons d-flex d-xl-none">
+            <button class="navbar-toggler search-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#search-box-wrapper" aria-controls="search-box-wrapper" aria-expanded="false" aria-label="Toggle search bar">
+              <span class="search-toggler-icon"></span>
+            </button>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#global-toc" aria-controls="global-toc" aria-expanded="false" aria-label="Toggle navigation">
+              <span class="navbar-toggler-icon"></span>
+            </button>
+          </div>
+          
+        </div>
+      </div>
+    
+      <div class="mobile-secondary-header version-zone">
+        <div class="container">
+          
+            <ul class="navbar-nav">
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="dropdown-platform" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Platform
+                  <b class="caret d-inline d-sm-none"></b>
+                  <svg class="d-none d-sm-inline"><use xlink:href="#menu-chevron" /></svg>
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdown-platform">
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/platform/overview/" target="_blank" rel="noreferrer noopener">Overview</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/platform/xdr/" target="_blank" rel="noreferrer noopener">XDR</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/platform/siem/" target="_blank" rel="noreferrer noopener">SIEM</a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="https://wazuh.com/cloud/" target="_blank" rel="noreferrer noopener">Cloud</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="https://cti.wazuh.com/" target="_blank" rel="noreferrer noopener">CTI</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link active" href="https://documentation.wazuh.com/current/index.html">Documentation</a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="dropdown-services" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Services
+                  <b class="caret d-inline d-sm-none"></b>
+                  <svg class="d-none d-sm-inline"><use xlink:href="#menu-chevron" /></svg>
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdown-services">
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/services/professional-support/" target="_blank" rel="noreferrer noopener">Professional support</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/services/consulting-services/" target="_blank" rel="noreferrer noopener">Consulting services</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/services/training-courses/" target="_blank" rel="noreferrer noopener">Training courses</a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="dropdown-partners" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Partners
+                  <b class="caret d-inline d-sm-none"></b>
+                  <svg class="d-none d-sm-inline"><use xlink:href="#menu-chevron" /></svg>
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdown-partners">
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/partners/" target="_blank" rel="noreferrer noopener">Become a partner</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/partners/find-a-partner/" target="_blank" rel="noreferrer noopener">Find a partner</a>
+                  </li>
+                </ul>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" id="dropdown-company" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Company
+                  <b class="caret d-inline d-sm-none"></b> 
+                  <svg class="d-none d-sm-inline"><use xlink:href="#menu-chevron" /></svg>
+                </a>
+                <ul class="dropdown-menu" aria-labelledby="dropdown-company">
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/our-customers/" target="_blank" rel="noreferrer noopener">Customers</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/about-us/" target="_blank" rel="noreferrer noopener">About us</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/our-team/" target="_blank" rel="noreferrer noopener">Our team</a>
+                  </li>
+                  <li class="nav-item">
+                    <a class="dropdown-item" href="https://wazuh.com/resources/" target="_blank" rel="noreferrer noopener">Resources</a>
+                  </li>
+                </ul>
+              </li>
+
+              
+            </ul>
+              
+            
+            
+
+
+<div id="version-selector" class="btn-group">
+  <button type="button" class="btn dropdown-btn dropdown-toggle" data-bs-toggle="dropdown" aria-haspopup="true" data-flip="false" aria-expanded="false">
+  <span class="current"></span>
+  </button>
+  <ul class="dropdown-menu dropdown-menu-right"></ul>
+</div>
+
+            
+          
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<div class="contact-side-tab">
+  <form target="_blank" name="contact_us_form" action="https://wazuh.com/contact-us/" method="post">
+    <input type="hidden" name="preselect" value="support">
+    <button type="submit" class="btn vertical-text">
+      <span class="text">Contact us</span>
+      <svg class="ícon icon-envelope"><use xlink:href="#ico-envelope-contact"/></svg>
+    </button>
+  </form>
+</div>
+<div class="inner-body">
+      <div id="left-sidebar" class="sidebar">
+  <div class="sidebar-container">
+    
+    <div id="search-box-wrapper" class="collapse navbar-collapse">
+    <div class="search-box" role="search">
+  <form method="get" class="search-form" action="../../../search.html" id="search-form">
+    <label class="visually-hidden" for="search-input">Search term</label>
+    
+    <input id="search-input" type="text" class="form-control" name="q" placeholder="Search"></input>
+    
+    <span id="search-btn-label" class="visually-hidden">Search now!</span>
+    <button aria-labelledby="search-btn-label" type="submit" class="btn-search"></button>
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+    </div>
+    <nav id="global-toc" class="collapse navbar-collapse">
+      <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../getting-started/index.html">Getting started</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../getting-started/components/index.html">Components</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/components/wazuh-indexer.html">Wazuh indexer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/components/wazuh-server.html">Wazuh server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/components/wazuh-dashboard.html">Wazuh dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/components/wazuh-agent.html">Wazuh agent</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../getting-started/architecture.html">Architecture</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../getting-started/use-cases/index.html">Use cases</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/configuration-assessment.html">Configuration assessment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/malware-detection.html">Malware detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/file-integrity.html">File integrity monitoring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/threat-hunting.html">Threat hunting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/log-analysis.html">Log data analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/vulnerability-detection.html">Vulnerability detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/incident-response.html">Incident response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/regulatory-compliance.html">Regulatory compliance</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/it-hygiene.html">IT hygiene</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/container-security.html">Container security</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/posture-management.html">Posture management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../getting-started/use-cases/cloud-workload-protection.html">Cloud workload protection</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation-guide/index.html">Installation guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation-guide/wazuh-indexer/index.html">Wazuh indexer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-indexer/installation-assistant.html">Assisted installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-indexer/step-by-step.html">Step-by-step installation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation-guide/wazuh-server/index.html">Wazuh server</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-server/installation-assistant.html">Assisted installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-server/step-by-step.html">Step-by-step installation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation-guide/wazuh-dashboard/index.html">Wazuh dashboard</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-dashboard/installation-assistant.html">Assisted installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-dashboard/step-by-step.html">Step-by-step installation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation-guide/wazuh-agent/index.html">Wazuh agent</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-agent/wazuh-agent-package-linux.html">Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-agent/wazuh-agent-package-windows.html">Windows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-agent/wazuh-agent-package-macos.html">macOS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-agent/wazuh-agent-package-solaris.html">Solaris</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-agent/wazuh-agent-package-aix.html">AIX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/wazuh-agent/wazuh-agent-package-hpux.html">HP-UX</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation-guide/packages-list.html">Packages list</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../installation-guide/uninstalling-wazuh/index.html">Uninstalling Wazuh</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/uninstalling-wazuh/central-components.html">Uninstalling the Wazuh central components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../installation-guide/uninstalling-wazuh/agent.html">Uninstalling the Wazuh agent</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../deployment-options/index.html">Installation alternatives</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/virtual-machine/virtual-machine.html">Virtual machine (VM)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/amazon-machine-images/amazon-machine-images.html">Amazon Machine Images (AMI)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/docker/index.html">Deployment on Docker</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/docker/wazuh-container.html">Wazuh Docker deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/docker/changing-default-password.html">Changing the default password of Wazuh users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/docker/build-docker-images-locally.html">Building Docker images locally</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/docker/container-usage.html">Wazuh Docker utilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/docker/upgrading-wazuh-docker.html">Upgrading Wazuh Docker</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/docker/uninstalling-wazuh-docker.html">Uninstalling the Wazuh Docker deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/deploying-with-kubernetes/index.html">Deployment on Kubernetes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-kubernetes/kubernetes-conf.html">Kubernetes configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-kubernetes/kubernetes-deployment.html">Deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-kubernetes/kubernetes-upgrade.html">Upgrade Wazuh installed in Kubernetes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-kubernetes/kubernetes-clean-up.html">Clean Up</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/offline-installation/index.html">Offline installation guide</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/offline-installation/installation-assistant.html">Install Wazuh components using the assisted method</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/offline-installation/step-by-step.html">Install Wazuh components step by step</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/wazuh-from-sources/index.html">Installation from sources</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/wazuh-from-sources/wazuh-server/index.html">Installing the Wazuh manager from sources</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/wazuh-from-sources/wazuh-agent/index.html">Installing the Wazuh agent from sources</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/index.html">Deployment with Ansible</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/installation-guide.html">Installation Guide</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/guide/install-ansible.html">Install Ansible</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/guide/install-indexer-dashboard.html">Install Wazuh indexer and dashboard</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/guide/install-wazuh-manager.html">Install Wazuh manager</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/guide/install-wazuh-cluster.html">Install a Wazuh cluster</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/guide/install-wazuh-agent.html">Install Wazuh Agent</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/setup-remote-systems.html">Remote endpoints connection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/roles/index.html">Roles</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/roles/wazuh-indexer.html">Wazuh indexer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/roles/wazuh-dashboard.html">Wazuh dashboard</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/roles/wazuh-filebeat.html">Filebeat</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/roles/wazuh-manager.html">Wazuh Manager</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/roles/wazuh-agent.html">Wazuh Agent</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-ansible/reference.html">Variables references</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/index.html">Deployment with Puppet</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/setup-puppet/index.html">Set up Puppet</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/setup-puppet/install-puppet-master.html">Installing Puppet master</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/setup-puppet/install-puppet-agent.html">Installing Puppet agent</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/setup-puppet/setup-puppet-certificates.html">Setting up Puppet certificates</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/wazuh-puppet-module/index.html">Wazuh Puppet module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/wazuh-puppet-module/reference-wazuh-puppet/wazuh-manager-class.html">Wazuh manager class</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../deployment-options/deploying-with-puppet/wazuh-puppet-module/reference-wazuh-puppet/wazuh-agent-class.html">Wazuh agent class</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 current show"><a class="reference internal" href="../../index.html">User manual</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../manager/index.html">Wazuh server</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../manager/wazuh-manager.html">Wazuh manager</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../manager/indexer-integration.html">Indexer integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../manager/alert-management.html">Alert management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../manager/event-logging.html">Event logging</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../manager/integration-with-external-apis.html">External API integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../manager/wazuh-server-queue.html">Queuing mechanisms</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../wazuh-server-cluster/index.html">Wazuh server cluster</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/architecture-overview.html">Architecture overview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/types-of-nodes.html">Types of nodes in a Wazuh server cluster</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/how-server-cluster-works.html">How the Wazuh server cluster works</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/cluster-nodes-configuration.html">Wazuh cluster nodes configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/data-synchronization.html">Data synchronization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/certificates-deployment.html">Certificates deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/adding-new-server-nodes/index.html">Adding new Wazuh server nodes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../wazuh-server-cluster/adding-new-server-nodes/certificates-creation.html">Certificates creation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../wazuh-server-cluster/adding-new-server-nodes/configuration-to-connect-with-new-node.html">Configuring existing components to connect with the new node</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../wazuh-server-cluster/adding-new-server-nodes/server-nodes-installation.html">Wazuh server node(s) installation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../wazuh-server-cluster/adding-new-server-nodes/testing-the-cluster.html">Testing the cluster</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/agent-connections.html">Agent connections</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-server-cluster/load-balancers.html">Load balancers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../api/index.html">Wazuh server API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../api/getting-started.html">Getting started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/configuration.html">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/securing-api.html">Securing the Wazuh server API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/rbac/index.html">Role-Based Access Control</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../api/rbac/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/rbac/auth-context.html">Authorization Context</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/rbac/reference.html">RBAC Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/queries.html">Filtering data using Wazuh Query Language (WQL)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/use-cases.html">Use cases</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../api/reference.html">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../wazuh-indexer/index.html">Wazuh indexer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer/wazuh-indexer-indices.html">Wazuh indexer indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer/re-indexing.html">Re-indexing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer/wazuh-indexer-tuning.html">Wazuh indexer tuning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer/migrating-wazuh-indices.html">Migrating Wazuh indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer/wazuh-indexer-on-hardened-endpoints.html">Wazuh indexer configuration on hardened endpoints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../wazuh-indexer-cluster/index.html">Wazuh indexer cluster</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer-cluster/certificate-deployment.html">Certificates deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer-cluster/add-wazuh-indexer-nodes.html">Adding Wazuh indexer nodes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer-cluster/wazuh-indexer-cluster-tuning.html">Wazuh indexer cluster tuning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer-cluster/index-lifecycle-management.html">Index lifecycle management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-indexer-cluster/cluster-management.html">Cluster management</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../indexer-api/index.html">Wazuh indexer API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../indexer-api/getting-started.html">Getting started</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../indexer-api/configuration.html">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../indexer-api/securing-indexer-api.html">Securing the Wazuh indexer API</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../indexer-api/use-case.html">Use cases</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../indexer-api/reference.html">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../wazuh-dashboard/index.html">Wazuh dashboard</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/navigating-the-wazuh-dashboard.html">Navigating the Wazuh dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/creating-custom-dashboards.html">Creating custom dashboards</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/queries.html">Filtering data using Wazuh Query Language (WQL)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/multi-tenancy.html">Enabling multi-tenancy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/configuring-third-party-certs/index.html">Configuring third-party SSL certificates</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../wazuh-dashboard/configuring-third-party-certs/ssl.html">Configuring SSL certificates on the Wazuh dashboard using Let’s Encrypt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../wazuh-dashboard/configuring-third-party-certs/ssl-nginx.html">Configuring SSL certificates on the Wazuh dashboard using NGINX</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/custom-branding.html">Setting up custom branding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/settings.html">Wazuh dashboard settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/global-queries.html">Wazuh global queries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../wazuh-dashboard/certificates.html">Certificates deployment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../agent/index.html">Wazuh agent</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../agent/agent-enrollment/index.html">Wazuh agent enrollment</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-enrollment/requirements.html">Requirements</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-enrollment/agent-life-cycle.html">Wazuh agent life cycle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/index.html">Enrollment methods</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/via-agent-configuration/index.html">Enrollment via agent configuration</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/via-agent-configuration/linux-endpoint.html">Linux/Unix</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/via-agent-configuration/windows-endpoint.html">Windows</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/via-agent-configuration/macos-endpoint.html">macOS</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/via-manager-API/index.html">Enrollment via Wazuh server API</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/via-manager-API/requesting-the-key.html">Requesting the client key</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-enrollment/enrollment-methods/via-manager-API/importing-the-key.html">Importing the client key to the Wazuh agent</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-enrollment/security-options/index.html">Additional security options</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/security-options/using-password-authentication.html">Using password authentication</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/security-options/manager-identity-verification.html">Wazuh manager identity verification</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/security-options/agent-identity-verification.html">Wazuh agent identity verification</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-enrollment/deployment-variables/index.html">Deployment variables</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/deployment-variables/deployment-variables-linux.html">Linux</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/deployment-variables/deployment-variables-windows.html">Windows</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/deployment-variables/deployment-variables-macos.html">macOS</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-enrollment/deployment-variables/deployment-variables-aix.html">AIX</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-enrollment/troubleshooting.html">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../agent/agent-management/index.html">Wazuh agent management</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-management/agent-connection.html">Wazuh agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../agent/agent-management/agent-administration.html">Wazuh agent administration</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/query-configuration.html">Querying the Wazuh agent configuration</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/grouping-agents.html">Grouping agents</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/listing/index.html">Listing agents</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/listing/using-command-line.html">Listing agents using the CLI</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/listing/listing.html">Listing agents using the Wazuh server API</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/listing/wazuh-dashboard.html">Listing agents using the Wazuh dashboard</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/anti-tampering.html">Anti-tampering</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/remove-agents/index.html">Removing agents</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/remove-agents/remove.html">Remove agents using the CLI</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/remove-agents/restful-api-remove.html">Remove agents using the Wazuh server API</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/remote-upgrading/index.html">Remote upgrading</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/remote-upgrading/upgrading-agent.html">Upgrading the Wazuh agent</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/remote-upgrading/wpk-files/index.html">Wazuh signed package (WPK) files</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../agent/agent-management/remote-upgrading/agent-upgrade-module.html">Agent upgrade module - How it works</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/antiflooding.html">Wazuh agent queue</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/labels.html">Agent labels</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../agent/agent-management/key-request.html">Agent key request</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2 current show"><a class="reference internal" href="../index.html">Data analysis</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../decoders/index.html">Decoders</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../decoders/json-decoder.html">JSON decoder</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../decoders/dynamic-fields.html">Dynamic fields</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../decoders/sibling-decoders.html">Sibling Decoders</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../decoders/custom.html">Custom decoders</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../rules/index.html">Rules</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../rules/default.html">Default rules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rules/custom.html">Custom rules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../rules/rules-classification.html">Rules classification</a></li>
+</ul>
+</li>
+<li class="toctree-l3 current show"><a class="reference internal" href="index.html">Ruleset XML syntax</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="decoders.html">Decoders Syntax</a></li>
+<li class="toctree-l4"><a class="reference internal" href="rules.html">Rules Syntax</a></li>
+<li class="toctree-l4 current show"><a class="current reference internal current-toc-node" href="#">Regular Expression Syntax</a></li>
+<li class="toctree-l4"><a class="reference internal" href="pcre2.html">Perl-compatible Regular Expressions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../testing.html">Testing decoders and rules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../cdb-list.html">Using CDB lists</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../mitre.html">MITRE ATT&amp;CK framework</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../user-administration/index.html">User administration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../user-administration/password-management.html">Password management</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../user-administration/rbac.html">Wazuh RBAC - How to create and map internal users</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../user-administration/single-sign-on/index.html">Single sign-on</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/index.html">Setup single sign-on with administrator role</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/okta.html">Okta</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/microsoft-entra-id.html">Microsoft Entra ID</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/pingone.html">PingOne</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/google.html">Google</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/jumpcloud.html">Jumpcloud</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/onelogin.html">OneLogin</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/administrator/keycloak.html">Keycloak</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/index.html">Setup single sign-on with read-only role</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/okta.html">Okta</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/microsoft-entra-id.html">Microsoft Entra ID</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/pingone.html">PingOne</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/google.html">Google</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/jumpcloud.html">Jumpcloud</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/onelogin.html">OneLogin</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../user-administration/single-sign-on/read-only/keycloak.html">Keycloak</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../user-administration/ldap.html">LDAP integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../capabilities/index.html">Capabilities</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/file-integrity/index.html">File integrity monitoring</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/how-to-configure-fim.html">How to configure the FIM module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/interpreting-fim-module-analysis.html">Interpreting the FIM module analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/basic-settings.html">Basic settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/creating-custom-fim-rules.html">Creating custom FIM rules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/advanced-settings.html">Advanced settings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/use-cases/index.html">Use cases</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/file-integrity/use-cases/detecting-malware-persistence-technique.html">Detecting malware persistence technique</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/file-integrity/use-cases/detecting-account-manipulation.html">Detecting account manipulation</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/file-integrity/use-cases/monitoring-files-at-specific-intervals.html">Monitoring files at specific intervals</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/file-integrity/use-cases/reporting-file-changes.html">Reporting file changes</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/file-integrity/use-cases/monitoring-configuration-changes.html">Monitoring configuration changes</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/file-integrity/windows-registry-monitoring.html">Windows Registry monitoring</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/malware-detection/index.html">Malware detection</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/fim-threat-detection-rules.html">File integrity monitoring and threat detection rules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/rootkits-behavior-detection.html">Rootkits behavior detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/cdb-lists-threat-intelligence.html">CDB lists and threat intelligence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/virus-total-integration.html">VirusTotal integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/fim-yara.html">File integrity monitoring and YARA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/clam-av-logs-collection.html">ClamAV logs collection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/win-defender-logs-collection.html">Windows Defender logs collection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/malware-detection/custom-rules-malware-ioc.html">Custom rules to detect malware IOC</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/sec-config-assessment/index.html">Security Configuration Assessment</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/sec-config-assessment/how-it-works.html">How SCA works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/sec-config-assessment/how-to-configure.html">How to configure SCA</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/sec-config-assessment/available-sca-policies.html">Available SCA policies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/sec-config-assessment/creating-custom-policies.html">Creating custom SCA policies</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/sec-config-assessment/use-cases.html">Use cases</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/active-response/index.html">Active Response</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/active-response/how-to-configure.html">How to configure Active Response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/active-response/default-active-response-scripts.html">Default active response scripts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/active-response/custom-active-response-scripts.html">Custom active response scripts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/active-response/ar-use-cases/index.html">Use cases</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/active-response/ar-use-cases/blocking-ssh-brute-force.html">Blocking SSH brute-force attack with Active Response</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/active-response/ar-use-cases/restarting-wazuh-agent.html">Restarting the Wazuh agent with Active Response</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/active-response/ar-use-cases/disabling-user-account.html">Disabling a Linux user account with Active Response</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/active-response/additional-information.html">Additional information</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/log-data-collection/index.html">Log data collection</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/monitoring-log-files.html">Configuration for monitoring log files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/syslog.html">Configuring syslog on the Wazuh server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/journald.html">Journald log collection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/multiple-socket-outputs.html">Using multiple socket outputs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/configuration.html">Configuring log collection for different operating systems</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/log-data-analysis.html">Log data analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/log-data-collection/use-cases.html">Use cases</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/vulnerability-detection/index.html">Vulnerability detection</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/vulnerability-detection/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/vulnerability-detection/configuring-scans.html">Configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/command-monitoring/index.html">Command monitoring</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/command-monitoring/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/command-monitoring/configuration.html">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/command-monitoring/command-output-analysis.html">Command output analysis</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/command-monitoring/use-cases/index.html">Use cases</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/command-monitoring/use-cases/monitoring-running-processes.html">Monitoring running processes</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/command-monitoring/use-cases/disk-space-utilization.html">Disk space utilization</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/command-monitoring/use-cases/check-if-the-output-changed.html">Check if the output changed</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/command-monitoring/use-cases/detect-usb-storage.html">Detect USB Storage</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/command-monitoring/use-cases/load-average.html">Load average</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/container-security/index.html">Container security</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/container-security/monitoring-docker.html">Using Wazuh to monitor Docker</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/container-security/use-cases.html">Use cases</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/system-inventory/index.html">System inventory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/configuration.html">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/viewing-system-inventory-data.html">Viewing system inventory data</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/generating-system-inventory-reports.html">Generating system inventory reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/available-inventory-fields.html">Available inventory fields</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/compatibility-matrix.html">Compatibility matrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/using-syscollector-information-to-trigger-alerts.html">Using Syscollector information to trigger alerts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/use-cases.html">Use cases</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-inventory/osquery.html">Osquery</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/system-calls-monitoring/index.html">Monitoring system calls</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-calls-monitoring/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-calls-monitoring/audit-configuration.html">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/system-calls-monitoring/use-cases/index.html">Use cases</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/system-calls-monitoring/use-cases/monitoring-file-and-directory-access.html">Monitoring file and directory access</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/system-calls-monitoring/use-cases/monitoring-commands-run-as-root.html">Monitoring commands run as root</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../capabilities/system-calls-monitoring/use-cases/privilege-abuse.html">Privilege abuse</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../capabilities/agentless-monitoring/index.html">Agentless monitoring</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/agentless-monitoring/how-it-works.html">How it works</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/agentless-monitoring/connection.html">Connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/agentless-monitoring/agentless-configuration.html">Configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/agentless-monitoring/visualization.html">Visualization</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../capabilities/agentless-monitoring/use-cases.html">Use cases</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/index.html">Reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/ossec-conf/index.html">Local configuration (ossec.conf)</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/active-response.html">active-response</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/agentless.html">agentless</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/agent-upgrade.html">agent-upgrade</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/alerts.html">alerts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/anti-tampering.html">anti_tampering</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/auth.html">auth</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/client.html">client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/client-buffer.html">client_buffer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/cluster.html">cluster</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/commands.html">command</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/database-output.html">database_output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/email-alerts.html">email_alerts</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/global.html">global</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/github-module.html">github</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/indexer.html">indexer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/integration.html">integration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/labels.html">labels</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/localfile.html">localfile</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/logging.html">logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/ms-graph-module.html">ms-graph</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/office365-module.html">office365</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/remote.html">remote</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/reports.html">reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/rootcheck.html">rootcheck</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/sca.html">sca</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/rule-test.html">rule_test</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/ruleset.html">ruleset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/socket.html">socket</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/syscheck.html">syscheck</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/syslog-output.html">syslog_output</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/task-manager.html">task-manager</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/fluent-forward.html">fluent-forward</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/gcp-pubsub.html">gcp-pubsub</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/gcp-bucket.html">gcp-bucket</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/vuln-detector.html">vulnerability-detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wodle-command.html">wodle name=&quot;command&quot;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wodle-s3.html">wodle name=&quot;aws-s3&quot;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wodle-syscollector.html">wodle name=&quot;syscollector&quot;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wazuh-db-config.html">wazuh-db</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wodle-osquery.html">wodle name=&quot;osquery&quot;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wodle-docker.html">wodle name=&quot;docker-listener&quot;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wodle-azure-logs.html">wodle name=&quot;azure-logs&quot;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/wodle-agent-key-polling.html">wodle name=&quot;agent-key-polling&quot;</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/ossec-conf/verifying-configuration.html">Verifying configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/centralized-configuration.html">Centralized configuration (agent.conf)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/internal-options.html">Internal configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/daemons/index.html">Daemons</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-agentd.html">wazuh-agentd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-agentlessd.html">wazuh-agentlessd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-analysisd.html">wazuh-analysisd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-authd.html">wazuh-authd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-csyslogd.html">wazuh-csyslogd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-dbd.html">wazuh-dbd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-execd.html">wazuh-execd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-logcollector.html">wazuh-logcollector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-maild.html">wazuh-maild</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-monitord.html">wazuh-monitord</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-remoted.html">wazuh-remoted</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-reportd.html">wazuh-reportd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-syscheckd.html">wazuh-syscheckd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/clusterd.html">wazuh-clusterd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-modulesd.html">wazuh-modulesd</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-db.html">wazuh-db</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-db.html#tables-available-for-wazuh-db">Tables available for wazuh-db</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/daemons/wazuh-integratord.html">wazuh-integratord</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/tools/index.html">Tools</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/wazuh-control.html">wazuh-control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/agent-auth.html">agent-auth</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/agent-control.html">agent_control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/manage-agents.html">manage_agents</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/wazuh-logtest.html">wazuh-logtest</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/clear-stats.html">clear_stats</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/wazuh-regex.html">wazuh-regex</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/rbac-control.html">rbac_control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/update-ruleset.html">update_ruleset</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/verify-agent-conf.html">verify-agent-conf</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/agent-groups.html">agent_groups</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/agent-upgrade.html">agent_upgrade</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/cluster-control.html">cluster_control</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/fim-migrate.html">fim_migrate</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/tools/wazuh-keystore.html">wazuh-keystore</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/unattended-installation.html">Unattended Installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/statistics-files/index.html">Statistics files</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/statistics-files/wazuh-agentd-state.html">wazuh-agentd.state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/statistics-files/wazuh-remoted-state.html">wazuh-remoted.state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/statistics-files/wazuh-analysisd-state.html">wazuh-analysisd.state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../reference/statistics-files/wazuh-logcollector-state.html">wazuh-logcollector.state</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cloud-security/monitoring.html">Cloud security</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-security/amazon/index.html">Monitoring Amazon Web Services (AWS)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/amazon/instances.html">Monitoring AWS instances</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/amazon/services/index.html">Monitoring AWS based services</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../cloud-security/amazon/services/prerequisites/index.html">Prerequisites</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/prerequisites/dependencies.html">Installing dependencies</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/prerequisites/S3-bucket.html">Configuring an S3 Bucket</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/prerequisites/iam-identities.html">Configuring AWS IAM Identities</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/prerequisites/aws-policy.html">Configuring AWS policy</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/prerequisites/credentials.html">Configuring AWS credentials</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/prerequisites/considerations.html">Considerations for the Wazuh module for AWS configuration</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/index.html">Supported services</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/cloudtrail.html">AWS CloudTrail</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/vpc.html">Amazon Virtual Private Cloud (VPC)</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/config.html">AWS Config</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/kms.html">AWS Key Management Service (KMS)</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/macie.html">Amazon Macie</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/trusted-advisor.html">AWS Trusted Advisor</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/guardduty.html">Amazon GuardDuty</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/waf.html">Amazon Web Application Firewall (WAF)</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/server-access.html">Amazon S3 Server Access</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/inspector.html">Amazon Inspector</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/cloudwatchlogs.html">Amazon CloudWatch Logs</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/ecr-image-scanning.html">Amazon ECR Image scanning</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/cisco-umbrella.html">Cisco Umbrella</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/elastic-load-balancing/index.html">Elastic Load Balancers</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/elastic-load-balancing/alb.html">Amazon Application Load Balancer (ALB)</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/elastic-load-balancing/clb.html">Amazon Classic Load Balancer (CLB)</a></li>
+<li class="toctree-l6"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/elastic-load-balancing/nlb.html">Amazon Network Load Balancer (NLB)</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/security-lake.html">Amazon Security Lake</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/custom-buckets.html">Custom Logs Buckets</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/amazon/services/supported-services/security-hub.html">AWS Security Hub</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../cloud-security/amazon/services/troubleshooting.html">Troubleshooting</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-security/azure/index.html">Monitoring Microsoft Azure with Wazuh</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/azure/monitoring-instances.html">Monitoring instances</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/azure/platform-and-services.html">Monitoring Azure platform and services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/azure/log-analytics.html">Microsoft Azure Log Analytics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/azure/storage.html">Microsoft Azure Storage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/azure/graph.html">Microsoft Graph</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/azure/monitoring-ms-graph.html">Monitoring Microsoft Graph services with Wazuh</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../cloud-security/azure/ms-graph-api-setup.html">Microsoft Graph API setup</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/azure/ms-intune-integration.html">Microsoft Intune integration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-security/github/index.html">Monitoring GitHub</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/github/monitoring-github-activity.html">Monitoring GitHub audit logs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-security/gcp/index.html">Monitoring Google Cloud</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/gcp/instances.html">Monitoring Google Cloud instances</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/gcp/services.html">Monitoring Google Cloud services</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../cloud-security/gcp/prerequisites/index.html">Prerequisites</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/gcp/prerequisites/dependencies.html">Installing dependencies</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/gcp/prerequisites/credentials.html">Creating Google Cloud credentials</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/gcp/prerequisites/gcloud-python-script.html">Gcloud Python script</a></li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/gcp/prerequisites/visualizing-events.html">Visualizing Google Cloud events on the Wazuh dashboard</a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="../../../cloud-security/gcp/supported-services/index.html">Configuring the supported services</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/gcp/supported-services/pubsub.html">Monitoring Google Cloud Pub/Sub</a><ul>
+<li class="toctree-l6"><a class="reference internal" href="../../../cloud-security/gcp/supported-services/use-cases.html">Use cases</a></li>
+</ul>
+</li>
+<li class="toctree-l5"><a class="reference internal" href="../../../cloud-security/gcp/supported-services/cloud-storage-buckets.html">Monitoring Google Cloud Storage buckets</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/gcp/posture-management.html">Cloud Security Posture Management</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-security/office365/index.html">Monitoring Office 365</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-security/office365/monitoring-office365-activity.html">Monitoring Office 365 audit logs</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../compliance/index.html">Regulatory compliance</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../compliance/pci-dss/index.html">Using Wazuh for PCI DSS compliance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/log-analysis.html">Log data analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/configuration-assessment.html">Configuration assessment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/malware-detection.html">Malware detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/file-integrity-monitoring.html">File integrity monitoring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/vulnerability-detection.html">Vulnerability detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/active-response.html">Active Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/system-inventory.html">System inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/pci-dss/dashboard.html">Visualization and dashboard</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../compliance/gdpr/index.html">Using Wazuh for GDPR compliance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/gdpr/gdpr-II.html">GDPR II, Principles &lt;gdpr_II&gt;</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/gdpr/gdpr-III.html">GDPR III, Rights of the data subject &lt;gdpr_III&gt;</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/gdpr/gdpr-IV.html">GDPR IV, Controller and processor &lt;gdpr_IV&gt;</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../compliance/hipaa/index.html">Using Wazuh for HIPAA compliance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/hipaa/visualization-and-dashboard.html">Visualization and dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/hipaa/log-data-analysis.html">Log data analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/hipaa/configuration-assessment.html">Configuration assessment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/hipaa/malware-detection.html">Malware detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/hipaa/file-integrity-monitoring.html">File integrity monitoring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/hipaa/vulnerability-detection.html">Vulnerability detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/hipaa/active-response.html">Active Response</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../compliance/nist/index.html">Using Wazuh for NIST 800-53 compliance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/visualization-and-dashboard.html">Visualization and dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/log-data-analysis.html">Log data analysis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/configuration-assessment.html">Security configuration assessment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/malware-detection.html">Malware detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/file-integrity-monitoring.html">File integrity monitoring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/system-inventory.html">System inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/vulnerability-detection.html">Vulnerability detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/active-response.html">Active Response</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/nist/threat-intelligence.html">Threat intelligence</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../compliance/tsc/index.html">Using Wazuh for TSC compliance</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/tsc/common-criteria/cc2.1.html">Common criteria 2.1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/tsc/common-criteria/cc3.1.html">Common criteria 3.1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/tsc/common-criteria/cc5.1.html">Common criteria 5.1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/tsc/common-criteria/cc6.1.html">Common criteria 6.1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/tsc/common-criteria/cc7.1.html">Common criteria 7.1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/tsc/common-criteria/cc8.1.html">Common criteria 8.1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../compliance/tsc/additional-criteria/additional-criteria.html">The additional criteria</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../../compliance/tsc/additional-criteria/a1.1.html">Availability - A1.1</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../compliance/tsc/additional-criteria/pi1.4.html">Processing integrity - PI1.4</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../proof-of-concept-guide/index.html">Proof of Concept guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/block-malicious-actor-ip-reputation.html">Blocking a known malicious actor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/poc-file-integrity-monitoring.html">File integrity monitoring</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/detect-brute-force-attack.html">Detecting a brute-force attack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/monitoring-docker.html">Monitoring Docker events</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/aws-infrastructure-monitoring.html">Monitoring AWS infrastructure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/detect-unauthorized-processes-netcat.html">Detecting unauthorized processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/integrate-network-ids-suricata.html">Network IDS integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/detect-web-attack-sql-injection.html">Detecting an SQL injection attack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/poc-detect-trojan.html">Detecting suspicious binaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/detect-remove-malware-virustotal.html">Detecting and removing malware using VirusTotal integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/poc-vulnerability-detection.html">Vulnerability detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/detect-malware-yara-integration.html">Detecting malware using YARA integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/poc-detect-hidden-process.html">Detecting hidden processes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/audit-commands-run-by-user.html">Monitoring execution of malicious commands</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/detect-web-attack-shellshock.html">Detecting a Shellshock attack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../proof-of-concept-guide/leveraging-llms-for-alert-enrichment.html">Leveraging LLMs for alert enrichment</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../upgrade-guide/index.html">Upgrade guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../upgrade-guide/upgrading-central-components.html">Wazuh central components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../upgrade-guide/wazuh-agent/index.html">Wazuh agent</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../upgrade-guide/wazuh-agent/linux.html"> Linux</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../upgrade-guide/wazuh-agent/windows.html"> Windows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../upgrade-guide/wazuh-agent/macos.html"> macOS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../upgrade-guide/wazuh-agent/solaris.html"> Solaris</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../upgrade-guide/wazuh-agent/aix.html"> AIX</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../upgrade-guide/wazuh-agent/hp-ux.html"> HP-UX</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../upgrade-guide/troubleshooting.html">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations-guide/index.html">Integrations guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../integrations-guide/elastic-stack/index.html">Elastic Stack integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../integrations-guide/opensearch/index.html">OpenSearch integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../integrations-guide/splunk/index.html">Splunk integration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../integrations-guide/amazon-security-lake/index.html">Amazon Security Lake integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../migration-guide/index.html">Backup guide</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../migration-guide/creating/index.html">Creating a backup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../migration-guide/creating/wazuh-central-components.html">Wazuh central components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../migration-guide/creating/wazuh-agent.html">Wazuh agent</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../migration-guide/restoring/index.html">Restoring Wazuh from backup</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../migration-guide/restoring/wazuh-central-components.html">Wazuh central components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../migration-guide/restoring/wazuh-agent.html">Wazuh agent</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../cloud-service/index.html">Wazuh Cloud service</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/getting-started/index.html">Getting started</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/getting-started/sign-up-trial.html">Sign up for a trial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/getting-started/access-wazuh-wui.html">Accessing the Wazuh dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/getting-started/enroll-agents.html">Enrolling agents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/getting-started/starting-faq.html">Cloud service FAQ</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/your-environment/index.html">Your environment</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/manage-auth.html">Authentication and authorization</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/settings.html">Settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/limits.html">Limits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/limitations.html">Limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/cancel-environment.html">Cancellation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/monitor-environment-usage.html">Monitor usage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/send-syslog-data.html">Forward syslog events</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/agents-without-internet.html">Agents without Internet access</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/configure-email.html">SMTP configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/custom-dns.html">Custom DNS</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/your-environment/technical-faq.html">Technical FAQ</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/ai-analyst.html">AI Analyst</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/account-billing/index.html">Account and billing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/account-billing/user-settings.html">Edit user settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/account-billing/manage-billing-details.html">Manage your billing details</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/account-billing/billing-history.html">See your billing cycle and history</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/account-billing/update-billing.html">Update billing and operational contacts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/account-billing/stop-charges.html">Stop charges for an environment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/account-billing/billing-faq.html">Billing FAQ</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/archive-data/index.html">Archive data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/archive-data/configuration.html">Configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/archive-data/filename-format.html">Filename format</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/archive-data/access.html">Access</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/apis/index.html">Wazuh Cloud API</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/apis/authentication.html">Authentication</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../cloud-service/apis/reference.html">Reference</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/cli/index.html">CLI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../cloud-service/glossary.html">Glossary</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../development/index.html">Development</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/client-keys.html">Client keys file</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/message-format.html">Standard Wazuh message format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/makefile.html">Makefile options</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/wazuh-cluster.html">Wazuh server cluster</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/packaging/index.html">Wazuh package generation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../development/packaging/generate-ova.html">Virtual machine</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../development/packaging/generate-server-package.html">Wazuh server</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../development/packaging/generate-indexer-package.html">Wazuh indexer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../development/packaging/generate-dashboard-package.html">Wazuh dashboard</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../development/packaging/generate-agent-package.html">Wazuh agent</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/wazuh-logtest.html">Wazuh-Logtest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/rbac-database-integrity.html">RBAC database integrity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../../development/coredump.html">Configuring core dump generation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../release-notes/index.html">Release notes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-notes/index-4x.html">4.x</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-14-1.html">4.14.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-14-0.html">4.14.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-13-1.html">4.13.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-13-0.html">4.13.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-12-0.html">4.12.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-11-2.html">4.11.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-11-1.html">4.11.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-11-0.html">4.11.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-10-3.html">4.10.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-10-2.html">4.10.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-10-1.html">4.10.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-10-0.html">4.10.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-9-2.html">4.9.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-9-1.html">4.9.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-9-0.html">4.9.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-8-2.html">4.8.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-8-1.html">4.8.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-8-0.html">4.8.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-7-5.html">4.7.5 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-7-4.html">4.7.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-7-3.html">4.7.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-7-2.html">4.7.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-7-1.html">4.7.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-7-0.html">4.7.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-6-0.html">4.6.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-5-4.html">4.5.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-5-3.html">4.5.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-5-2.html">4.5.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-5-1.html">4.5.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-5-0.html">4.5.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-4-5.html">4.4.5 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-4-4.html">4.4.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-4-3.html">4.4.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-4-2.html">4.4.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-4-1.html">4.4.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-4-0.html">4.4.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-11.html">4.3.11 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-10.html">4.3.10 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-9.html">4.3.9 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-8.html">4.3.8 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-7.html">4.3.7 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-6.html">4.3.6 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-5.html">4.3.5 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-4.html">4.3.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-3.html">4.3.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-2.html">4.3.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-1.html">4.3.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-3-0.html">4.3.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-7.html">4.2.7 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-6.html">4.2.6 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-5.html">4.2.5 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-4.html">4.2.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-3.html">4.2.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-2.html">4.2.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-1.html">4.2.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-2-0.html">4.2.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-1-5.html">4.1.5 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-1-4.html">4.1.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-1-3.html">4.1.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-1-2.html">4.1.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-1-1.html">4.1.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-1-0.html">4.1.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-0-4.html">4.0.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-0-3.html">4.0.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-0-2.html">4.0.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-0-1.html">4.0.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-4-0-0.html">4.0.0 Release notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-notes/index-3x.html">3.x</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-13-6.html">3.13.6 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-13-5.html">3.13.5 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-13-4.html">3.13.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-13-3.html">3.13.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-13-2.html">3.13.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-13-1.html">3.13.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-13-0.html">3.13.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-12-3.html">3.12.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-12-2.html">3.12.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-12-1.html">3.12.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-12-0.html">3.12.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-11-4.html">3.11.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-11-3.html">3.11.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-11-2.html">3.11.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-11-1.html">3.11.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-11-0.html">3.11.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-10-2.html">3.10.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-10-1.html">3.10.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-10-0.html">3.10.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-9-5.html">3.9.5 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-9-4.html">3.9.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-9-3.html">3.9.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-9-2.html">3.9.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-9-1.html">3.9.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-9-0.html">3.9.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-8-2.html">3.8.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-8-1.html">3.8.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-8-0.html">3.8.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-7-2.html">3.7.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-7-1.html">3.7.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-7-0.html">3.7.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-6-1.html">3.6.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-6-0.html">3.6.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-5-0.html">3.5.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-4-0.html">3.4.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-3-1.html">3.3.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-3-0.html">3.3.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-2-4.html">3.2.4 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-2-3.html">3.2.3 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-2-2.html">3.2.2 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-2-1.html">3.2.1 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-2-0.html">3.2.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-1-0.html">3.1.0 Release notes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-3-0-0.html">3.0.0 Release notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../../release-notes/index-2x.html">2.x</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../../release-notes/release-2-1.html">2.1.0 Release notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+  </div>
+</div>
+      <div id="central-column" >
+          
+
+
+
+        
+
+        
+          <div class="breadcrumb-wrapper">
+                <ul id="breadcrumbs" role="navigation" aria-label="breadcrumbs navigation">
+      <li>
+        <a href="../../../index.html">
+          
+          <svg class="home-icon" width="17" height="17" viewBox="0 0 17 17" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path id="home" d="M1.6004 12.1825C1.6004 11.0649 1.59032 9.94552 1.60545 8.82785C1.61217 8.3244 1.51804 7.95687 0.917983 7.88639C0.474242 7.83437 0.104457 7.6011 0.0187347 7.12953C-0.0703497 6.64286 0.166649 6.28708 0.551561 5.98165C2.87616 4.13901 5.19572 2.29133 7.50351 0.43022C8.1355 -0.0799475 8.71875 -0.175604 9.38605 0.363093C11.6938 2.2242 14.0168 4.06852 16.3262 5.92627C16.6271 6.16961 16.9717 6.41462 16.9969 6.84927C17.0305 7.4165 16.691 7.77899 16.1766 7.84779C15.4606 7.94345 15.3614 8.35125 15.3665 8.95707C15.3866 11.0817 15.3782 13.2062 15.3715 15.3308C15.3665 16.7069 15.0841 16.9838 13.684 16.9956C12.8721 17.0023 12.0586 17.009 11.2484 16.9788C10.5055 16.9503 10.0349 16.6146 10.0416 15.7906C10.0466 15.0086 10.0281 14.2249 10.0029 13.4429C9.97266 12.4443 9.3642 11.8049 8.47335 11.8117C7.58923 11.8184 7.00094 12.4645 6.97236 13.4731C6.95051 14.2551 6.92866 15.0371 6.93202 15.8208C6.93539 16.5509 6.54207 16.9318 5.86469 16.962C4.8024 17.0073 3.73675 17.009 2.67446 16.9738C1.89455 16.9486 1.63402 16.3847 1.62057 15.7067C1.59704 14.5337 1.61385 13.3589 1.61385 12.1842C1.60881 12.1842 1.60377 12.1842 1.59872 12.1842L1.6004 12.1825Z"/>
+          </svg>
+        
+        </a> <span class="breadcrumb-separator" aria-hidden="true"></span>
+      </li><li><a href="../../index.html">User manual</a><span class="breadcrumb-separator" aria-hidden="true"></span></li><li><a href="../index.html">Data analysis</a><span class="breadcrumb-separator" aria-hidden="true"></span></li><li><a href="index.html">Ruleset XML syntax</a><span class="breadcrumb-separator" aria-hidden="true"></span></li><li data-pagefind-weight="10">Regular Expression Syntax</li>
+    </ul>
+          </div>
+        
+        
+        
+        
+        <main role="main"data-pagefind-body>
+        <section id="regular-expression-syntax">
+<h1 data-pagefind-weight="10">Regular Expression Syntax<a class="headerlink" href="#regular-expression-syntax" title="Link to this heading"></a></h1>
+<p>Regular expressions or <code class="docutils literal notranslate"><span class="pre">regex</span></code> are sequences of characters that define a pattern.</p>
+<p>There are three types of regular expressions: regex (<em>OS_Regex</em>), sregex (<em>OS_Match</em>) and PCRE2.</p>
+<section id="regex-os-regex-syntax">
+<span id="os-regex-syntax"></span><h2>Regex (OS_Regex) syntax<a class="headerlink" href="#regex-os-regex-syntax" title="Link to this heading"></a></h2>
+<p>This is a fast and simple library for regular expressions in C.</p>
+<p>This library is designed to be simple while still supporting the most common regular expressions.</p>
+<aside class="topic">
+<p class="topic-title">Supported expressions</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expressions</p></th>
+<th class="head"><p>Valid characters</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>\w</p></td>
+<td><p>A-Z, a-z, 0-9, '-', '&#64;', '_' characters</p></td>
+</tr>
+<tr class="row-odd"><td><p>\d</p></td>
+<td><p>0-9 character</p></td>
+</tr>
+<tr class="row-even"><td><p>\s</p></td>
+<td><p>Spaces &quot; &quot;</p></td>
+</tr>
+<tr class="row-odd"><td><p>\t</p></td>
+<td><p>Tabs</p></td>
+</tr>
+<tr class="row-even"><td><p>\p</p></td>
+<td><p>()*+,-.:;&lt;=&gt;?[]!&quot;'#$%&amp;|{}</p></td>
+</tr>
+<tr class="row-odd"><td><p>\W</p></td>
+<td><p>Anything not \w</p></td>
+</tr>
+<tr class="row-even"><td><p>\D</p></td>
+<td><p>Anything not \d</p></td>
+</tr>
+<tr class="row-odd"><td><p>\S</p></td>
+<td><p>Anything not \s</p></td>
+</tr>
+<tr class="row-even"><td><p>\.</p></td>
+<td><p>Anything</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<aside class="topic">
+<p class="topic-title">Modifiers</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expressions</p></th>
+<th class="head"><p>Actions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>+</p></td>
+<td><p>To match one or more times</p></td>
+</tr>
+<tr class="row-odd"><td><p>*</p></td>
+<td><p>To match zero or more times</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<aside class="topic">
+<p class="topic-title">Special characters</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expressions</p></th>
+<th class="head"><p>Actions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>^</p></td>
+<td><p>To specify the beginning of the text</p></td>
+</tr>
+<tr class="row-odd"><td><p>$</p></td>
+<td><p>To specify the end of the text</p></td>
+</tr>
+<tr class="row-even"><td><p>|</p></td>
+<td><p>To create a logical or between multiple patterns</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<aside class="topic">
+<p class="topic-title">Characters escaping</p>
+<p>To utilize the following characters they must be escaped with: <code class="docutils literal notranslate"><span class="pre">\</span></code></p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>$</p></th>
+<th class="head"><p>(</p></th>
+<th class="head"><p>)</p></th>
+<th class="head"><p>\</p></th>
+<th class="head"><p>|</p></th>
+<th class="head"><p>&lt;</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>\$</p></td>
+<td><p>\(</p></td>
+<td><p>\)</p></td>
+<td><p>\ \</p></td>
+<td><p>\|</p></td>
+<td><p>\&lt;</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<aside class="topic">
+<p class="topic-title">Limitations</p>
+<ul class="simple">
+<li><p>The <code class="docutils literal notranslate"><span class="pre">*</span></code> and <code class="docutils literal notranslate"><span class="pre">+</span></code> modifiers can only be applied to backslash expressions, not bare characters (e.g. <code class="docutils literal notranslate"><span class="pre">\d+</span></code> is supported, <code class="docutils literal notranslate"><span class="pre">0+</span></code> is not)</p></li>
+<li><p>You cannot use alternation in a group, e.g. <code class="docutils literal notranslate"><span class="pre">(foo|bar)</span></code> is not permitted</p></li>
+<li><p>Complex backtracking is not supported, e.g. <code class="docutils literal notranslate"><span class="pre">\p*\d*\s*\w*:</span></code> does not match a single colon, because <code class="docutils literal notranslate"><span class="pre">\p*</span></code> consumes the colon</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.</span></code> matches a literal dot, whereas <code class="docutils literal notranslate"><span class="pre">\.</span></code> matches any character</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">\s</span></code> matches only an ASCII space (32), not other whitespace like tab</p></li>
+<li><p>there is no syntax to match a literal caret, asterisk or plus (although <code class="docutils literal notranslate"><span class="pre">\p</span></code> will match asterisk or plus, along with some other characters)</p></li>
+</ul>
+</aside>
+</section>
+<section id="sregex-os-match-syntax">
+<span id="id1"></span><h2>Sregex (OS_Match) syntax<a class="headerlink" href="#sregex-os-match-syntax" title="Link to this heading"></a></h2>
+<p>This is faster than OS_Regex, but only supports simple string matching and the following special characters.</p>
+<aside class="topic">
+<p class="topic-title">Special characters</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expressions</p></th>
+<th class="head"><p>Actions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>^</p></td>
+<td><p>To specify the beginning of the text</p></td>
+</tr>
+<tr class="row-odd"><td><p>$</p></td>
+<td><p>To specify the end of the text</p></td>
+</tr>
+<tr class="row-even"><td><p>|</p></td>
+<td><p>To create a logic: or, between multiple patterns</p></td>
+</tr>
+<tr class="row-odd"><td><p>!</p></td>
+<td><p>To negate the expression</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+</section>
+<section id="pcre2-syntax">
+<span id="id2"></span><h2>PCRE2 syntax<a class="headerlink" href="#pcre2-syntax" title="Link to this heading"></a></h2>
+<p><strong>Perl Compatible Regular Expressions (PCRE)</strong> tries to match Perl syntax and semantics as closely as it can.</p>
+<p>It provides features like recursive patterns, look-ahead and look-behind assertions, non-capturing groups, non-greedy quantifiers, extended syntax for characters and character classes, and many others. For more details, please refer to the <a class="reference external" href="https://www.pcre.org/current/doc/html/pcre2syntax.html">PCRE Syntax documentation</a>.</p>
+<p>By default, PCRE2 is case-sensitive. Use <code class="docutils literal notranslate"><span class="pre">(?i)</span></code> for case-insensitive matching. For example, the string <code class="docutils literal notranslate"><span class="pre">post</span></code> matches the regex <code class="docutils literal notranslate"><span class="pre">(?i)POST|GET|PUT</span></code> but not <code class="docutils literal notranslate"><span class="pre">POST|GET|PUT</span></code>.</p>
+<aside class="topic">
+<p class="topic-title">Supported expressions</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expressions</p></th>
+<th class="head"><p>Actions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>.</p></td>
+<td><p>Any character except newline</p></td>
+</tr>
+<tr class="row-odd"><td><p>\d</p></td>
+<td><p>Any decimal digit, equal to [0-9]</p></td>
+</tr>
+<tr class="row-even"><td><p>\D</p></td>
+<td><p>Any character that is not a decimal digit, equal to [^0-9]</p></td>
+</tr>
+<tr class="row-odd"><td><p>\h</p></td>
+<td><p>Any horizontal white space character</p></td>
+</tr>
+<tr class="row-even"><td><p>\H</p></td>
+<td><p>Any character that is not a horizontal white space character</p></td>
+</tr>
+<tr class="row-odd"><td><p>\s</p></td>
+<td><p>Any white space character, equal to [\t\r\n\f]</p></td>
+</tr>
+<tr class="row-even"><td><p>\S</p></td>
+<td><p>Any character that is not a white space character, equal to [^\t\r\n\f]</p></td>
+</tr>
+<tr class="row-odd"><td><p>\w</p></td>
+<td><p>Any &quot;word&quot; character</p></td>
+</tr>
+<tr class="row-even"><td><p>\W</p></td>
+<td><p>Any &quot;non-word&quot; character</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<aside class="topic">
+<p class="topic-title">Characters escaping</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expressions</p></th>
+<th class="head"><p>Actions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>\f</p></td>
+<td><p>Form feed (hex 0C)</p></td>
+</tr>
+<tr class="row-odd"><td><p>\n</p></td>
+<td><p>Newline (hex 0A)</p></td>
+</tr>
+<tr class="row-even"><td><p>\r</p></td>
+<td><p>Carriage return (hex 0D)</p></td>
+</tr>
+<tr class="row-odd"><td><p>\t</p></td>
+<td><p>Tab (hex 09)</p></td>
+</tr>
+<tr class="row-even"><td><p>\0dd</p></td>
+<td><p>Character with octal code 0dd</p></td>
+</tr>
+<tr class="row-odd"><td><p>\o{ddd..}</p></td>
+<td><p>Character with octal code ddd..</p></td>
+</tr>
+<tr class="row-even"><td><p>\xhh</p></td>
+<td><p>Character with hex code hh</p></td>
+</tr>
+<tr class="row-odd"><td><p>\x{hh..}</p></td>
+<td><p>Character with hex code hh..</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<aside class="topic">
+<p class="topic-title">Quantifiers</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Expressions</p></th>
+<th class="head"><p>Actions</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>?</p></td>
+<td><p>0 or 1, greedy</p></td>
+</tr>
+<tr class="row-odd"><td><p>?+</p></td>
+<td><p>0 or 1, possessive</p></td>
+</tr>
+<tr class="row-even"><td><p>??</p></td>
+<td><p>0 or 1, lazy</p></td>
+</tr>
+<tr class="row-odd"><td><p>*</p></td>
+<td><p>0 or more, greedy</p></td>
+</tr>
+<tr class="row-even"><td><p>*+</p></td>
+<td><p>0 or more, possessive</p></td>
+</tr>
+<tr class="row-odd"><td><p>*?</p></td>
+<td><p>0 or more, lazy</p></td>
+</tr>
+<tr class="row-even"><td><p>+</p></td>
+<td><p>1 or more, greedy</p></td>
+</tr>
+<tr class="row-odd"><td><p>++</p></td>
+<td><p>1 or more, possessive</p></td>
+</tr>
+<tr class="row-even"><td><p>+?</p></td>
+<td><p>1 or more, lazy</p></td>
+</tr>
+<tr class="row-odd"><td><p>{n}</p></td>
+<td><p>Exactly n</p></td>
+</tr>
+<tr class="row-even"><td><p>{n,m}</p></td>
+<td><p>At least n, no more than m, greedy</p></td>
+</tr>
+<tr class="row-odd"><td><p>{n,m}+</p></td>
+<td><p>At least n, no more than m, possessive</p></td>
+</tr>
+<tr class="row-even"><td><p>{n,m}?</p></td>
+<td><p>At least n, no more than m, lazy</p></td>
+</tr>
+<tr class="row-odd"><td><p>{n,}</p></td>
+<td><p>n or more, greedy</p></td>
+</tr>
+<tr class="row-even"><td><p>{n,}+</p></td>
+<td><p>n or more, possessive</p></td>
+</tr>
+<tr class="row-odd"><td><p>{n,}?</p></td>
+<td><p>n or more, lazy</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+<aside class="topic">
+<p class="topic-title">Modifiers</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Modifier</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>(?i)</p></td>
+<td><p>Case-insensitive matching</p></td>
+</tr>
+</tbody>
+</table>
+</aside>
+</section>
+</section>
+
+        
+        
+    <div class="navigation-buttons" role="navigation" aria-label="previous/next navigation" data-pagefind-ignore="all">
+      
+      <a href="rules.html" title="Previous. Rules Syntax">
+        <span class="chevron left" aria-hidden="true"></span>
+        Rules Syntax
+      </a>
+      
+      
+      <a href="pcre2.html" title="Next. Perl-compatible Regular Expressions">
+        Perl-compatible Regular Expressions
+        <span class="chevron right" aria-hidden="true"></span>
+      </a>
+      
+    </div>
+
+        
+        </main>
+      </div><div id="right-sidebar" class="sidebar">
+  <div class="icon-assets">
+    <svg id="edit-icon" width="14" height="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg"><path d="M11.1481 2.14807L10 1L1 10V13H4L13 4L11.8561 2.85607L3.854 10.854C3.756 10.951 3.628 11 3.5 11C3.372 11 3.244 10.951 3.146 10.854C2.951 10.658 2.951 10.342 3.146 10.146L11.1481 2.14807ZM10 0C10.256 0 10.512 0.098 10.707 0.293L13.707 3.293C14.098 3.683 14.098 4.317 13.707 4.707L4.707 13.707C4.52 13.895 4.265 14 4 14H1C0.448 14 0 13.552 0 13V10C0 9.735 0.105 9.48 0.293 9.293L9.293 0.293C9.488 0.098 9.744 0 10 0ZM4 13H1V10L4 13Z"/></svg>
+  </div>
+  <div class="sidebar-container">
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+      
+    <nav id="local-toc" class="navbar d-none d-xl-block">
+      <span class="toc-title">On this page</span>
+      <ul class="navbar-nav">
+<li class="nav-item"><a class="reference internal nav-link" href="#">Regular Expression Syntax</a><ul class="navbar-nav">
+<li class="nav-item"><a class="reference internal nav-link" href="#regex-os-regex-syntax">Regex (OS_Regex) syntax</a></li>
+<li class="nav-item"><a class="reference internal nav-link" href="#sregex-os-match-syntax">Sregex (OS_Match) syntax</a></li>
+<li class="nav-item"><a class="reference internal nav-link" href="#pcre2-syntax">PCRE2 syntax</a></li>
+</ul>
+</li>
+</ul>
+
+    </nav>
+      
+    
+  </div>
+</div>
+      </div>
+    <footer>
+      
+  <div class="navbar dropup">
+    <div id="toggle-full-footer-wrapper" class="">
+      <button id="toggle-full-footer" class="btn  dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+        <svg width="21.88" height="23"><use xlink:href="#wide-chevron"></use></svg>
+      </button>
+      <div class="website-links dropdown-menu">
+        <div class="container">
+          <nav class="row d-flex justify-content-start mainfooter">
+            <div class="col-12 col-xs-6 col-sm-6 col-lg-4">
+              <div class="footer-section">
+                <div class="footer-title">Explore</div>
+                <ul>
+                  <li><a href="https://wazuh.com/platform/overview/" target="_blank" rel="noreferrer noopener">Overview</a></li>
+                  <li><a href="https://wazuh.com/platform/xdr/" target="_blank" rel="noreferrer noopener">XDR</a></li>
+                  <li><a href="https://wazuh.com/platform/siem/" target="_blank" rel="noreferrer noopener">SIEM</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-12 col-xs-6 col-sm-6 col-lg-4">
+              <div class="footer-section">
+                <div class="footer-title">Services</div>
+                <ul>
+                  <li><a href="https://wazuh.com/cloud/" target="_blank" rel="noreferrer noopener">Wazuh Cloud</a></li>
+                  <li><a href="https://wazuh.com/services/professional-support/" target="_blank" rel="noreferrer noopener">Professional support</a></li>
+                  <li><a href="https://wazuh.com/services/consulting-services/" target="_blank" rel="noreferrer noopener">Consulting services</a></li>
+                  <li><a href="https://wazuh.com/services/training-courses/" target="_blank" rel="noreferrer noopener">Training courses</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-12 col-xs-6 col-sm-6 col-lg-4">
+              <div class="footer-section">
+                <div class="footer-title">Company</div>
+                <ul>
+                  <li><a href="https://wazuh.com/about-us/" target="_blank" rel="noreferrer noopener">About us</a></li>
+                  <li><a href="https://wazuh.com/our-customers/" target="_blank" rel="noreferrer noopener">Customers</a></li>
+                  <li><a href="https://wazuh.com/partners/" target="_blank" rel="noreferrer noopener">Partners</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-12 col-xs-6 col-sm-6 col-lg-4">
+              <div class="footer-section">
+                <div class="footer-title">Documentation</div>
+                <ul>
+                  <li><a href="https://documentation.wazuh.com/current/quickstart.html">Quickstart</a></li>
+                  <li><a href="https://wazuh.com/current/getting-started/index.html">Getting started</a></li>
+                  <li><a href="https://wazuh.com/current/installation-guide/index.html">Installation guide</a></li>
+                </ul>
+              </div>
+            </div>
+            <div class="col-12 col-xs-6 col-sm-6 col-lg-4">
+              <div class="footer-section">
+                <div class="footer-title"><a href="https://wazuh.com/resources/" target="_blank" rel="noreferrer noopener">Resources</a></div>
+                <ul>
+                  <li><a href="https://wazuh.com/blog/" target="_blank" rel="noreferrer noopener">Blog</a></li>
+                  <li><a href="https://wazuh.com/community/" target="_blank" rel="noreferrer noopener">Community</a></li>
+                  <li><a href="https://wazuh.com/legal-resources/" target="_blank" rel="noreferrer noopener">Legal</a></li>
+                </ul>
+              </div>
+            </div>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="subfooter">
+    <div class="container">
+      <div class="legal">
+        <div class="logo d-none d-md-flex">
+          <a href="https://wazuh.com" target="_blank" rel="noreferrer noopener" title="Open Source Security">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="28" height="16" viewBox="0 0 28 16" xml:space="preserve">
+              <path d="M16.2491 10.7636L12.7889 0.0132231H10.0484L6.58823 10.7636L3.14187 0H0L5.01038 15.6959H7.57093L11.4187 4.33719L15.2526 15.6959H17.7993L22.8097 0.0132231H19.6817L16.2491 10.7636Z" fill="white"></path>
+              <path d="M25.4118 16C26.8412 16 28 14.8929 28 13.5273C28 12.1616 26.8412 11.0546 25.4118 11.0546C23.9823 11.0546 22.8235 12.1616 22.8235 13.5273C22.8235 14.8929 23.9823 16 25.4118 16Z" fill="#3585F9"></path>
+            </svg>
+          </a>
+        </div>
+        <div class="logo d-flex d-md-none">
+          <a href="https://wazuh.com" target="_blank" rel="noreferrer noopener" title="Open Source Security">
+            <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" version="1.1" width="130" height="27" viewBox="0 0 1892 388" xml:space="preserve">
+              <g transform="matrix(1 0 0 1 207.47 229.19)">
+                <polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" points="-115.97,148.99 -206.97,-148.99 -149.88,-148.99 -87.56,55.5 -24.67,-148.85 24.96,-148.85 87.83,55.5 150.16,-148.85 206.97,-148.85 115.96,148.99 69.64,148.99 0.14,-66.68 -69.64,148.99 "></polygon>
+              </g>
+              <g transform="matrix(1 0 0 1 933.4 229.26)">
+                <polygon style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" points="-130.3,148.92 -130.3,139.81 38.74,-97.35 -114.85,-97.35 -114.85,-148.92 130.3,-148.92 130.3,-139.54 -38.46,97.35 122.04,97.35 122.04,148.92 "></polygon>
+              </g>
+              <g transform="matrix(1 0 0 1 590.65 229.49)">
+                <path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" transform=" translate(-989.13, -549.61)" d="M 1086.744 431.852 c -25.538 -26.649 -60.38 -40.671 -101.374 -40.671 c -86.753 0 -152.165 68.117 -152.165 158.44 c 0 90.313 65.411 158.421 152.165 158.421 c 40.899 0 75.741 -13.937 101.374 -40.405 v 34.158 h 58.31 V 397.447 h -58.31 V 431.852 z M 991.313 653.169 c -57.266 0 -98.848 -43.547 -98.848 -103.548 c 0 -59.81 41.582 -103.225 98.848 -103.225 c 57.095 0 98.544 43.415 98.544 103.225 C 1089.858 609.621 1048.408 653.169 991.313 653.169 z" stroke-linecap="round"></path>
+              </g>
+              <g transform="matrix(1 0 0 1 1254.44 232.63)">
+                <path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" transform=" translate(-1652.91, -552.74)" d="M 1733.776 397.447 v 171.579 c 0 53.468 -29.43 84.142 -80.715 84.142 c -51.475 0 -81 -30.674 -81 -84.142 V 397.447 h -58.329 v 176.269 c 0 99.143 75.057 134.326 139.329 134.326 c 64.139 0 139.026 -35.184 139.026 -134.326 V 397.447 H 1733.776 z" stroke-linecap="round"></path>
+              </g>
+              <g transform="matrix(1 0 0 1 1599.48 189.34)">
+                <path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" transform=" translate(-1997.96, -509.46)" d="M 1864.067 698.302 V 320.624 h 51.57 v 194.829 h 6.892 v 182.848 H 1864.067 z M 2073.384 698.302 v -146.45 c 0 -11.582 -0.968 -23.478 -2.905 -35.706 c -1.918 -12.228 -5.601 -23.582 -11.032 -34.063 c -5.411 -10.481 -13.044 -18.93 -22.88 -25.367 s -22.671 -9.655 -38.468 -9.655 c -10.31 0 -20.051 1.699 -29.24 5.108 c -9.19 3.399 -17.241 8.867 -24.133 16.405 c -6.892 7.538 -12.304 17.468 -16.272 29.782 c -3.949 12.323 -5.924 27.304 -5.924 44.953 l -35.848 -13.51 c 0 -27.029 5.051 -50.886 15.171 -71.563 c 10.101 -20.687 24.627 -36.816 43.576 -48.399 c 18.93 -11.582 41.81 -17.373 68.658 -17.373 c 20.582 0 37.88 3.304 51.854 9.921 c 13.956 6.627 25.31 15.313 34.044 26.06 c 8.734 10.756 15.399 22.481 19.994 35.165 c 4.595 12.684 7.728 25.092 9.38 37.234 c 1.652 12.133 2.488 22.794 2.488 31.984 v 165.475 H 2073.384 z" stroke-linecap="round"></path>
+              </g>
+              <g transform="matrix(1 0 0 1 1844.64 337.1)">
+                <circle style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(53,133,249); fill-rule: nonzero; opacity: 1;" cx="0" cy="0" r="47.007"></circle>
+              </g>
+            </svg>
+          </a>
+        </div>
+        <div class="sub-section">
+          <div class="no-border">
+            <div class="copyright">
+              &copy; 2025 Wazuh Inc.
+            </div>
+          </div>
+        </div>
+        <div class="sub-section">
+          <div>
+            <a href="https://wazuh.com/contact-us/" target="_blank" rel="noreferrer noopener">Contact us</a>
+          </div>
+          <div>
+            <a class="footer-tel" href="tel:+18443492984">
+              <svg height="16" width="16" class="social-icon" id="ico-phone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 17"><path d="M3.86698 7.56209C5.14318 10.0702 7.19928 12.1174 9.70737 13.4025L11.6571 11.4527C11.8964 11.2134 12.2509 11.1337 12.5611 11.24C13.5537 11.5679 14.6261 11.7452 15.725 11.7452C16.2124 11.7452 16.6113 12.144 16.6113 12.6314V15.7245C16.6113 16.2119 16.2124 16.6107 15.725 16.6107C7.40311 16.6107 0.658752 9.86634 0.658752 1.54445C0.658752 1.05702 1.05756 0.658203 1.545 0.658203H4.64688C5.13432 0.658203 5.53313 1.05702 5.53313 1.54445C5.53313 2.65227 5.71038 3.71577 6.03829 4.70837C6.13578 5.01855 6.06488 5.36419 5.81673 5.61234L3.86698 7.56209Z"></path></svg>
+              +1 (844) 349 2984
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="social">
+        
+        <ul class="social-links nav">
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on X" aria-label="Wazuh on X" target="_blank" href="https://x.com/wazuh" rel="noreferrer noopener"><svg><use xlink:href="#ico-twitter"></use></svg><span class="visually-hidden">X</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on LinkedIn" aria-label="Wazuh on LinkedIn" target="_blank" href="https://www.linkedin.com/company/wazuh" rel="noreferrer noopener"><svg><use xlink:href="#ico-linkedin"></use></svg><span class="visually-hidden">LinkedIn</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on Reddit" aria-label="Wazuh on Reddit" target="_blank" href="https://www.reddit.com/r/Wazuh/" rel="noreferrer noopener"><svg><use xlink:href="#ico-reddit"></use></svg><span class="visually-hidden">Reddit</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Wazuh on Github" aria-label="Wazuh on Github" target="_blank" href="https://github.com/wazuh" rel="noreferrer noopener"><svg><use xlink:href="#ico-github"></use></svg><span class="visually-hidden">GitHub</span></a></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Join us on Discord" aria-label="Join us on Discord" target="_blank" href="https://wazuh.com/community/join-us-on-discord/" rel="noreferrer noopener"><svg><use xlink:href="#ico-discord"></use></svg><span class="visually-hidden">Discord</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Join us on Slack" aria-label="Join us on Slack" target="_blank" href="https://wazuh.com/community/join-us-on-slack/" rel="noreferrer noopener"><svg><use xlink:href="#ico-slack"></use></svg><span class="visually-hidden">Slack</span></a></li>
+          <li class="rrss nav-item"><a class="nav-link" title="Subscribe to our mailing list" aria-label="Subscribe to our mailing list" target="_blank" href="mailto:wazuh+subscribe@googlegroups.com" rel="noreferrer noopener"><svg><use xlink:href="#ico-mailinglist"></use></svg><span class="visually-hidden">Mailing list</span></a></li>
+        </ul>
+        
+      </div>
+    </div>
+  </div>
+      <div id="btn-scroll-wrapper">
+  <div class="container">    
+    <a id="btn-scroll" class="appear-on-scroll init-hidden" href="#" title="Back to top" style="display:none;">
+      <svg width="21.88" height="23"><use xlink:href="#wide-chevron"></use></svg>
+    </a>
+  </div>
+</div>
+    </footer>
+    
+  <div class="icon-assets"> 
+      <svg  width="19" height="17" class="social-icon" id="ico-discord" xmlns="http://www.w3.org/2000/svg"  xmlns="http://www.w3.org/2000/svg" viewBox="0 -20 130.1 106.4"><path d="M107.7,8.1C99.3,4.2,90.5,1.5,81.5,0c-1.2,2.2-2.4,4.5-3.4,6.8c-9.6-1.5-19.5-1.5-29.1,0 c-1-2.3-2.1-4.6-3.4-6.8c-9.1,1.5-17.9,4.3-26.2,8.1C2.8,32.7-1.7,56.6,0.5,80.2l0,0c9.7,7.2,20.6,12.6,32.2,16.2 c2.6-3.5,4.9-7.2,6.9-11.1c-3.8-1.4-7.4-3.1-10.9-5.2c0.9-0.7,1.8-1.3,2.7-2c20.4,9.6,44,9.6,64.3,0c0.9,0.7,1.8,1.4,2.7,2 c-3.5,2-7.1,3.8-10.9,5.2c2,3.9,4.3,7.6,6.9,11.1c11.6-3.5,22.5-9,32.2-16.1l0,0C129.2,52.8,122.1,29.1,107.7,8.1z M42.5,65.7 C36.2,65.7,31,60,31,53s5-12.7,11.4-12.7S54,46,53.9,53S48.8,65.7,42.5,65.7z M84.7,65.7c-6.3,0-11.4-5.7-11.4-12.7 s5-12.7,11.4-12.7S96.2,46,96.1,53S91.1,65.7,84.7,65.7z"/></svg>
+<svg width="19" height="19" viewBox="-2 -3 19 19" class="social-icon" id="ico-github" xmlns="http://www.w3.org/2000/svg"><path d="M9.88808 14.9987C9.81902 14.9283 9.7474 14.8612 9.68217 14.7876C9.58369 14.6751 9.53765 14.5436 9.53893 14.3891C9.5434 13.7124 9.55172 13.0351 9.53893 12.3591C9.53381 12.094 9.49097 11.8277 9.43981 11.5673C9.37522 11.2418 9.19297 10.9866 8.92695 10.7959C8.90265 10.7782 8.87835 10.7611 8.83422 10.7295C9.00368 10.7065 9.15204 10.6881 9.29976 10.6664C9.72054 10.6052 10.1356 10.5164 10.5391 10.3751C11.4759 10.0469 12.0853 9.39982 12.3335 8.4121C12.5336 7.61508 12.6027 6.80754 12.462 5.99014C12.3686 5.44958 12.1608 4.95835 11.8065 4.54801C11.6383 4.35335 11.5968 4.16857 11.6377 3.91407C11.7125 3.44651 11.7112 2.97435 11.5706 2.51337C11.5584 2.47391 11.5443 2.43446 11.5296 2.39632C11.4471 2.18523 11.4075 2.16089 11.1894 2.18128C10.8965 2.20824 10.6209 2.30491 10.3613 2.43577C10.0198 2.60807 9.68921 2.80272 9.3522 2.98487C9.31639 3.00395 9.26779 3.02367 9.23198 3.01447C8.73127 2.88426 8.22096 2.84283 7.7081 2.83231C7.08652 2.81982 6.46687 2.84349 5.85617 2.97961C5.74106 3.00526 5.62787 3.04011 5.5166 3.07957C5.45969 3.09996 5.4194 3.0947 5.36952 3.05853C4.90526 2.72644 4.42053 2.4338 3.86802 2.28715C3.69984 2.24244 3.52334 2.23126 3.35005 2.20627C3.27331 2.19509 3.22982 2.22731 3.19849 2.30557C2.9881 2.82902 2.9395 3.37155 3.01112 3.92788C3.02903 4.06861 3.0578 4.20802 3.0917 4.34546C3.10768 4.41057 3.09809 4.45528 3.05908 4.50658C2.94334 4.6598 2.82695 4.81368 2.72016 4.97348C2.42536 5.4167 2.3045 5.91517 2.29043 6.44651C2.27316 7.11661 2.32304 7.77817 2.54046 8.41605C2.88962 9.44323 3.60903 10.0752 4.59127 10.4132C4.833 10.4967 5.0824 10.5618 5.33243 10.6157C5.57927 10.669 5.83123 10.6986 6.08766 10.7394C6.07743 10.7512 6.06847 10.767 6.05504 10.7782C5.78135 11.0202 5.58439 11.3089 5.51404 11.6811C5.50765 11.7159 5.46736 11.7554 5.43347 11.7718C5.13291 11.9198 4.81381 11.9441 4.48576 11.9296C4.06306 11.9112 3.74652 11.7146 3.49457 11.372C3.31807 11.132 3.12815 10.8998 2.92287 10.6854C2.70865 10.4619 2.43559 10.3691 2.12608 10.4158C2.11585 10.4171 2.10434 10.4152 2.09603 10.4198C2.03975 10.452 1.95022 10.4763 1.93871 10.5217C1.92656 10.5671 1.98156 10.6466 2.02696 10.6887C2.11457 10.769 2.21881 10.8295 2.31217 10.9038C2.57564 11.1149 2.76812 11.3838 2.90049 11.6982C3.0124 11.9632 3.1339 12.2216 3.32958 12.4347C3.65188 12.7852 4.06051 12.9391 4.51773 12.9522C4.81701 12.9608 5.11693 12.9345 5.43155 12.9233C5.43411 12.9601 5.43986 13.014 5.4405 13.068C5.4437 13.4842 5.43795 13.9011 5.45074 14.3174C5.45841 14.5712 5.36313 14.7587 5.1732 14.9073C5.13611 14.9362 5.10222 14.9691 5.06641 15C5.05937 15 5.05298 15 5.04594 15C4.81637 14.902 4.58296 14.8126 4.35786 14.7041C2.76172 13.9334 1.56206 12.7398 0.774222 11.1175C0.171832 9.87659 -0.0750073 8.55875 0.0196357 7.1758C0.143695 5.35752 0.81259 3.77598 2.01993 2.44498C3.14605 1.20276 4.52988 0.428102 6.15608 0.12363C6.41763 0.0749671 6.68365 0.0532661 6.94776 0.018413C6.9695 0.0157825 6.9906 0.00657606 7.01234 0C7.33656 0 7.66078 0 7.98499 0C8.13719 0.0197282 8.28939 0.0394564 8.44158 0.0591846C9.61631 0.209776 10.7002 0.618808 11.6767 1.30601C13.3509 2.48246 14.4322 4.08965 14.8338 6.13547C15.293 8.47392 14.7993 10.6065 13.37 12.4912C12.4895 13.6519 11.3582 14.468 10.0115 14.9671C9.98976 14.975 9.97058 14.9882 9.94947 14.9987C9.92901 14.9987 9.90855 14.9987 9.88808 14.9987Z"/></svg>
+<svg width="19" height="19" viewBox="-2 -2 19 19" class="social-icon" id="ico-linkedin" xmlns="http://www.w3.org/2000/svg"><path d="M3.1669 1.5625C3.1669 2.42563 2.47191 3.125 1.61413 3.125C0.756343 3.125 0.0613505 2.42563 0.0613505 1.5625C0.0613505 0.7 0.756343 0 1.61413 0C2.47191 0 3.1669 0.7 3.1669 1.5625ZM3.17942 4.375H0.0488281V14.375H3.17942V4.375ZM8.1771 4.375H5.06655V14.375H8.17773V9.12562C8.17773 6.20687 11.9526 5.96812 11.9526 9.12562V14.375H15.0757V8.04313C15.0757 3.11813 9.48945 3.2975 8.1771 5.72187V4.375Z"/></svg>
+<svg width="19" height="19" viewBox="-1 -1 20 20" class="social-icon" id="ico-reddit" xmlns="http://www.w3.org/2000/svg"><path d="M18 8.83425C18 7.74 17.106 6.8505 16.0072 6.8505C15.471 6.8505 14.985 7.065 14.6273 7.41C13.2698 6.51675 11.433 5.94825 9.399 5.8755L10.5113 2.37375L13.5233 3.0795L13.5187 3.123C13.5187 4.01775 14.25 4.74525 15.1493 4.74525C16.0477 4.74525 16.7782 4.01775 16.7782 3.123C16.7782 2.22825 16.047 1.5 15.1493 1.5C14.4592 1.5 13.8712 1.9305 13.6335 2.53425L10.3868 1.773C10.245 1.7385 10.101 1.82025 10.0568 1.95975L8.81625 5.865C6.68775 5.8905 4.7595 6.4635 3.34125 7.38375C2.98575 7.05525 2.514 6.84975 1.992 6.84975C0.89325 6.84975 0 7.74 0 8.83425C0 9.56175 0.39975 10.1925 0.98775 10.5375C0.94875 10.749 0.92325 10.9627 0.92325 11.1803C0.92325 14.1135 4.52925 16.5 8.9625 16.5C13.3958 16.5 17.0025 14.1135 17.0025 11.1803C17.0025 10.9747 16.9807 10.7723 16.9462 10.5728C17.5702 10.2375 18 9.58875 18 8.83425ZM5.082 10.1962C5.082 9.54525 5.6145 9.015 6.2685 9.015C6.9225 9.015 7.45425 9.54525 7.45425 10.1962C7.45425 10.8472 6.9225 11.3767 6.2685 11.3767C5.6145 11.3767 5.082 10.8472 5.082 10.1962ZM11.8778 13.698C11.28 14.2928 10.3417 14.5823 9.00975 14.5823L9 14.58L8.99025 14.5823C7.6575 14.5823 6.71925 14.2928 6.12225 13.698C6.0135 13.59 6.0135 13.4137 6.12225 13.3057C6.231 13.197 6.408 13.197 6.51675 13.3057C7.00425 13.791 7.8135 14.0265 8.99025 14.0265L9 14.0287L9.00975 14.0265C10.1865 14.0265 10.9957 13.7902 11.4832 13.305C11.592 13.1962 11.769 13.197 11.8778 13.305C11.9865 13.4137 11.9865 13.5892 11.8778 13.698ZM11.736 11.3767C11.082 11.3767 10.5503 10.8472 10.5503 10.1962C10.5503 9.54525 11.082 9.015 11.736 9.015C12.39 9.015 12.9218 9.54525 12.9218 10.1962C12.9218 10.8472 12.39 11.3767 11.736 11.3767Z"/></svg>
+<svg width="19" height="19" viewBox="-2 -4 18 18" class="social-icon" id="ico-slack" xmlns="http://www.w3.org/2000/svg"><path d="M9.54419 3.10824C9.54419 3.64936 9.55039 4.19049 9.54306 4.73161C9.53179 5.56021 8.96072 6.15093 8.18333 6.14981C7.40142 6.14811 6.85629 5.56415 6.85403 4.71752C6.85121 3.63527 6.85009 2.55302 6.8546 1.47077C6.85854 0.652324 7.40819 0.0779431 8.18051 0.0723064C8.94776 0.0666697 9.52728 0.646123 9.54194 1.44879C9.55208 2.00175 9.54419 2.55528 9.54419 3.10824Z"></path><path d="M3.10465 3.46684C3.67008 3.46627 4.23494 3.45726 4.80037 3.46853C5.58566 3.48431 6.15391 4.05644 6.15109 4.81119C6.14827 5.56144 5.56649 6.14766 4.79304 6.15386C3.67459 6.16287 2.55613 6.16231 1.43768 6.15442C0.657467 6.14878 0.0779454 5.57327 0.0723081 4.8219C0.0666707 4.05813 0.62308 3.48713 1.40949 3.46966C1.97379 3.45782 2.53922 3.4674 3.10465 3.46684Z"></path><path d="M9.86655 9.54063C9.3372 9.54063 8.80841 9.54513 8.27963 9.5395C7.43684 9.53048 6.87986 8.9809 6.85224 8.19289C6.828 7.50859 7.45544 6.81302 8.26948 6.84064C9.35017 6.87728 10.4337 6.84628 11.5155 6.85079C12.3447 6.85417 12.9457 7.43024 12.935 8.20022C12.9248 8.95666 12.3295 9.5271 11.5256 9.53837C10.9726 9.54683 10.4196 9.54063 9.86655 9.54063Z"></path><path d="M3.46631 9.90563C3.46631 9.32843 3.45729 8.75123 3.46856 8.17459C3.48378 7.39166 4.05485 6.8432 4.82886 6.85166C5.57469 6.85955 6.14575 7.42153 6.15196 8.17967C6.16098 9.30983 6.16041 10.44 6.15252 11.5701C6.14688 12.3328 5.54763 12.9275 4.80575 12.9286C4.07796 12.9297 3.48604 12.3497 3.47025 11.6017C3.45841 11.0369 3.468 10.4716 3.468 9.90675C3.46687 9.90563 3.46687 9.90563 3.46631 9.90563Z"></path><path d="M10.2623 6.15318C10.2623 5.58838 10.2093 5.04557 10.2753 4.51797C10.3627 3.82578 11.0307 3.39458 11.7647 3.4718C12.3966 3.53831 12.9153 4.12171 12.9282 4.78121C12.9418 5.45874 12.4147 6.0799 11.7393 6.14078C11.3701 6.17404 10.9957 6.15093 10.6237 6.15262C10.5059 6.15375 10.388 6.15318 10.2623 6.15318Z"></path><path d="M6.85597 10.2593C7.41463 10.2593 7.93383 10.2142 8.44176 10.2705C9.12389 10.3455 9.59968 11.0084 9.53711 11.6966C9.4734 12.3973 8.86964 12.9435 8.17342 12.9305C7.46368 12.917 6.88021 12.3623 6.85822 11.66C6.84469 11.2045 6.85597 10.7485 6.85597 10.2593Z"></path><path d="M6.14475 2.75336C5.61145 2.75336 5.11875 2.78211 4.63111 2.7466C3.92419 2.69531 3.42866 2.06174 3.46474 1.31206C3.49744 0.630017 4.06681 0.0860744 4.76303 0.0725463C5.47728 0.0584546 6.09232 0.576468 6.13855 1.27373C6.17012 1.75003 6.14475 2.22971 6.14475 2.75336Z"></path><path d="M2.74351 6.85536C2.74351 7.40494 2.78917 7.92352 2.73223 8.43082C2.655 9.12357 1.96217 9.61509 1.27328 9.53618C0.553953 9.45388 0.0420801 8.84681 0.0736494 8.11348C0.103527 7.42129 0.654299 6.87565 1.35841 6.85705C1.81221 6.84578 2.26602 6.85536 2.74351 6.85536Z"></path></svg>
+<svg width="19" height="19" class="social-icon" id="ico-twitter" xmlns="http://www.w3.org/2000/svg" viewBox="-2 -4 20 21"><path fill-rule="evenodd" clip-rule="evenodd" d="M8 16C12.4183 16 16 12.4183 16 8C16 3.58172 12.4183 0 8 0C3.58172 0 0 3.58172 0 8C0 12.4183 3.58172 16 8 16ZM12.4442 12.4385H12.4444V12.4388C12.4444 12.4387 12.4443 12.4386 12.4442 12.4385ZM12.4442 12.4385C12.3063 12.2034 12.147 11.9828 11.9879 11.7621C11.9252 11.6753 11.8625 11.5884 11.8011 11.5007C10.8596 10.1554 9.91577 8.81193 8.96805 7.47112C8.89136 7.36224 8.89106 7.29538 8.98084 7.1939C9.93829 6.11258 10.8918 5.02763 11.8454 3.94269L12.0419 3.71909C12.0508 3.70887 12.0603 3.69898 12.0699 3.68906C12.1045 3.65305 12.1394 3.6167 12.148 3.56288H11.3481C10.795 4.19156 10.2419 4.82002 9.68868 5.44853C9.33671 5.84843 8.98471 6.24834 8.63272 6.64835L8.63245 6.64866C8.49984 6.79983 8.49916 6.8006 8.38182 6.63385C7.92836 5.98933 7.47501 5.34469 7.02163 4.70001C6.75514 4.32107 6.48864 3.94213 6.2221 3.56318C6.08055 3.56318 5.939 3.56316 5.79744 3.56315C5.08967 3.56306 4.38191 3.56298 3.67414 3.56495C3.66438 3.56495 3.65364 3.56279 3.64261 3.56056C3.61029 3.55405 3.57547 3.54703 3.55552 3.59247C3.72018 3.82683 3.88483 4.06121 4.04947 4.2956C4.99865 5.64681 5.94791 6.99813 6.90019 8.34774C6.97392 8.45217 6.98789 8.52436 6.89603 8.6285C6.08123 9.54999 5.26876 10.4736 4.45625 11.3973C4.18409 11.7067 3.91192 12.0162 3.63965 12.3255C3.62167 12.3458 3.60214 12.3646 3.58261 12.3834C3.57373 12.392 3.56485 12.4005 3.55612 12.4092C3.55224 12.4531 3.57748 12.4461 3.59774 12.4406C3.60386 12.4389 3.60952 12.4373 3.61379 12.4373C3.82417 12.439 4.03474 12.4389 4.24519 12.4389C4.29198 12.4388 4.33876 12.4388 4.38552 12.4388C4.59178 12.1763 4.81411 11.9279 5.03644 11.6794C5.13264 11.5719 5.22883 11.4643 5.32373 11.3557C5.7723 10.8418 6.22324 10.3298 6.67414 9.81779C6.86153 9.60503 7.04891 9.39227 7.23611 9.17938C7.37108 9.02583 7.37197 9.02524 7.48761 9.18944C7.83767 9.6873 8.18766 10.1853 8.53764 10.6833C8.8873 11.1809 9.23696 11.6784 9.58669 12.1758C9.63066 12.2381 9.67582 12.2995 9.72102 12.361C9.73998 12.3868 9.75895 12.4126 9.77784 12.4385H12.4442ZM5.14262 4.16207C5.18039 4.16232 5.21817 4.16258 5.25595 4.16258V4.16228C5.27933 4.16228 5.30288 4.16335 5.32643 4.16441C5.37746 4.16671 5.4285 4.16901 5.47772 4.16051C5.72862 4.11731 5.87607 4.22767 6.02114 4.4321C7.40127 6.37558 8.78815 8.31444 10.1749 10.2532C10.5093 10.7207 10.8437 11.1881 11.178 11.6557C11.1852 11.6657 11.1924 11.6758 11.1996 11.6858C11.2154 11.708 11.2311 11.73 11.2473 11.7518C11.3145 11.8427 11.2761 11.872 11.1795 11.872C11.1247 11.8718 11.0699 11.8716 11.0151 11.8714C10.7688 11.8705 10.5224 11.8696 10.2761 11.8722C10.1722 11.8734 10.1249 11.807 10.0747 11.7367C10.0728 11.7342 10.071 11.7316 10.0692 11.7291C9.49195 10.9212 8.91435 10.1135 8.33668 9.30576C8.18575 9.09471 8.03482 8.88365 7.88388 8.67258L7.88356 8.67214C6.85122 7.22822 5.81889 5.7843 4.78744 4.3398C4.77875 4.32767 4.76756 4.31543 4.7562 4.30302C4.72407 4.26789 4.69057 4.23128 4.70837 4.19128C4.72739 4.14825 4.77503 4.15419 4.82121 4.15995C4.83853 4.16211 4.85565 4.16425 4.87098 4.16376C4.96141 4.16084 5.052 4.16145 5.14262 4.16207Z"/></svg>
+<svg width="19" height="19" class="social-icon" id="ico-mailinglist" viewBox="0 -4 19 19" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#clip0_31606_46722)"><path d="M9.77663 5.55136C10.7446 5.55136 11.7122 5.55451 12.6801 5.54853C12.8503 5.54759 12.9254 5.59193 12.9447 5.77026C13.1665 7.83057 12.7456 9.70218 11.2419 11.2388C10.3352 12.1651 9.19618 12.6793 7.91394 12.8931C6.87568 13.0664 5.84417 13.0365 4.82647 12.7519C3.45786 12.3695 2.32907 11.6307 1.44107 10.5441C0.628185 9.54965 0.15882 8.40831 0.0336131 7.14527C-0.0809992 5.98884 0.0952534 4.86795 0.596723 3.80493C1.31136 2.28965 2.45171 1.19675 4.00813 0.526227C4.72309 0.218328 5.47497 0.0551009 6.25864 0.011385C7.40829 -0.0524592 8.49824 0.151654 9.53489 0.637876C10.0704 0.889164 10.5548 1.2153 11.0001 1.599C11.0916 1.67794 11.0942 1.73707 11.0053 1.81978C10.4727 2.31701 9.94197 2.81644 9.41385 3.31807C9.31529 3.41148 9.24691 3.39701 9.14771 3.31147C8.50594 2.75857 7.74924 2.50037 6.89976 2.44533C5.11123 2.32959 3.57921 3.35959 2.93071 4.80819C1.88411 7.14558 3.16057 9.95347 5.84289 10.4743C7.25516 10.7485 8.56213 10.4601 9.58754 9.37289C9.93491 9.0043 10.168 8.56777 10.3102 8.08752C10.3853 7.8334 10.3715 7.82428 10.1035 7.82397C9.05621 7.82365 8.00865 7.82397 6.9614 7.82397C6.73282 7.82397 6.61853 7.70917 6.61853 7.47958C6.61853 6.92103 6.62591 6.36247 6.61468 5.80422C6.61082 5.60986 6.6699 5.54507 6.87312 5.54696C7.84074 5.55577 8.80869 5.55105 9.77663 5.55105V5.55136Z"/></g><defs><clipPath id="clip0_31606_46722"><rect width="13" height="13"/></clipPath></defs></svg>
+<svg height="21" class="social-icon" id="ico-user" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 13">  <g clip-path="url(#clip0_28725_12714)"><path d="M7.33968 0C5.48143 0 3.9624 1.51813 3.9624 3.37529C3.9624 5.23244 5.48143 6.75058 7.33968 6.75058C9.19793 6.75058 10.717 5.23244 10.717 3.37529C10.717 1.51813 9.19793 0 7.33968 0Z"/><path d="M13.1362 9.448C13.0477 9.2269 12.9297 9.02056 12.797 8.82895C12.1185 7.82667 11.0715 7.16342 9.89163 7.00128C9.74416 6.98656 9.58193 7.01601 9.46394 7.10446C8.84452 7.56137 8.10713 7.79719 7.34022 7.79719C6.57331 7.79719 5.83593 7.56137 5.21651 7.10446C5.09851 7.01601 4.93628 6.9718 4.78882 7.00128C3.60898 7.16342 2.54714 7.82667 1.88348 8.82895C1.75075 9.02056 1.63276 9.24166 1.54429 9.448C1.50006 9.53644 1.51479 9.63961 1.55903 9.72806C1.67702 9.9344 1.82449 10.1408 1.95722 10.3176C2.16368 10.5977 2.38491 10.8482 2.63563 11.0841C2.8421 11.2904 3.07806 11.482 3.31405 11.6736C4.47912 12.5432 5.88019 13.0001 7.32549 13.0001C8.77079 13.0001 10.1719 12.5432 11.3369 11.6736C11.5729 11.4968 11.8089 11.2904 12.0153 11.0841C12.2513 10.8482 12.4873 10.5977 12.6938 10.3176C12.8412 10.126 12.974 9.9344 13.0919 9.72806C13.1657 9.63961 13.1804 9.53641 13.1362 9.448Z"/></g><defs><clipPath id="clip0_28725_12714"><rect width="13.0077" height="13" fill="white" transform="translate(0.834473)"/></clipPath></defs></svg>
+<svg height="17" width="17" class="social-icon" id="ico-phone" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 17"><path d="M3.86698 7.56209C5.14318 10.0702 7.19928 12.1174 9.70737 13.4025L11.6571 11.4527C11.8964 11.2134 12.2509 11.1337 12.5611 11.24C13.5537 11.5679 14.6261 11.7452 15.725 11.7452C16.2124 11.7452 16.6113 12.144 16.6113 12.6314V15.7245C16.6113 16.2119 16.2124 16.6107 15.725 16.6107C7.40311 16.6107 0.658752 9.86634 0.658752 1.54445C0.658752 1.05702 1.05756 0.658203 1.545 0.658203H4.64688C5.13432 0.658203 5.53313 1.05702 5.53313 1.54445C5.53313 2.65227 5.71038 3.71577 6.03829 4.70837C6.13578 5.01855 6.06488 5.36419 5.81673 5.61234L3.86698 7.56209Z"/></svg>
+      <svg width="12.25" height="14" id="copy-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M433.941 65.941l-51.882-51.882A48 48 0 0 0 348.118 0H176c-26.51 0-48 21.49-48 48v48H48c-26.51 0-48 21.49-48 48v320c0 26.51 21.49 48 48 48h224c26.51 0 48-21.49 48-48v-48h80c26.51 0 48-21.49 48-48V99.882a48 48 0 0 0-14.059-33.941zM266 464H54a6 6 0 0 1-6-6V150a6 6 0 0 1 6-6h74v224c0 26.51 21.49 48 48 48h96v42a6 6 0 0 1-6 6zm128-96H182a6 6 0 0 1-6-6V54a6 6 0 0 1 6-6h106v88c0 13.255 10.745 24 24 24h88v202a6 6 0 0 1-6 6zm6-256h-64V48h9.632c1.591 0 3.117.632 4.243 1.757l48.368 48.368a6 6 0 0 1 1.757 4.243V112z"/></svg>
+      <svg width="12" height="12" class="theme-common-icon" id="menu-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 12 12"><path fill-rule="evenodd" clip-rule="evenodd" d="M2.19089 3.07202C2.38783 2.94073 2.65391 2.99395 2.7852 3.19089L5.85716 7.79882L8.92911 3.19089C9.06041 2.99395 9.32649 2.94073 9.52343 3.07202C9.72037 3.20332 9.77359 3.4694 9.64229 3.66634L6.21375 8.80916C6.13426 8.92839 6.00045 9 5.85716 9C5.71387 9 5.58005 8.92839 5.50057 8.80916L2.07202 3.66634C1.94073 3.4694 1.99395 3.20332 2.19089 3.07202Z"/></svg>
+<svg width="21.88" height="25" class="theme-common-icon" id="wide-chevron" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><path d="M207.029 381.476L12.686 187.132c-9.373-9.373-9.373-24.569 0-33.941l22.667-22.667c9.357-9.357 24.522-9.375 33.901-.04L224 284.505l154.745-154.021c9.379-9.335 24.544-9.317 33.901.04l22.667 22.667c9.373 9.373 9.373 24.569 0 33.941L240.971 381.476c-9.373 9.372-24.569 9.372-33.942 0z"></path></svg>
+<svg width="31" height="31" viewBox="0 1 17 17" class="theme-common-icon" id="search-header" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" clip-rule="evenodd" d="M11.2986 11.296C11.5978 11.0472 12.0828 11.0472 12.382 11.296L15.4463 13.845C15.7455 14.0939 15.7455 14.4974 15.4463 14.7463C15.1471 14.9951 14.7891 14.9951 14.49 14.7463L11.2986 12.1972C10.9994 11.9484 10.9994 11.5449 11.2986 11.296Z"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M8.23534 4.16542C5.93121 4.16542 4.06334 6.02995 4.06334 8.32996C4.06334 10.63 5.93121 12.4945 8.23534 12.4945C10.5395 12.4945 12.4073 10.63 12.4073 8.32996C12.4073 6.02995 10.5395 4.16542 8.23534 4.16542ZM3.25586 8.32996C3.25586 5.58478 5.48525 3.35938 8.23534 3.35938C10.9854 3.35938 13.2148 5.58478 13.2148 8.32996C13.2148 11.0751 10.9854 13.3006 8.23534 13.3006C5.48525 13.3006 3.25586 11.0751 3.25586 8.32996Z"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M8.23489 4.80704C6.28524 4.80704 4.70474 6.38472 4.70474 8.33088C4.70474 10.2771 6.28524 11.8547 8.23489 11.8547C10.1845 11.8547 11.765 10.2771 11.765 8.33088C11.765 6.38472 10.1845 4.80704 8.23489 4.80704ZM4.02148 8.33088C4.02148 6.00804 5.90789 4.125 8.23489 4.125C10.5619 4.125 12.4483 6.00804 12.4483 8.33088C12.4483 10.6537 10.5619 12.5368 8.23489 12.5368C5.90789 12.5368 4.02148 10.6537 4.02148 8.33088Z"></path></svg>
+<svg width="17" height="17" viewBox="0 0 17 17" class="theme-common-icon" id="get-wazuh" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 2020">
+<path id="Vector" d="M11.9995 0.519531H5.51953C2.75811 0.519531 0.519531 2.75811 0.519531 5.51953V11.9995C0.519531 14.7609 2.75811 16.9995 5.51953 16.9995H11.9995C14.7609 16.9995 16.9995 14.7609 16.9995 11.9995V5.51953C16.9995 2.75811 14.7609 0.519531 11.9995 0.519531Z" fill="black"/>
+<path id="Union" fill-rule="evenodd" clip-rule="evenodd" d="M9.21718 7.19531V4.02344H8.01855V7.19531L8.01855 9.38265V11.6354L5.69326 9.3101L4.8457 10.1577L8.6371 13.9491L8.64101 13.9451L8.64296 13.9471L12.4325 10.1576L11.5849 9.31001L9.21718 11.6778V9.38265V7.19531Z" fill="white"/>
+</g>
+</svg>
+<svg width="21" height="17" viewBox="0 0 27 21" class="theme-common-icon" id="ico-envelope-contact" xmlns="http://www.w3.org/2000/svg"><path d="M27 2.625C27 1.18125 25.785 0 24.3 0H2.7C1.215 0 0 1.18125 0 2.625V18.375C0 19.8188 1.215 21 2.7 21H24.3C25.785 21 27 19.8188 27 18.375V2.625ZM24.3 2.625L13.5 9.17437L2.7 2.625H24.3ZM24.3 18.375H2.7V5.25L13.5 11.8125L24.3 5.25V18.375Z"/></svg>
+    </div>
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/js/documentation_options.js"></script>
+    <script>
+      const emptyTocNodes = JSON.parse('["amazon/configuration/index", "containers", "deployment", "docker-monitor/index", "installation-guide/elasticsearch-cluster/index", "installation-guide/wazuh-cluster/index", "installation-guide/upgrading/legacy/index", "installation-guide/packages-list/linux/linux-index", "installation-guide/packages-list/solaris/solaris-index", "user-manual/kibana-app/reference/index", "installation-guide/distributed-deployment/step-by-step-installation/elasticsearch-cluster/index", "installation-guide/distributed-deployment/step-by-step-installation/wazuh-cluster/index", "installation-guide/uninstalling-wazuh/index", "user-manual/capabilities/active-response/ar-use-cases/index"]');
+    </script>
+      
+
+<script src="../../../_static/js/jquery.js?ver=1764936974.4106452"></script><script src="../../../_static/js/min/bootstrap.bundle.min.js?ver=1764936974.4108872"></script><script src="../../../_static/js/min/redirects.min.js?ver=1766601656.2237837"></script><script src="../../../_static/js/min/wazuh-documentation.min.js?ver=1764936974.4108872"></script><script src="../../../_static/wazuh-doc-images/min/wazuh-light-box.min.js"></script>
+  <div id="wazuh-light-box-overlay" class="wazuh-light-box-overlay"></div><div id="wazuh-light-box" class="wazuh-light-box"><div class="wazuh-light-box-slides-container"><div class="wlb-loading"></div></div><button tabindex="0" class="wlb-close-button"><span class="wlb-close-button-content read-only">Close</span></button></div></body>
+</html>
