@@ -195,6 +195,7 @@ func skipSigmaRule(sigma *types.SigmaRule, c *types.Config) bool {
 
 	// If we are here, it means the rule does not match any of the conversion criteria
 	utils.LogIt(utils.INFO, "Skip Sigma rule default: "+sigma.ID, nil, c.Info, c.Debug)
+	c.TrackSkips.OtherProducts++
 	c.TrackSkips.RulesSkipped++
 	return true
 }
@@ -297,6 +298,7 @@ func printStats(c *types.Config, sigmaRuleIds []string) {
 	fmt.Printf("         Number of Sigma CIDR rules skipped: %d\n", c.TrackSkips.Cidr)
 	fmt.Printf("         Number of Sigma NEAR rules skipped: %d\n", c.TrackSkips.NearSkips)
 	fmt.Printf("       Number of Sigma CONFIG rules skipped: %d\n", c.TrackSkips.HardSkipped)
+	fmt.Printf(" Number of Sigma OTHER PRODUCTS skipped: %d\n", c.TrackSkips.OtherProducts)
 	fmt.Printf("   Number of Sigma FIELD TOO LONG skipped: %d\n", c.TrackSkips.FieldTooLong)
 	fmt.Printf("Number of Sigma rules CONVERTED TO CDB: %d\n", c.TrackSkips.ConvertedToCDB)
 	fmt.Printf("   Number of INTELLIGENT FIELD MAPPINGS: %d\n", c.TrackSkips.IntelligentMappings)

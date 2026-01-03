@@ -65,6 +65,7 @@ type Config struct {
 		TimeframeSkips      int
 		ExperimentalSkips   int
 		HardSkipped         int
+		OtherProducts       int
 		RulesSkipped        int
 		ErrorCount          int
 		FieldTooLong        int
