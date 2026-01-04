@@ -28,16 +28,27 @@ func (s *EventIDStrategy) GetName() string {
 
 func (s *EventIDStrategy) GetWazuhField(fieldName string, sigma *types.SigmaRule) string {
 	product := strings.ToLower(s.product)
-	
+	// Normalize field name to lowercase for case-insensitive matching
+	// YAML parser converts all keys to lowercase
+	fieldNameLower := strings.ToLower(fieldName)
+
 	// EventID-based rules use product-level FieldMaps
 	if fieldMap, ok := s.config.Wazuh.FieldMaps[product]; ok {
-		if wazuhField, ok := fieldMap[fieldName]; ok {
+		if wazuhField, ok := fieldMap[fieldNameLower]; ok {
 			return wazuhField
 		}
 	}
-	
+
 	// Fallback to full_log
 	return "full_log"
+}
+
+func getFieldMapKeys(m map[string]map[string]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 func (s *EventIDStrategy) GetParentRule(sigma *types.SigmaRule) (string, string) {
