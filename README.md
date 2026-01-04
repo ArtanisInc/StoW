@@ -55,10 +55,12 @@ StoW is **primarily Sysmon-focused** but also supports select Windows built-in e
 - ✅ **Case-Insensitive Field Mapping** - Robust matching for UPPERCASE/lowercase Sigma fields
 - ✅ **Intelligent Field Detection** - 141 smart mappings for Linux auditd (78.3% specific fields)
 - ✅ **Linux if_sid Optimization** - Converts field matching to parent rule chaining (92.2% coverage)
-- ✅ **Windows Event ID Parents** - Auto-generates parent rules (200100-200103)
-- ✅ **PowerShell Category Parents** - Dedicated parent rules (200000-200003)
+- ✅ **Windows Channel Parents** - Generic channel parents for Security/System/Application (60001-60003)
+- ✅ **Sysmon Base Event Parents** - Core Sysmon Events 1-15 (61600, 61603-61617)
 - ✅ **Sysmon Extended Events** - Support for Events 6, 17-22, 25 via 100000-sysmon_new_events.xml
 - ✅ **Built-in Channel Parents** - 30 parent rules for Windows channels (single file, IDs 109970-109999)
+- ✅ **Windows Event ID Parents** - Auto-generates parent rules (200100-200103)
+- ✅ **PowerShell Category Parents** - Dedicated parent rules (200000-200003)
 
 ### Performance & Scalability
 - ✅ **Intelligent File Splitting** - Splits into 500-rule chunks for optimal Wazuh performance
@@ -146,8 +148,14 @@ Wazuh:
 ### Parent Rule Files
 
 ```
+# Windows Channel Parents (REQUIRED for EventID-based rules)
+60000-windows_channel_parent.xml       # Security/System/Application channels (3 rules: 60001-60003)
+
+# Sysmon Base Events (REQUIRED for Sysmon rules)
+61600-sysmon_base_events.xml           # Sysmon Events 1-15 (18 rules: 61600, 61603-61617)
+
 # Sysmon Extended Events
-100000-sysmon_new_events.xml  # Sysmon Events 6, 17-22, 25
+100000-sysmon_new_events.xml           # Sysmon Events 6, 17-22, 25
 
 # Windows Built-in Channel Parents (single consolidated file, 30 rules)
 109970-windows_builtin_channels_parent.xml  # All Windows built-in channels (IDs 109970-109999)
@@ -200,6 +208,8 @@ sudo ./deploy_cdb_lists.sh localhost
 #### 1. Copy Rules
 ```bash
 # Copy parent rules
+sudo cp 60000-windows_channel_parent.xml /var/ossec/etc/rules/
+sudo cp 61600-sysmon_base_events.xml /var/ossec/etc/rules/
 sudo cp 100000-sysmon_new_events.xml /var/ossec/etc/rules/
 sudo cp 109970-windows_builtin_channels_parent.xml /var/ossec/etc/rules/
 sudo cp 200000-windows_powershell_parent.xml /var/ossec/etc/rules/
@@ -211,8 +221,8 @@ sudo cp 200400-sigma_windows_part*.xml /var/ossec/etc/rules/
 sudo cp 210007-sigma_linux.xml /var/ossec/etc/rules/
 
 # Set permissions
-sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml
-sudo chmod 640 /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml
+sudo chown wazuh:wazuh /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/600*.xml /var/ossec/etc/rules/616*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml
+sudo chmod 640 /var/ossec/etc/rules/*sigma*.xml /var/ossec/etc/rules/600*.xml /var/ossec/etc/rules/616*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml
 ```
 
 #### 2. Copy CDB Lists
@@ -226,6 +236,8 @@ sudo chmod 640 /var/ossec/etc/lists/sigma_*
 ```xml
 <ruleset>
   <!-- Parent Rules -->
+  <include>60000-windows_channel_parent.xml</include>
+  <include>61600-sysmon_base_events.xml</include>
   <include>100000-sysmon_new_events.xml</include>
   <include>109970-windows_builtin_channels_parent.xml</include>
   <include>200000-windows_powershell_parent.xml</include>
@@ -269,6 +281,9 @@ sudo /var/ossec/bin/wazuh-logtest  # Test with sample events
 
 | Product | ID Range | Count | Reserved IDs | Purpose |
 |---------|----------|-------|--------------|---------|
+| Channel Parents | 60001-60003 | 3 | - | Security/System/Application channels |
+| Sysmon Base Events | 61600, 61603-61617 | 18 | - | Sysmon Events 1-15 |
+| Sysmon Extended Events | 100000+ | Variable | - | Sysmon Events 6, 17-22, 25 |
 | Built-in Channel Parents | 109970-109999 | 30 | - | All Windows built-in channels (consolidated) |
 | PowerShell Parents | 200000-200003 | 4 | - | ps_script, ps_module, ps_classic |
 | Event ID Parents | 200100-200103 | 4 | - | EventID-based grouping |
