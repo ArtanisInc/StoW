@@ -226,24 +226,31 @@ func WriteDeploymentInstructions(c *types.Config) {
 	scriptFile.WriteString("else\n")
 	scriptFile.WriteString("  scp -r lists/* $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/lists/\n")
 	scriptFile.WriteString("fi\n\n")
-	scriptFile.WriteString("# Step 2: Copy XML rule files\n")
-	scriptFile.WriteString("echo \"[2/4] Copying Sigma rule files...\"\n")
+	scriptFile.WriteString("# Step 2: Copy parent rule files\n")
+	scriptFile.WriteString("echo \"[2/5] Copying parent rule files...\"\n")
 	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
-	scriptFile.WriteString("  cp -v *-sigma_*.xml *-sysmon_*.xml /var/ossec/etc/rules/\n")
+	scriptFile.WriteString("  cp -v 60000-windows_channel_parent.xml 61600-sysmon_base_events.xml 100000-sysmon_new_events.xml 109970-windows_builtin_channels_parent.xml 200000-windows_powershell_parent.xml 200100-windows_eventid_parent.xml 210000-linux_auditd_parent.xml /var/ossec/etc/rules/ 2>/dev/null || true\n")
 	scriptFile.WriteString("else\n")
-	scriptFile.WriteString("  scp *-sigma_*.xml *-sysmon_*.xml $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/rules/\n")
+	scriptFile.WriteString("  scp 60000-windows_channel_parent.xml 61600-sysmon_base_events.xml 100000-sysmon_new_events.xml 109970-windows_builtin_channels_parent.xml 200000-windows_powershell_parent.xml 200100-windows_eventid_parent.xml 210000-linux_auditd_parent.xml $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/rules/ 2>/dev/null || true\n")
 	scriptFile.WriteString("fi\n\n")
-	scriptFile.WriteString("# Step 3: Set permissions\n")
-	scriptFile.WriteString("echo \"[3/4] Setting permissions...\"\n")
+	scriptFile.WriteString("# Step 3: Copy Sigma rule files\n")
+	scriptFile.WriteString("echo \"[3/5] Copying Sigma rule files...\"\n")
+	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
+	scriptFile.WriteString("  cp -v *-sigma_*.xml /var/ossec/etc/rules/\n")
+	scriptFile.WriteString("else\n")
+	scriptFile.WriteString("  scp *-sigma_*.xml $WAZUH_USER@$WAZUH_SERVER:/var/ossec/etc/rules/\n")
+	scriptFile.WriteString("fi\n\n")
+	scriptFile.WriteString("# Step 4: Set permissions\n")
+	scriptFile.WriteString("echo \"[4/5] Setting permissions...\"\n")
 	scriptFile.WriteString("if [ \"$WAZUH_SERVER\" = \"localhost\" ]; then\n")
 	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/lists/sigma_*\n")
-	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml\n")
+	scriptFile.WriteString("  chown wazuh:wazuh /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/600*.xml /var/ossec/etc/rules/616*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml\n")
 	scriptFile.WriteString("  chmod 640 /var/ossec/etc/lists/sigma_*\n")
-	scriptFile.WriteString("  chmod 640 /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml\n")
+	scriptFile.WriteString("  chmod 640 /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/600*.xml /var/ossec/etc/rules/616*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml\n")
 	scriptFile.WriteString("else\n")
-	scriptFile.WriteString("  ssh $WAZUH_USER@$WAZUH_SERVER \"chown wazuh:wazuh /var/ossec/etc/lists/sigma_* && chown wazuh:wazuh /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml && chmod 640 /var/ossec/etc/lists/sigma_* && chmod 640 /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/*-sysmon_*.xml\"\n")
+	scriptFile.WriteString("  ssh $WAZUH_USER@$WAZUH_SERVER \"chown wazuh:wazuh /var/ossec/etc/lists/sigma_* && chown wazuh:wazuh /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/600*.xml /var/ossec/etc/rules/616*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml && chmod 640 /var/ossec/etc/lists/sigma_* && chmod 640 /var/ossec/etc/rules/*-sigma_*.xml /var/ossec/etc/rules/600*.xml /var/ossec/etc/rules/616*.xml /var/ossec/etc/rules/1000*.xml /var/ossec/etc/rules/2000*.xml /var/ossec/etc/rules/2100*.xml\"\n")
 	scriptFile.WriteString("fi\n\n")
-	scriptFile.WriteString("echo \"[4/4] CDB lists will be compiled automatically on Wazuh restart\"\n")
+	scriptFile.WriteString("echo \"[5/5] CDB lists will be compiled automatically on Wazuh restart\"\n")
 	scriptFile.WriteString("echo \"\"\n")
 	scriptFile.WriteString("echo \"=======================================\"\n")
 	scriptFile.WriteString("echo \"IMPORTANT: Manual Steps Required\"\n")
@@ -251,24 +258,27 @@ func WriteDeploymentInstructions(c *types.Config) {
 	scriptFile.WriteString("echo \"1. Edit /var/ossec/etc/ossec.conf and add the <list> entries\"\n")
 	scriptFile.WriteString("echo \"   See WAZUH_CDB_CONFIG.txt for the configuration\"\n")
 	scriptFile.WriteString("echo \"\"\n")
-	scriptFile.WriteString("echo \"2. Add the Sigma rule files to ossec.conf:\"\n")
+	scriptFile.WriteString("echo \"2. Add the parent and Sigma rule files to ossec.conf:\"\n")
 	scriptFile.WriteString("echo \"   <ruleset>\"\n")
+	scriptFile.WriteString("echo \"     <!-- Parent Rules (MUST be loaded before Sigma rules) -->\"\n")
+	scriptFile.WriteString("echo \"     <include>60000-windows_channel_parent.xml</include>\"\n")
+	scriptFile.WriteString("echo \"     <include>61600-sysmon_base_events.xml</include>\"\n")
+	scriptFile.WriteString("echo \"     <include>100000-sysmon_new_events.xml</include>\"\n")
+	scriptFile.WriteString("echo \"     <include>109970-windows_builtin_channels_parent.xml</include>\"\n")
+	scriptFile.WriteString("echo \"     <include>200000-windows_powershell_parent.xml</include>\"\n")
+	scriptFile.WriteString("echo \"     <include>200100-windows_eventid_parent.xml</include>\"\n")
+	scriptFile.WriteString("echo \"     <include>210000-linux_auditd_parent.xml</include>\"\n")
+	scriptFile.WriteString("echo \"     <!-- Sigma Rules -->\"\n")
 
-	// Find all generated sigma and sysmon XML files (including part files)
+	// Find all generated sigma XML files (including part files)
 	xmlFiles, err := filepath.Glob("*-sigma_*.xml")
 	if err != nil {
 		utils.LogIt(utils.ERROR, "Failed to find generated Sigma XML files", err, c.Info, c.Debug)
 	}
 
-	sysmonFiles, err2 := filepath.Glob("*-sysmon_*.xml")
-	if err2 != nil {
-		utils.LogIt(utils.ERROR, "Failed to find generated Sysmon XML files", err2, c.Info, c.Debug)
-	}
-
-	// Combine and sort for consistent output
-	allXMLFiles := append(xmlFiles, sysmonFiles...)
-	if len(allXMLFiles) > 0 {
-		for _, xmlFile := range allXMLFiles {
+	// Sort for consistent output
+	if len(xmlFiles) > 0 {
+		for _, xmlFile := range xmlFiles {
 			scriptFile.WriteString(fmt.Sprintf("echo \"     <include>%s</include>\"\n", filepath.Base(xmlFile)))
 		}
 	}
