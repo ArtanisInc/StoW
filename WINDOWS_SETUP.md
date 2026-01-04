@@ -448,11 +448,11 @@ grep -i "error\|warning" /var/ossec/logs/ossec.log | grep -i sigma
 # Channel parents (3 rules: 60001-60003)
 grep -r "id=\"600" /var/ossec/etc/rules/60000-windows_channel_parent.xml | wc -l
 
-# Sysmon base events (18 rules: 61600, 61603-61617)
-grep -r "id=\"616" /var/ossec/etc/rules/61600-sysmon_base_events.xml | wc -l
-
 # Built-in channels (30 rules: 109970-109999)
 grep -r "id=\"109" /var/ossec/etc/rules/109970-windows_builtin_channels_parent.xml | wc -l
+
+# Sysmon base events (already in Wazuh official ruleset)
+grep -r "id=\"616" /var/ossec/ruleset/rules/0595-win-sysmon_rules.xml | wc -l
 ```
 
 ### High CPU/Memory on Agent
@@ -473,7 +473,7 @@ grep -r "id=\"109" /var/ossec/etc/rules/109970-windows_builtin_channels_parent.x
 - [ ] Verify event flow to manager
 
 **On Wazuh Manager:**
-- [ ] Deploy parent rule files (60000-windows_channel_parent.xml, 61600-sysmon_base_events.xml, 109970-windows_builtin_channels_parent.xml, 200000-windows_powershell_parent.xml, 200100-windows_eventid_parent.xml)
+- [ ] Deploy parent rule files (60000-windows_channel_parent.xml, 100000-sysmon_new_events.xml, 109970-windows_builtin_channels_parent.xml, 200000-windows_powershell_parent.xml, 200100-windows_eventid_parent.xml)
 - [ ] Deploy Sigma rule files (200400-*)
 - [ ] Update `ossec.conf` ruleset includes
 - [ ] Restart Wazuh manager
