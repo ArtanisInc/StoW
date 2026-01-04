@@ -178,7 +178,7 @@ Wazuh:
   # section/product should be lower case
   FieldMaps:
     # Windows field mappings for Sysmon and built-in channels
-    Windows:
+    windows:
       Accesses: win.eventdata.accesses
       AccessList: win.eventdata.accessList
       AccessMask: win.eventdata.accessMask
@@ -197,6 +197,7 @@ Wazuh:
       Caption: win.eventdata.caption
       Channel: win.eventdata.channel
       ChildImage: win.eventdata.image
+      ClassName: win.eventdata.className
       CommandLine: win.eventdata.commandLine
       Company: win.eventdata.company
       ComputerName: win.system.computer

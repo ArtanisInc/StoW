@@ -1,0 +1,57 @@
+<!--
+  Windows Channel Parent Rules
+
+  Generic parent rules that match on Windows Event Log channels (Security, System, Application).
+  These rules are used as fallback parents when events don't have more specific EventID-based or
+  service-specific parents.
+
+  Rule ID Range: 60001-60003 (3 parent rules)
+
+  Required:
+  - Windows event logging must be enabled (default on most systems)
+  - Wazuh agent must be configured to collect EventChannel logs
+
+  Deployment:
+  1. Copy to Wazuh Manager: sudo cp 60000-windows_channel_parent.xml /var/ossec/etc/rules/
+  2. Add to ossec.conf: <include>60000-windows_channel_parent.xml</include>
+  3. Restart Wazuh Manager: systemctl restart wazuh-manager
+
+  Use Cases:
+  - Parent rule for Security channel events without specific EventID parents
+  - Parent rule for System channel events without specific EventID parents
+  - Parent rule for Application channel events without specific EventID parents
+-->
+
+<group name="windows,channel-parents,">
+
+  <!-- Windows Security Channel - Rule ID: 60001 -->
+  <!-- Matches all events from the Security event log channel -->
+  <!-- Used as parent for Security events that don't have EventID-specific parents -->
+  <rule id="60001" level="0">
+    <field name="win.system.channel" type="pcre2">(?i)^Security$</field>
+    <description>Windows Security Channel Events</description>
+    <options>no_full_log</options>
+    <group>windows,security,</group>
+  </rule>
+
+  <!-- Windows System Channel - Rule ID: 60002 -->
+  <!-- Matches all events from the System event log channel -->
+  <!-- Used as parent for System events that don't have EventID-specific parents -->
+  <rule id="60002" level="0">
+    <field name="win.system.channel" type="pcre2">(?i)^System$</field>
+    <description>Windows System Channel Events</description>
+    <options>no_full_log</options>
+    <group>windows,system,</group>
+  </rule>
+
+  <!-- Windows Application Channel - Rule ID: 60003 -->
+  <!-- Matches all events from the Application event log channel -->
+  <!-- Used as parent for Application events that don't have EventID-specific parents -->
+  <rule id="60003" level="0">
+    <field name="win.system.channel" type="pcre2">(?i)^Application$</field>
+    <description>Windows Application Channel Events</description>
+    <options>no_full_log</options>
+    <group>windows,application,</group>
+  </rule>
+
+</group>
