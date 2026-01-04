@@ -444,7 +444,14 @@ On **Wazuh Manager**:
 # Check rule compilation errors
 grep -i "error\|warning" /var/ossec/logs/ossec.log | grep -i sigma
 
-# Verify parent rules loaded (should show 30 rules from IDs 109970-109999)
+# Verify parent rules loaded
+# Channel parents (3 rules: 60001-60003)
+grep -r "id=\"600" /var/ossec/etc/rules/60000-windows_channel_parent.xml | wc -l
+
+# Sysmon base events (18 rules: 61600, 61603-61617)
+grep -r "id=\"616" /var/ossec/etc/rules/61600-sysmon_base_events.xml | wc -l
+
+# Built-in channels (30 rules: 109970-109999)
 grep -r "id=\"109" /var/ossec/etc/rules/109970-windows_builtin_channels_parent.xml | wc -l
 ```
 
@@ -466,7 +473,7 @@ grep -r "id=\"109" /var/ossec/etc/rules/109970-windows_builtin_channels_parent.x
 - [ ] Verify event flow to manager
 
 **On Wazuh Manager:**
-- [ ] Deploy parent rule file (109970-windows_builtin_channels_parent.xml)
+- [ ] Deploy parent rule files (60000-windows_channel_parent.xml, 61600-sysmon_base_events.xml, 109970-windows_builtin_channels_parent.xml, 200000-windows_powershell_parent.xml, 200100-windows_eventid_parent.xml)
 - [ ] Deploy Sigma rule files (200400-*)
 - [ ] Update `ossec.conf` ruleset includes
 - [ ] Restart Wazuh manager
